@@ -8,6 +8,7 @@ import {
   KanbanSquare,
   ClipboardList,
   BarChart3,
+  Building2,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -40,22 +41,37 @@ const NAV_ITEMS: NavItem[] = [
     icon: <ClipboardList className="h-4 w-4" />,
   },
   {
+    href: '/administrative/rooms',
+    label: 'Rooms',
+    icon: <Building2 className="h-4 w-4" />,
+  },
+  {
     href: '/administrative/reports',
     label: 'Reports',
     icon: <BarChart3 className="h-4 w-4" />,
   },
 ];
 
-export function SidebarNav() {
+export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
 
   return (
-    <nav className="space-y-6 overflow-y-auto py-5 px-4">
+    <nav
+      className={cn(
+        'flex-1 space-y-6 overflow-y-auto py-5 transition-[padding] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]',
+        collapsed ? 'px-3' : 'px-4',
+      )}
+    >
       <div>
-        <p className="px-3 text-xs font-bold uppercase tracking-wider text-color-muted-foreground">
+        <p
+          className={cn(
+            'overflow-hidden px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 transition-[max-height,opacity,margin] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]',
+            collapsed ? 'mb-0 max-h-0 opacity-0' : 'mb-1 max-h-6 opacity-100',
+          )}
+        >
           Main
         </p>
-        <div className="mt-3 space-y-2">
+        <div className="space-y-0.5">
           {NAV_ITEMS.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
@@ -65,22 +81,29 @@ export function SidebarNav() {
                 className={cn(
                   'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                   isActive
-                    ? 'bg-color-sidebar-accent text-color-sidebar-primary'
-                    : 'text-color-sidebar-foreground hover:bg-color-muted',
+                    ? 'bg-sidebar-accent text-sidebar-primary'
+                    : 'text-sidebar-foreground hover:bg-muted',
                 )}
+                title={collapsed ? item.label : undefined}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                {!collapsed && <span>{item.label}</span>}
               </Link>
             );
           })}
         </div>
       </div>
 
-      <div className="border-t border-color-sidebar-border pt-6">
-        <button className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-color-destructive transition-all duration-200 hover:bg-red-50">
+      <div className="border-t border-sidebar-border pt-6">
+        <button
+          className={cn(
+            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive transition-all duration-200 hover:bg-red-50',
+            collapsed && 'justify-center',
+          )}
+          title={collapsed ? 'Sign Out' : undefined}
+        >
           <LogOut className="h-4 w-4" />
-          <span>Sign Out</span>
+          {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
     </nav>

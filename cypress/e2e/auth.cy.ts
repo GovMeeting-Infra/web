@@ -1,7 +1,7 @@
 describe('Authentication Flow', () => {
   describe('Login', () => {
     it('should display login form', () => {
-      cy.visit('/(auth)/login');
+      cy.visit('/login');
       cy.contains('Welcome').should('be.visible');
       cy.get('input[type="email"]').should('exist');
       cy.get('input[type="password"]').should('exist');
@@ -9,7 +9,7 @@ describe('Authentication Flow', () => {
     });
 
     it('should successfully login with valid credentials', () => {
-      cy.visit('/(auth)/login');
+      cy.visit('/login');
       cy.get('input[type="email"]').type('staff@moh.gov.sl');
       cy.get('input[type="password"]').type('Password@123');
       cy.get('button[type="submit"]').click();
@@ -17,7 +17,7 @@ describe('Authentication Flow', () => {
     });
 
     it('should show error with invalid credentials', () => {
-      cy.visit('/(auth)/login');
+      cy.visit('/login');
       cy.get('input[type="email"]').type('staff@moh.gov.sl');
       cy.get('input[type="password"]').type('WrongPassword');
       cy.get('button[type="submit"]').click();
@@ -25,7 +25,7 @@ describe('Authentication Flow', () => {
     });
 
     it('should show error with invalid email format', () => {
-      cy.visit('/(auth)/login');
+      cy.visit('/login');
       cy.get('input[type="email"]').type('invalid-email');
       cy.get('input[type="password"]').type('Password@123');
       cy.get('button[type="submit"]').click();
@@ -33,7 +33,7 @@ describe('Authentication Flow', () => {
     });
 
     it('should show error with short password', () => {
-      cy.visit('/(auth)/login');
+      cy.visit('/login');
       cy.get('input[type="email"]').type('staff@moh.gov.sl');
       cy.get('input[type="password"]').type('short');
       cy.get('button[type="submit"]').click();
@@ -41,13 +41,13 @@ describe('Authentication Flow', () => {
     });
 
     it('should have working remember me checkbox', () => {
-      cy.visit('/(auth)/login');
+      cy.visit('/login');
       cy.get('input[type="checkbox"]').should('exist');
       cy.get('input[type="checkbox"]').check().should('be.checked');
     });
 
     it('should have working forgot password link', () => {
-      cy.visit('/(auth)/login');
+      cy.visit('/login');
       cy.contains('Forgot password?').should('exist');
       // Uncomment when forgot-password route is created
       // cy.contains('Forgot password?').click();
