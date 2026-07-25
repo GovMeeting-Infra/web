@@ -61,6 +61,26 @@ export type ActionItemStatus =
 export type AttendeeStatus = 'INVITED' | 'CONFIRMED' | 'DECLINED' | 'NO_RESPONSE';
 export type RSVPStatus = 'CONFIRMED' | 'DECLINED';
 
+/** Lean shape returned by the unauthenticated public calendar endpoints. */
+export interface PublicEventListItem {
+  id: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  colorCategory: string | null;
+  type: EventType | null;
+  venueName: string | null;
+  bannerImage: string | null;
+}
+
+export interface PublicEventDetail extends PublicEventListItem {
+  description: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  externalUrl: string | null;
+  ministry: { name: string } | null;
+}
+
 export interface CoOrganizerCandidate {
   id: string;
   name: string | null;
