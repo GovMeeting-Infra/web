@@ -23,6 +23,17 @@ export interface Room {
   bookingsToday: number;
 }
 
+export interface CreateRoomInput {
+  name: string;
+  location: string;
+  capacity: number;
+  amenities?: string[];
+  /** Super-admins only; ignored for everyone else. */
+  ministryId?: string;
+}
+
+export type UpdateRoomInput = Partial<Omit<CreateRoomInput, 'ministryId'>>;
+
 export interface RoomBooking {
   id: string;
   roomId: string;
