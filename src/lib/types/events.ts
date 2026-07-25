@@ -250,6 +250,53 @@ export interface ActionItem {
   completedBy?: { id: string; name: string; email: string } | null;
 }
 
+/** Action item as returned by the cross-event board endpoint. */
+export interface BoardActionItem extends ActionItem {
+  minutes: {
+    id: string;
+    event: { id: string; title: string; ministryId: string };
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** The three columns the board shows; the enum has two further states. */
+export const BOARD_COLUMNS = [
+  { status: 'TODO' as const, label: 'To Do' },
+  { status: 'IN_PROGRESS' as const, label: 'In Progress' },
+  { status: 'COMPLETED' as const, label: 'Done' },
+];
+
+/**
+ * BLOCKED and CANCELLED have no column of their own, so they ride along with
+ * the nearest one rather than vanishing from the board.
+ */
+export function boardColumnFor(status: ActionItemStatus): ActionItemStatus {
+  if (status === 'BLOCKED') return 'TODO';
+  if (status === 'CANCELLED') return 'COMPLETED';
+  return status;
+}
+
+export function isActionItemOverdue(item: {
+  dueDate: string;
+  status: ActionItemStatus;
+}): boolean {
+  if (item.status === 'COMPLETED' || item.status === 'CANCELLED') return false;
+  return new Date(item.dueDate).getTime() < Date.now();
+}
+
+export const POINT_LABELS: Record<PointType, string> = {
+  ACTION_POINT: 'Action Point',
+  AGREED: 'Agreed',
+  DECISION: 'Decision',
+};
+
+export const POINT_STYLES: Record<PointType, string> = {
+  ACTION_POINT: 'border-[#d9cff2] bg-[#f3effd] text-[#4c1d95]',
+  AGREED: 'border-[#bfe4ee] bg-[#e8f7fb] text-[#0e6f85]',
+  DECISION: 'border-[#c9d9f2] bg-[#edf3fd] text-[#003580]',
+};
+
 export interface CreateActionItemInput {
   title: string;
   description?: string;
