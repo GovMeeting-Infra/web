@@ -48,7 +48,7 @@ export default function RoomDetailPage({
     retry: false,
   });
 
-  const { data: bookings = [] } = useQuery({
+  const { data: bookings = [], error: bookingsError } = useQuery({
     queryKey: ['room-bookings', id],
     queryFn: () =>
       apiFetch<RoomBooking[]>(
@@ -61,7 +61,7 @@ export default function RoomDetailPage({
   });
 
   // Events occupying this room, via the roomId filter added for these pages.
-  const { data: eventsResponse } = useQuery({
+  const { data: eventsResponse, error: eventsError } = useQuery({
     queryKey: ['room-events', id],
     queryFn: () =>
       apiFetch<EventListResponse>(
@@ -163,7 +163,14 @@ export default function RoomDetailPage({
             Room Bookings
           </h2>
 
-          {bookings.length === 0 ? (
+          {bookingsError ? (
+            // Never fall through to "no bookings" on a failure — an empty list
+            // and a refused request must not look the same.
+            <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+              Couldn&apos;t load bookings:{' '}
+              {bookingsError instanceof Error ? bookingsError.message : 'request failed'}
+            </p>
+          ) : bookings.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">No upcoming bookings</p>
           ) : (
             <ul className="mt-4 divide-y divide-border">
@@ -207,7 +214,12 @@ export default function RoomDetailPage({
             Scheduled Events
           </h2>
 
-          {events.length === 0 ? (
+          {eventsError ? (
+            <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+              Couldn&apos;t load events:{' '}
+              {eventsError instanceof Error ? eventsError.message : 'request failed'}
+            </p>
+          ) : events.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">No scheduled events</p>
           ) : (
             <ul className="mt-4 divide-y divide-border">

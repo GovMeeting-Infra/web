@@ -55,7 +55,7 @@ function AvailabilityView() {
 
   const selectedRoom = rooms.find((r) => r.id === roomId) ?? null;
 
-  const { data: bookings = [] } = useQuery({
+  const { data: bookings = [], error: bookingsError } = useQuery({
     queryKey: ['availability-bookings', roomId, dateParam],
     queryFn: () =>
       apiFetch<RoomBooking[]>(
@@ -69,7 +69,7 @@ function AvailabilityView() {
 
   // Events occupy a room just as bookings do. Availability used to ignore them
   // entirely, so a room hosting an event still showed every slot as free.
-  const { data: eventsResponse } = useQuery({
+  const { data: eventsResponse, error: eventsError } = useQuery({
     queryKey: ['availability-events', roomId, dateParam],
     queryFn: () =>
       apiFetch<EventListResponse>(
@@ -200,6 +200,26 @@ function AvailabilityView() {
               className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb] sm:w-auto"
             />
           </div>
+
+          {/* If either source failed we cannot claim a slot is free — say so
+              rather than rendering a confidently wrong grid. */}
+          {(bookingsError || eventsError) && (
+            <div className="flex gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+              <AlertCircle className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-semibold">Availability may be incomplete</p>
+                <p className="mt-0.5">
+                  {bookingsError instanceof Error
+                    ? `Bookings: ${bookingsError.message}. `
+                    : ''}
+                  {eventsError instanceof Error
+                    ? `Events: ${eventsError.message}.`
+                    : ''}{' '}
+                  Slots below may show as available when they are not.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="rounded-[1.5rem] border border-border bg-card p-6">
             <h2 className="text-sm font-semibold text-foreground">
