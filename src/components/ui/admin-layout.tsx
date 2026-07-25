@@ -91,8 +91,10 @@ export function AdminLayout({
         <SidebarNav collapsed={collapsed} />
       </aside>
 
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Main Content. min-w-0 lets this flex child shrink below its content
+          width — without it a wide page pushes the whole layout sideways
+          instead of scrolling or wrapping inside the content area. */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {/* Topbar */}
         <Topbar
           ministryName={ministryName}
@@ -101,8 +103,8 @@ export function AdminLayout({
         />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto">
-          <div className="bg-background">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="min-w-0 bg-background">
             {children}
           </div>
         </main>
