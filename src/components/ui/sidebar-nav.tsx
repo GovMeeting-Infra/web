@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   CalendarRange,
+  HelpCircle,
+  Settings,
   LayoutDashboard,
   CalendarDays,
   KanbanSquare,
@@ -50,6 +52,16 @@ const NAV_ITEMS: NavItem[] = [
     href: '/administrative/rooms',
     label: 'Rooms',
     icon: <Building2 className="h-4 w-4" />,
+  },
+  {
+    href: '/administrative/help',
+    label: 'Help',
+    icon: <HelpCircle className="h-4 w-4" />,
+  },
+  {
+    href: '/administrative/settings',
+    label: 'Settings',
+    icon: <Settings className="h-4 w-4" />,
   },
   {
     href: '/administrative/reports',
