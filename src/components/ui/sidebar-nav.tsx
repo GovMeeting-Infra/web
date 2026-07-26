@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import {
   CalendarRange,
   Users,
+  UserCircle,
   HelpCircle,
   Settings,
   LayoutDashboard,
@@ -63,6 +64,11 @@ const NAV_ITEMS: NavItem[] = [
     href: '/administrative/help',
     label: 'Help',
     icon: <HelpCircle className="h-4 w-4" />,
+  },
+  {
+    href: '/administrative/profile',
+    label: 'Profile',
+    icon: <UserCircle className="h-4 w-4" />,
   },
   {
     href: '/administrative/settings',
