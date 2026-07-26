@@ -398,12 +398,20 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               {checkIns.map((c) => (
                 <li key={c.id} className="flex items-baseline justify-between gap-4 py-2">
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-foreground">
+                    <p className="flex items-center gap-2 truncate text-sm font-medium text-foreground">
                       {c.signedName}
+                      {c.isWalkIn && (
+                        <span className="shrink-0 rounded-full bg-[#fff8e5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8d6400]">
+                          Walk-in
+                        </span>
+                      )}
                     </p>
-                    {c.user?.email && (
+                    {/* Guests have no linked account, so fall back to the email
+                        they signed in with. */}
+                    {(c.user?.email || c.guestEmail) && (
                       <p className="truncate text-xs text-muted-foreground">
-                        {c.user.email}
+                        {c.user?.email ?? c.guestEmail}
+                        {!c.userId && ' · guest'}
                       </p>
                     )}
                   </div>

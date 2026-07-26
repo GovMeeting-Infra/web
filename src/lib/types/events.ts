@@ -163,6 +163,7 @@ export interface EventDetail {
   venueLat: number | null;
   venueLng: number | null;
   geofenceRadius: number;
+  allowGuestCheckIn: boolean;
   bannerImage: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -192,6 +193,7 @@ export interface CreateEventInput {
   startAt: string;
   endAt: string;
   venueName?: string;
+  allowGuestCheckIn?: boolean;
   roomId?: string;
   colorCategory?: string;
   coOrganizerIds?: string[];
@@ -207,15 +209,63 @@ export interface CreateEventInput {
 
 export type UpdateEventInput = Partial<CreateEventInput>;
 
+/**
+ * The check-in area, anchored to wherever the organizer stood when they
+ * generated the code. `enabled` false means no usable location was available,
+ * so attendees can check in from anywhere and are recorded as unverified.
+ */
+export interface CheckInGeofence {
+  enabled: boolean;
+  radiusMeters: number;
+  anchorLat: number | null;
+  anchorLng: number | null;
+  anchorAccuracy: number | null;
+  anchorSetAt: string | null;
+}
+
 export interface CheckInCodeResponse {
-  token: string;
-  qrCodeUrl: string;
-  expiresAt: string;
-  refreshAt: string;
-  venueLat: string | number | null;
-  venueLng: string | number | null;
-  geofenceRadius: number | null;
-  geofenceEnabled: boolean;
+  /** null until an organizer explicitly generates one. */
+  token: string | null;
+  qrCodeUrl: string | null;
+  expiresAt: string | null;
+  refreshAt: string | null;
+  geofence: CheckInGeofence;
+  allowGuestCheckIn: boolean;
+  eventStatus: EventStatus;
+  endAt: string;
+}
+
+/** Why a scanned token can or cannot be used right now. */
+export type CheckInStatus =
+  | 'INVALID'
+  | 'EXPIRED'
+  | 'UNAVAILABLE'
+  | 'ENDED'
+  | 'OPEN';
+
+export interface CheckInContext {
+  status: CheckInStatus;
+  event: {
+    id: string;
+    title: string;
+    startAt: string;
+    endAt: string;
+    venueName: string | null;
+    allowGuestCheckIn: boolean;
+  } | null;
+  /** True when a check-in area exists, so location is mandatory. */
+  geofenceRequired: boolean;
+}
+
+export interface CheckInResult {
+  id: string;
+  eventId: string;
+  eventTitle: string;
+  signedName: string;
+  checkInAt: string;
+  checkInMethod: CheckInMethod;
+  withinGeofence: boolean | null;
+  isWalkIn: boolean;
 }
 
 export interface Minutes {
@@ -309,11 +359,18 @@ export interface CreateActionItemInput {
 export interface AttendanceRecord {
   id: string;
   eventId: string;
-  userId: string;
+  /** null for guests, who have no account. */
+  userId: string | null;
+  guestName?: string | null;
+  guestEmail?: string | null;
+  /** A guest with no matching invite for this event. */
+  isWalkIn?: boolean;
   signedName: string;
   checkInAt: string;
   checkInMethod: CheckInMethod;
+  /** null means no check-in area was set, not that the check failed. */
   withinGeofence?: boolean | null;
+  mockLocationFlag?: boolean;
   user?: { id: string; name: string; email: string };
 }
 

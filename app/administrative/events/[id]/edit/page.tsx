@@ -77,6 +77,7 @@ export default function EditEventPage({
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
+  const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
   const [roomId, setRoomId] = useState('');
   const [type, setType] = useState<string>('MEETING');
   const [scope, setScope] = useState('');
@@ -117,6 +118,7 @@ export default function EditEventPage({
     setContactPhone(event.contactPhone ?? '');
     setExternalUrl(event.externalUrl ?? '');
     setBannerImage(event.bannerImage ?? '');
+    setAllowGuestCheckIn(event.allowGuestCheckIn ?? true);
     setSeeded(true);
   }, [event, seeded]);
 
@@ -158,6 +160,7 @@ export default function EditEventPage({
           contactPhone: contactPhone.trim() || undefined,
           externalUrl: externalUrl.trim() || undefined,
           bannerImage: bannerImage.trim() || undefined,
+          allowGuestCheckIn,
         }),
       });
 
@@ -322,6 +325,26 @@ export default function EditEventPage({
             placeholder="e.g., LAUNCH"
             className={field}
           />
+        </div>
+
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={allowGuestCheckIn}
+              onChange={(e) => setAllowGuestCheckIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span>
+              <span className="text-sm font-medium text-foreground">
+                Allow guest check-in
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                People without an account can check in with their name, email
+                and signature.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="grid grid-cols-2 gap-4">

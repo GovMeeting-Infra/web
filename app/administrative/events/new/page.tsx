@@ -70,6 +70,7 @@ export default function NewEventPage() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
+  const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
   const [roomId, setRoomId] = useState('');
   const [ministryId, setMinistryId] = useState('');
   const [type, setType] = useState<string>('MEETING');
@@ -202,6 +203,7 @@ export default function NewEventPage() {
         contactPhone: contactPhone.trim() || undefined,
         coOrganizerIds: coOrganizers.length ? coOrganizers : undefined,
         ministryId: isSuperAdmin ? ministryId || undefined : undefined,
+        allowGuestCheckIn,
       };
 
       if (isPublic) {
@@ -382,6 +384,26 @@ export default function NewEventPage() {
             </div>
           </>
         )}
+
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={allowGuestCheckIn}
+              onChange={(e) => setAllowGuestCheckIn(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span>
+              <span className="text-sm font-medium text-foreground">
+                Allow guest check-in
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                People without an account can check in with their name, email
+                and signature.
+              </span>
+            </span>
+          </label>
+        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
