@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, Send, Plus, Archive } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
+import { PersonPicker } from '@/components/ui/person-picker';
 import { ACTION_ITEM_STATUS_LABELS, type EventDetail, type Minutes, type ActionItem } from '@/lib/types/events';
 
 export default function MinutesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,7 +17,12 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const [summary, setSummary] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newActionItem, setNewActionItem] = useState({ title: '', dueDate: '' });
+  const [newActionItem, setNewActionItem] = useState<{
+    title: string;
+    dueDate: string;
+    ownerId: string | null;
+    ownerName: string | null;
+  }>({ title: '', dueDate: '', ownerId: null, ownerName: null });
   const [isAddingActionItem, setIsAddingActionItem] = useState(false);
 
   const { data: event } = useQuery({
@@ -137,9 +143,10 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({
           title: newActionItem.title,
           dueDate: new Date(newActionItem.dueDate).toISOString(),
+          ownerId: newActionItem.ownerId ?? undefined,
         }),
       });
-      setNewActionItem({ title: '', dueDate: '' });
+      setNewActionItem({ title: '', dueDate: '', ownerId: null, ownerName: null });
       queryClient.invalidateQueries({ queryKey: ['actionItems', id] });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add action item');
@@ -276,28 +283,61 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
 
           {canEdit && (
             <div className="rounded-[1.75rem] border border-border bg-card p-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <input
-                  type="text"
-                  value={newActionItem.title}
-                  onChange={(e) => setNewActionItem((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="Action item title"
-                  className="rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <input
-                  type="date"
-                  value={newActionItem.dueDate}
-                  onChange={(e) => setNewActionItem((prev) => ({ ...prev, dueDate: e.target.value }))}
-                  className="rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <button
-                  onClick={handleAddActionItem}
-                  disabled={isAddingActionItem || !newActionItem.title.trim()}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-2 font-medium text-secondary-foreground disabled:opacity-50"
-                >
-                  <Plus className="h-4 w-4" /> Add
-                </button>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Action
+                  </label>
+                  <input
+                    type="text"
+                    value={newActionItem.title}
+                    onChange={(e) => setNewActionItem((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="What needs to be done"
+                    className="mt-1 w-full rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Due date
+                  </label>
+                  <input
+                    type="date"
+                    value={newActionItem.dueDate}
+                    onChange={(e) => setNewActionItem((prev) => ({ ...prev, dueDate: e.target.value }))}
+                    className="mt-1 w-full rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
               </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Assign to (optional)
+                </label>
+                <PersonPicker
+                  value={newActionItem.ownerId}
+                  valueName={newActionItem.ownerName}
+                  onChange={(person) =>
+                    setNewActionItem((prev) => ({
+                      ...prev,
+                      ownerId: person?.id ?? null,
+                      ownerName: person?.name ?? null,
+                    }))
+                  }
+                  disabled={isAddingActionItem}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  An unassigned item still appears on the board, but nobody is
+                  reminded about it.
+                </p>
+              </div>
+
+              <button
+                onClick={handleAddActionItem}
+                disabled={isAddingActionItem || !newActionItem.title.trim() || !newActionItem.dueDate}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-2 font-medium text-secondary-foreground disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4" /> {isAddingActionItem ? 'Adding…' : 'Add action item'}
+              </button>
             </div>
           )}
 

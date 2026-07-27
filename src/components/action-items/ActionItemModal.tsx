@@ -1,8 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { X, CalendarDays, User, UserCheck, CircleDot, FileText } from 'lucide-react';
+import {
+  PersonPicker,
+  type DirectoryPerson,
+} from '@/components/ui/person-picker';
 import {
   ACTION_ITEM_STATUS_LABELS,
   POINT_LABELS,
@@ -31,14 +35,39 @@ function Field({
   );
 }
 
-/** Read-only detail view. Closes on X, Escape or backdrop click. */
+/**
+ * Detail view. Closes on X, Escape or backdrop click.
+ *
+ * The assignee is editable when `onReassign` is supplied; the caller decides
+ * whether this user may reassign, since the server is the real authority.
+ */
 export function ActionItemModal({
   item,
   onClose,
+  onReassign,
 }: {
   item: BoardActionItem;
   onClose: () => void;
+  onReassign?: (ownerId: string | null) => Promise<void>;
 }) {
+  const [isReassigning, setIsReassigning] = useState(false);
+  const [reassignError, setReassignError] = useState<string | null>(null);
+
+  const handleReassign = async (person: DirectoryPerson | null) => {
+    if (!onReassign) return;
+    setIsReassigning(true);
+    setReassignError(null);
+    try {
+      await onReassign(person?.id ?? null);
+    } catch (err) {
+      setReassignError(
+        err instanceof Error ? err.message : 'Could not change the assignee.',
+      );
+    } finally {
+      setIsReassigning(false);
+    }
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -92,11 +121,34 @@ export function ActionItemModal({
         )}
 
         <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field
-            icon={<User className="h-3.5 w-3.5" />}
-            label="Assignee"
-            value={item.owner?.name ?? item.ownerName ?? 'Unassigned'}
-          />
+          {onReassign ? (
+            <div className="sm:col-span-2">
+              <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <User className="h-3.5 w-3.5" />
+                Assignee
+              </dt>
+              <dd>
+                <PersonPicker
+                  value={item.owner?.id ?? null}
+                  valueName={item.owner?.name ?? item.ownerName ?? null}
+                  onChange={handleReassign}
+                  placeholder="Search for a colleague to assign…"
+                  disabled={isReassigning}
+                />
+                {reassignError && (
+                  <p className="mt-1 text-xs text-destructive">
+                    {reassignError}
+                  </p>
+                )}
+              </dd>
+            </div>
+          ) : (
+            <Field
+              icon={<User className="h-3.5 w-3.5" />}
+              label="Assignee"
+              value={item.owner?.name ?? item.ownerName ?? 'Unassigned'}
+            />
+          )}
           <Field
             icon={<UserCheck className="h-3.5 w-3.5" />}
             label="Assigned by"
