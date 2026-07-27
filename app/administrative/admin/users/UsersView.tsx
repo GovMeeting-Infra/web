@@ -33,10 +33,13 @@ interface AdminUser {
 }
 
 interface Invite {
+  userId: string;
   email: string;
   link: string;
   expiresInDays: number;
   emailSent: boolean;
+  /** Why the send failed, when it did. */
+  emailError?: string | null;
 }
 
 export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
@@ -56,6 +59,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   });
   const [invite, setInvite] = useState<Invite | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
@@ -95,6 +99,29 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : msg);
+    }
+  };
+
+  /**
+   * Re-issues the invitation, which also retries the email. Used by the banner
+   * and by the per-row button. Re-issuing invalidates the previous link, so the
+   * banner always shows the one that now works.
+   */
+  const resendInvite = async (userId: string) => {
+    setError(null);
+    setIsResending(true);
+    try {
+      setInvite(
+        await apiFetch<Invite>(`/api/v1/admin/users/${userId}/invite`, {
+          method: 'POST',
+        }),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not re-issue the invitation.',
+      );
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -161,19 +188,46 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         </div>
       )}
 
-      {/* Invite link. Email cannot be sent, so this is how it reaches them. */}
+      {/* The link is shown whether or not the email went, so an administrator
+          can always hand it over in person. */}
       {invite && (
-        <div className="rounded-[1.5rem] border border-[#fde8a6] bg-[#fff8e5] p-6">
-          <h2 className="font-semibold text-[#8d6400]">
-            {invite.email} created — send them this link
+        <div
+          className={
+            invite.emailSent
+              ? 'rounded-[1.5rem] border border-[#cfe5d7] bg-[#edf8f1] p-6'
+              : 'rounded-[1.5rem] border border-[#fde8a6] bg-[#fff8e5] p-6'
+          }
+        >
+          <h2
+            className={
+              invite.emailSent
+                ? 'font-semibold text-[#007236]'
+                : 'font-semibold text-[#8d6400]'
+            }
+          >
+            {invite.emailSent
+              ? `Invitation emailed to ${invite.email}`
+              : `${invite.email} created — send them this link`}
           </h2>
-          <p className="mt-1 text-sm text-[#8d6400]/90">
-            Email delivery isn&apos;t configured on this server, so the invitation
-            was not emailed. Share this link with them directly; it lets them set
-            their own password and expires in {invite.expiresInDays} days.
+          <p
+            className={
+              invite.emailSent
+                ? 'mt-1 text-sm text-[#007236]/90'
+                : 'mt-1 text-sm text-[#8d6400]/90'
+            }
+          >
+            {invite.emailSent
+              ? `They can set their own password from the link in that email, which expires in ${invite.expiresInDays} days. The same link is below if you would rather pass it on directly.`
+              : `The invitation could not be emailed${invite.emailError ? ` (${invite.emailError})` : ''}. The account exists — share this link with them directly, or try sending again. It lets them set their own password and expires in ${invite.expiresInDays} days.`}
           </p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <code className="min-w-0 flex-1 truncate rounded-lg border border-[#fde8a6] bg-white px-3 py-2 text-xs text-slate-700">
+            <code
+              className={
+                invite.emailSent
+                  ? 'min-w-0 flex-1 truncate rounded-lg border border-[#cfe5d7] bg-white px-3 py-2 text-xs text-slate-700'
+                  : 'min-w-0 flex-1 truncate rounded-lg border border-[#fde8a6] bg-white px-3 py-2 text-xs text-slate-700'
+              }
+            >
               {invite.link}
             </code>
             <button
@@ -182,12 +236,31 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
               }}
-              className="flex items-center gap-1.5 rounded-lg bg-[#8d6400] px-3 py-2 text-xs font-medium text-white"
+              className={
+                invite.emailSent
+                  ? 'flex items-center gap-1.5 rounded-lg bg-[#007236] px-3 py-2 text-xs font-medium text-white'
+                  : 'flex items-center gap-1.5 rounded-lg bg-[#8d6400] px-3 py-2 text-xs font-medium text-white'
+              }
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? 'Copied' : 'Copy'}
             </button>
+            {!invite.emailSent && (
+              <button
+                onClick={() => resendInvite(invite.userId)}
+                disabled={isResending}
+                className="flex items-center gap-1.5 rounded-lg border border-[#8d6400]/40 px-3 py-2 text-xs font-medium text-[#8d6400] transition-colors hover:bg-[#8d6400]/10 disabled:opacity-60"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                {isResending ? 'Sending…' : 'Try sending again'}
+              </button>
+            )}
           </div>
+          {!invite.emailSent && (
+            <p className="mt-3 text-xs text-[#8d6400]/80">
+              Sending again issues a fresh link and invalidates the one above.
+            </p>
+          )}
         </div>
       )}
 
@@ -195,8 +268,9 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         <div className="space-y-4 rounded-[1.5rem] border border-border bg-card p-6">
           <h2 className="font-semibold text-primary">Create new user</h2>
           <p className="text-sm text-muted-foreground">
-            They&apos;ll receive a link to set their own password — you never handle
-            it.
+            They&apos;re emailed a link to set their own password — you never
+            handle it. The link is shown to you as well, so you can pass it on
+            directly if the email does not reach them.
           </p>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -270,7 +344,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               disabled={isSaving}
               className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50"
             >
-              {isSaving ? 'Creating…' : 'Create user & generate invite'}
+              {isSaving ? 'Creating…' : 'Create user & send invite'}
             </button>
             <button
               onClick={() => setShowCreate(false)}
@@ -436,23 +510,9 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                         </button>
                         <button
                           title={`Re-send invitation to ${u.name}`}
-                          onClick={async () => {
-                            setError(null);
-                            try {
-                              const r = await apiFetch<Invite>(
-                                `/api/v1/admin/users/${u.id}/invite`,
-                                { method: 'POST' },
-                              );
-                              setInvite(r);
-                            } catch (err) {
-                              setError(
-                                err instanceof Error
-                                  ? err.message
-                                  : 'Could not re-issue the invitation.',
-                              );
-                            }
-                          }}
-                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                          disabled={isResending}
+                          onClick={() => resendInvite(u.id)}
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
                         >
                           <Mail className="h-4 w-4" />
                         </button>
