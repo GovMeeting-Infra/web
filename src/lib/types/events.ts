@@ -51,6 +51,25 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
 };
 export type CheckInMethod = 'QR' | 'MANUAL' | 'GEO';
 export type MinutesStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+
+/** One row in the cross-event minutes list. */
+export interface MinutesSummary {
+  id: string;
+  status: MinutesStatus;
+  summary: string | null;
+  draftedAt: string | null;
+  publishedAt: string | null;
+  updatedAt: string;
+  event: { id: string; title: string; startAt: string; ministryId: string };
+  draftedBy: { id: string; name: string } | null;
+  publishedBy: { id: string; name: string } | null;
+  _count: { actionItems: number };
+}
+
+export interface MinutesListResponse {
+  data: MinutesSummary[];
+  total: number;
+}
 export type PointType = 'ACTION_POINT' | 'AGREED' | 'DECISION';
 export type ActionItemStatus =
   | 'TODO'
