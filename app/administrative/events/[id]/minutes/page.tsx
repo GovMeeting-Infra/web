@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Send, Plus, Archive, Lock } from 'lucide-react';
+import { ArrowLeft, Send, Plus, Archive, Lock, RotateCcw } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PersonPicker } from '@/components/ui/person-picker';
@@ -24,6 +24,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
     ownerName: string | null;
   }>({ title: '', dueDate: '', ownerId: null, ownerName: null });
   const [isAddingActionItem, setIsAddingActionItem] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const { data: event } = useQuery({
     queryKey: ['event', id],
@@ -83,6 +84,42 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   // under the same "Archived" wording.
   const isReadOnlyView = (isPublished && isSuperAdmin) || isArchived;
   const canEdit = !!editPermission?.canEdit && !isReadOnlyView;
+
+  // Same roles the server allows to archive and restore. The server is still
+  // the authority; this only decides whether to offer the control.
+  const canManageArchive =
+    currentUser?.systemRole === 'MINISTER' || isSuperAdmin;
+
+  const handleArchiveToggle = async () => {
+    const restoring = isArchived;
+    if (
+      !restoring &&
+      !window.confirm(
+        'Archive these minutes? The record becomes permanent — nobody will be able to edit it, and only ministers and super admins will be able to read it.',
+      )
+    ) {
+      return;
+    }
+
+    setIsArchiving(true);
+    setError(null);
+    try {
+      await apiFetch(
+        `/api/v1/events/${id}/minutes/${restoring ? 'restore' : 'archive'}`,
+        { method: 'POST' },
+      );
+      queryClient.invalidateQueries({ queryKey: ['minutes', id] });
+      queryClient.invalidateQueries({ queryKey: ['minutes-can-edit', id] });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Could not ${restoring ? 'restore' : 'archive'} these minutes.`,
+      );
+    } finally {
+      setIsArchiving(false);
+    }
+  };
 
   // Server rejects publishing without a body or without at least one attendee
   // (minutes.service.ts publishMinutes), so mirror both preconditions here.
@@ -178,9 +215,30 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         <ArrowLeft className="h-4 w-4" /> Back to Event
       </Link>
 
-      <div>
-        <h1 className="text-3xl font-bold text-primary">Meeting Minutes</h1>
-        {minutes && <p className="mt-2 text-sm text-muted-foreground">Status: {minutes.status}</p>}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-primary">Meeting Minutes</h1>
+          {minutes && <p className="mt-2 text-sm text-muted-foreground">Status: {minutes.status}</p>}
+        </div>
+
+        {canManageArchive && minutes && (isPublished || isArchived) && (
+          <button
+            onClick={handleArchiveToggle}
+            disabled={isArchiving}
+            className="flex items-center gap-2 rounded-[1.25rem] border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
+          >
+            {isArchived ? (
+              <RotateCcw className="h-4 w-4" />
+            ) : (
+              <Archive className="h-4 w-4" />
+            )}
+            {isArchiving
+              ? 'Working…'
+              : isArchived
+                ? 'Restore from archive'
+                : 'Archive record'}
+          </button>
+        )}
       </div>
 
       {error && (
