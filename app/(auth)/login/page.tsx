@@ -222,6 +222,15 @@ export default function LoginPage() {
               >
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </button>
+
+              <p className="text-center text-sm">
+                <Link
+                  href="/forgot-password"
+                  className="font-medium text-primary hover:underline"
+                >
+                  Forgotten your password?
+                </Link>
+              </p>
             </form>
 
             {/* Footer */}

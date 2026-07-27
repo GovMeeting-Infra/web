@@ -41,6 +41,40 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 }
 
+export interface MyPreferences {
+  emailNotifications: boolean;
+  minutesNotifications: boolean;
+  meetingReminders: boolean;
+  actionItemNotifications: boolean;
+  compactMode: boolean;
+}
+
+/**
+ * The signed-in user's preferences, for settings the server-rendered shell has
+ * to know about before painting — currently just compact mode.
+ *
+ * Returns null rather than throwing: a preferences lookup failing should render
+ * the default layout, not break the page.
+ */
+export async function getMyPreferences(): Promise<MyPreferences | null> {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get('authToken')?.value;
+
+  if (!authToken) return null;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/me/preferences`, {
+      headers: { Cookie: `authToken=${authToken}` },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as MyPreferences;
+  } catch {
+    return null;
+  }
+}
+
 export type SystemRole = CurrentUser['systemRole'];
 
 /** Every role that counts as staff-or-above, per PAGES.md's "Staff+". */
