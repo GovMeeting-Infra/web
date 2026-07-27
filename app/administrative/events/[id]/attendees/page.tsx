@@ -131,10 +131,17 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
     !!currentUser && !!event?.coOrganizers.some((c) => c.userId === currentUser.id);
   const canInvite = isOrganizer || isCoOrganizer;
 
-  // Matches the role list on POST /checkin/:eventId/manual (MINISTER excluded).
+  // POST /checkin/:eventId/manual is behind CanManageEventGuard now, so a role
+  // check alone would offer the desk to people the API refuses. The server is
+  // still the authority; this only decides whether to render the control.
   const canDoWalkIn =
-    !!currentUser &&
-    ['SUPER_ADMIN', 'MINISTRY_ADMIN', 'STAFF'].includes(currentUser.systemRole);
+    isOrganizer ||
+    isCoOrganizer ||
+    currentUser?.systemRole === 'SUPER_ADMIN' ||
+    (!event?.organizerId &&
+      !!currentUser &&
+      ['MINISTER', 'MINISTRY_ADMIN'].includes(currentUser.systemRole) &&
+      event?.ministryId === currentUser.ministryId);
 
   const handleInvite = async () => {
     const userIds = inviteUserIds
