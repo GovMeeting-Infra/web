@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Send, Plus, Archive } from 'lucide-react';
+import { ArrowLeft, Send, Plus, Archive, Lock } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PersonPicker } from '@/components/ui/person-picker';
@@ -74,10 +74,15 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const isSuperAdmin = currentUser?.systemRole === 'SUPER_ADMIN';
   const isPublished = minutes?.status === 'PUBLISHED';
 
-  // Super-admins read published minutes as an archival record rather than
-  // editing them.
-  const isArchivalView = isPublished && isSuperAdmin;
-  const canEdit = !!editPermission?.canEdit && !isArchivalView;
+  // Genuinely archived: frozen by the retention job once the meeting is old
+  // enough, and readable only by ministry leadership.
+  const isArchived = minutes?.status === 'ARCHIVED';
+
+  // Super-admins read published minutes without editing them. This is a
+  // read-only view, not an archived record — the two were previously conflated
+  // under the same "Archived" wording.
+  const isReadOnlyView = (isPublished && isSuperAdmin) || isArchived;
+  const canEdit = !!editPermission?.canEdit && !isReadOnlyView;
 
   // Server rejects publishing without a body or without at least one attendee
   // (minutes.service.ts publishMinutes), so mirror both preconditions here.
@@ -184,12 +189,24 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      {isArchivalView && minutes && (
+      {isReadOnlyView && minutes && (
         <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
           <div className="flex items-center gap-2">
-            <Archive className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold text-foreground">Archived record</h2>
+            {isArchived ? (
+              <Archive className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Lock className="h-4 w-4 text-muted-foreground" />
+            )}
+            <h2 className="text-sm font-semibold text-foreground">
+              {isArchived ? 'Archived record' : 'Read-only view'}
+            </h2>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            {isArchived
+              ? 'These minutes were archived because the meeting is over six months old. The record is permanent and can no longer be changed.'
+              : 'You are viewing a published record. Editing is left to the organizing team.'}
+          </p>
 
           {minutes.summary && (
             <p className="text-sm font-medium text-foreground">{minutes.summary}</p>
@@ -213,7 +230,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      {!canEdit && !isArchivalView && (
+      {!canEdit && !isReadOnlyView && (
         <div className="space-y-3 rounded-[1.75rem] border border-border bg-card p-8">
           <p className="text-sm text-muted-foreground">
             These minutes are read-only for you — the edit window has closed or you

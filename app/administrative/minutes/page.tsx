@@ -13,13 +13,17 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { useCurrentUser } from '@/components/SessionProvider';
 import type { MinutesListResponse, MinutesSummary } from '@/lib/types/events';
 
 const STATUS_FILTERS = [
-  { value: '', label: 'All' },
+  { value: '', label: 'Current' },
   { value: 'DRAFT', label: 'Drafts' },
   { value: 'PUBLISHED', label: 'Published' },
 ];
+
+/** Only leadership may read archived records, so only they get the filter. */
+const ARCHIVE_READER_ROLES = ['MINISTER', 'SUPER_ADMIN'];
 
 function StatusBadge({ status }: { status: MinutesSummary['status'] }) {
   const styles: Record<string, string> = {
@@ -47,8 +51,16 @@ function dateOf(value: string) {
 }
 
 export default function MinutesPage() {
+  const currentUser = useCurrentUser();
   const [q, setQ] = useState('');
   const [status, setStatus] = useState('');
+
+  const canReadArchived = ARCHIVE_READER_ROLES.includes(
+    currentUser?.systemRole ?? '',
+  );
+  const filters = canReadArchived
+    ? [...STATUS_FILTERS, { value: 'ARCHIVED', label: 'Archived' }]
+    : STATUS_FILTERS;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['minutes-list', q, status],
@@ -100,7 +112,7 @@ export default function MinutesPage() {
         </div>
 
         <div className="flex gap-1 rounded-xl border border-border bg-muted/40 p-1">
-          {STATUS_FILTERS.map((f) => (
+          {filters.map((f) => (
             <button
               key={f.value}
               onClick={() => setStatus(f.value)}
