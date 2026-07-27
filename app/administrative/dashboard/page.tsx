@@ -10,10 +10,12 @@ import {
   AlertTriangle,
   ArrowRight,
   CalendarPlus,
+  Building2,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import type { MyProfile } from '@/lib/types/account';
+import type { AnalyticsDashboard } from '@/lib/types/reports';
 import {
   isActionItemOverdue,
   ACTION_ITEM_STATUS_LABELS,
@@ -51,6 +53,34 @@ function StatCard({
       <p className="mt-3 text-3xl font-bold">{value}</p>
       {hint && <p className="mt-1 text-xs opacity-80">{hint}</p>}
     </Link>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  hint,
+  alert = false,
+}: {
+  label: string;
+  value: number | string;
+  hint?: string;
+  alert?: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/30 p-4">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-1.5 text-2xl font-bold text-foreground">{value}</dd>
+      {hint && (
+        <p
+          className={`mt-0.5 text-xs ${alert ? 'font-medium text-destructive' : 'text-muted-foreground'}`}
+        >
+          {hint}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -97,6 +127,20 @@ export default function DashboardPage() {
         `/api/v1/action-items?owner=${encodeURIComponent(currentUser!.id)}`,
       ),
     enabled: !!currentUser?.id,
+  });
+
+  // The analytics endpoint is restricted to ministry-level roles, so this is
+  // gated rather than merely hidden — asking as a staff member would 403.
+  const isAdmin =
+    !!currentUser &&
+    ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'].includes(
+      currentUser.systemRole,
+    );
+
+  const { data: analytics, isLoading: loadingAnalytics } = useQuery({
+    queryKey: ['dashboard-analytics'],
+    queryFn: () => apiFetch<AnalyticsDashboard>('/api/v1/reports/analytics'),
+    enabled: isAdmin,
   });
 
   const events: EventListItem[] = (upcoming?.data ?? []).slice(0, 5);
@@ -180,6 +224,82 @@ export default function DashboardPage() {
             href="/administrative/action-items"
           />
         </div>
+      )}
+
+      {isAdmin && (
+        <section className="rounded-[1.5rem] border border-border bg-card p-6">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-primary">
+                <Building2 className="h-5 w-5" />
+              </span>
+              <div>
+                {/* Keyed off the role, not the response: scope only arrives
+                    with the data, and a super admin has no ministry to name in
+                    the meantime. */}
+                <h2 className="font-semibold text-primary">
+                  {currentUser?.systemRole === 'SUPER_ADMIN'
+                    ? 'Across all ministries'
+                    : `Across ${profile?.ministry?.name ?? 'your ministry'}`}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Events from the last 30 days
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/administrative/reports"
+              className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+            >
+              Full reports <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          {loadingAnalytics ? (
+            <p className="text-sm text-muted-foreground">Loading figures…</p>
+          ) : !analytics ? (
+            <p className="text-sm text-muted-foreground">
+              Ministry figures are unavailable right now.
+            </p>
+          ) : (
+            <dl className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+              <MiniStat
+                label="Events"
+                value={analytics.eventStats.total}
+                hint={`${analytics.eventStats.upcoming} upcoming`}
+              />
+              <MiniStat
+                label="Attendance"
+                // The API returns a 0–1 rate, not a percentage.
+                value={`${Math.round(analytics.attendanceStats.attendanceRate * 100)}%`}
+                hint={`${analytics.attendanceStats.totalCheckIns} check-ins`}
+              />
+              <MiniStat
+                label="Open actions"
+                value={
+                  analytics.actionItemStats.todo +
+                  analytics.actionItemStats.inProgress
+                }
+                hint={
+                  analytics.actionItemStats.overdue > 0
+                    ? `${analytics.actionItemStats.overdue} overdue`
+                    : 'None overdue'
+                }
+                alert={analytics.actionItemStats.overdue > 0}
+              />
+              <MiniStat
+                label="Active users"
+                value={analytics.userStats.activeUsers}
+                hint={`of ${analytics.userStats.totalUsers}`}
+              />
+              <MiniStat
+                label="Rooms"
+                value={analytics.roomStats.activeRooms}
+                hint={`${analytics.roomStats.bookingsThisMonth} bookings`}
+              />
+            </dl>
+          )}
+        </section>
       )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
