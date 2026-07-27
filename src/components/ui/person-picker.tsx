@@ -26,6 +26,8 @@ export function PersonPicker({
   placeholder = 'Search for a colleague…',
   allowUnassign = true,
   disabled = false,
+  endpoint = '/api/v1/users/directory',
+  excludeIds,
 }: {
   value: string | null;
   /** Display name for an already-selected person, so no lookup is needed. */
@@ -34,19 +36,41 @@ export function PersonPicker({
   placeholder?: string;
   allowUnassign?: boolean;
   disabled?: boolean;
+  /**
+   * Source of candidates. Defaults to the ministry directory; co-organizer
+   * pickers point at the events endpoint, which already excludes the caller.
+   * Must return the same {id, name, email, jobTitle} shape.
+   */
+  endpoint?: string;
+  /** People already chosen, so they are not offered again. */
+  excludeIds?: string[];
 }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { data: people = [], isLoading } = useQuery({
-    queryKey: ['directory', query],
-    queryFn: () =>
-      apiFetch<DirectoryPerson[]>(
-        `/api/v1/users/directory?q=${encodeURIComponent(query.trim())}`,
-      ),
+  const { data: candidates = [], isLoading } = useQuery({
+    queryKey: ['person-picker', endpoint, query],
+    queryFn: () => {
+      // Only the directory endpoint filters server-side; the others return a
+      // full list, which is filtered below.
+      const url = endpoint.includes('?')
+        ? `${endpoint}&q=${encodeURIComponent(query.trim())}`
+        : `${endpoint}?q=${encodeURIComponent(query.trim())}`;
+      return apiFetch<DirectoryPerson[]>(url);
+    },
     enabled: open,
   });
+
+  const term = query.trim().toLowerCase();
+  const people = candidates
+    .filter((p) => !excludeIds?.includes(p.id))
+    .filter(
+      (p) =>
+        !term ||
+        p.name.toLowerCase().includes(term) ||
+        p.email.toLowerCase().includes(term),
+    );
 
   // Close on an outside click so the list does not sit over the form.
   useEffect(() => {

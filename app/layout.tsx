@@ -14,6 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  // Needed so the relative OpenGraph image paths on the public pages resolve to
+  // absolute URLs; without it Next warns at build and share cards get no image.
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000",
+  ),
   title: "Smart Meeting Logger | Government of Sierra Leone",
   description: "Official government meeting management, attendance tracking, and documentation system for the Government of Sierra Leone.",
 };
