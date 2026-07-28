@@ -18,6 +18,40 @@ import type { PublicEventDetail } from '@/lib/types/events';
 
 const NOT_AVAILABLE = 'Activity not available';
 
+/**
+ * One key fact about the activity.
+ *
+ * The badge spans both rows of a two-row grid, so the label and value sit in a
+ * clean column beside it however long the value runs — the previous flat
+ * icon-above-text pairs gave every fact the same weight and read as a form.
+ */
+function Detail({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: typeof CalendarDays;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="grid grid-cols-[2.5rem_1fr] items-start gap-x-4">
+      <span
+        aria-hidden
+        className="row-span-2 flex h-10 w-10 items-center justify-center rounded-xl bg-[#edf4fd] text-[#003580]"
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
+        {label}
+      </dt>
+      <dd className="mt-1 min-w-0 text-sm font-semibold text-slate-900">
+        {children}
+      </dd>
+    </div>
+  );
+}
+
 function longDate(value: string) {
   return new Date(value).toLocaleDateString('en-GB', {
     weekday: 'long',
@@ -175,79 +209,73 @@ export default async function PublicEventPage({
           )}
 
           <div className="space-y-6">
-            <dl
-              className={`grid grid-cols-1 gap-4 rounded-2xl border border-[#d3deef] bg-white p-6 sm:grid-cols-2 ${
-                event.description ? 'lg:grid-cols-1' : 'lg:grid-cols-4'
-              }`}
-            >
-              <div>
-                <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <CalendarDays className="h-4 w-4" /> Date
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-slate-900">
+            <div className="overflow-hidden rounded-2xl border border-[#d3deef] bg-white">
+              <h2 className="border-b border-[#eaf1fa] bg-[#f8fbff] px-6 py-3.5 text-sm font-semibold text-[#003580]">
+                Activity details
+              </h2>
+
+              {/* One column while this sits in the side rail; when there is no
+                  description it has the full width to itself and spreads out
+                  rather than running as one tall list. */}
+              <dl
+                className={`grid gap-x-8 gap-y-6 p-6 ${
+                  event.description
+                    ? 'grid-cols-1'
+                    : 'sm:grid-cols-2 lg:grid-cols-4'
+                }`}
+              >
+                <Detail icon={CalendarDays} label="Date">
                   {start.toLocaleDateString('en-GB', {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
                   })}
-                </dd>
-              </div>
+                </Detail>
 
-              <div>
-                <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  <Clock className="h-4 w-4" /> Time
-                </dt>
-                <dd className="mt-1 text-sm font-medium text-slate-900">
+                <Detail icon={Clock} label="Time">
                   {start.toLocaleTimeString('en-GB', timeOpts)} –{' '}
                   {end.toLocaleTimeString('en-GB', timeOpts)}
-                </dd>
-              </div>
+                </Detail>
 
-              {event.venueName && (
-                <div>
-                  <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    <MapPin className="h-4 w-4" /> Location
-                  </dt>
-                  <dd className="mt-1 text-sm font-medium text-slate-900">
+                {event.venueName && (
+                  <Detail icon={MapPin} label="Location">
                     {event.venueName}
-                  </dd>
-                </div>
-              )}
+                  </Detail>
+                )}
 
-              {(event.contactEmail || event.contactPhone) && (
-                <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Contact
-                  </dt>
-                  <dd className="mt-1 space-y-1 text-sm font-medium text-slate-900">
-                    {event.contactEmail && (
-                      <a
-                        href={`mailto:${event.contactEmail}`}
-                        className="flex items-center gap-2 hover:text-[#003580]"
-                      >
-                        <Mail className="h-4 w-4" /> {event.contactEmail}
-                      </a>
-                    )}
-                    {event.contactPhone && (
-                      <a
-                        href={`tel:${event.contactPhone}`}
-                        className="flex items-center gap-2 hover:text-[#003580]"
-                      >
-                        <Phone className="h-4 w-4" /> {event.contactPhone}
-                      </a>
-                    )}
-                  </dd>
-                </div>
-              )}
-            </dl>
+                {/* Email and phone are separate facts, so they get a row each
+                    rather than being stacked under one "Contact" heading. */}
+                {event.contactEmail && (
+                  <Detail icon={Mail} label="Email">
+                    <a
+                      href={`mailto:${event.contactEmail}`}
+                      className="break-all text-[#003580] underline-offset-2 hover:underline"
+                    >
+                      {event.contactEmail}
+                    </a>
+                  </Detail>
+                )}
+
+                {event.contactPhone && (
+                  <Detail icon={Phone} label="Phone">
+                    <a
+                      href={`tel:${event.contactPhone}`}
+                      className="text-[#003580] underline-offset-2 hover:underline"
+                    >
+                      {event.contactPhone}
+                    </a>
+                  </Detail>
+                )}
+              </dl>
+            </div>
 
             {event.externalUrl && (
               <a
                 href={event.externalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#003580] px-5 py-2.5 text-sm font-medium text-white"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#003580] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#00296b]"
               >
                 <ExternalLink className="h-4 w-4" /> More information
               </a>
