@@ -7,7 +7,18 @@ import { SierraLeoneFlag } from './SierraLeoneFlag';
  * administrative layout: no sidebar, no session, and it must render for
  * visitors who never sign in.
  */
-export function PublicShell({ children }: { children: React.ReactNode }) {
+export function PublicShell({
+  children,
+  hero,
+}: {
+  children: React.ReactNode;
+  /**
+   * Rendered edge to edge between the header and the content column. A slot
+   * rather than something the page fakes with negative margins, since the only
+   * way out of `main`'s max-width is not to be inside it.
+   */
+  hero?: React.ReactNode;
+}) {
   return (
     <div className="flex min-h-screen flex-col bg-background text-slate-900">
       <header className="border-b border-[#d3deef] bg-[#f8fbff]/95 shadow-[0_8px_30px_rgba(0,53,128,0.07)] backdrop-blur">
@@ -48,6 +59,8 @@ export function PublicShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </header>
+
+      {hero}
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {children}

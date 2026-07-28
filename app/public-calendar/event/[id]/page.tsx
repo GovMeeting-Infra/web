@@ -1,36 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, ExternalLink, Building2 } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Clock, ExternalLink } from 'lucide-react';
 import { PublicShell } from '@/components/PublicShell';
 import { getPublicEvent } from '@/lib/public-events';
-import { eventColor, eventCategoryLabel } from '@/lib/event-colors';
+import { eventCategoryLabel } from '@/lib/event-colors';
 import { EventBanner } from './EventBanner';
 import type { PublicEventDetail } from '@/lib/types/events';
 
 const NOT_AVAILABLE = 'Activity not available';
-
-/**
- * The date, as a calendar tile.
- *
- * Marked aria-hidden and paired with a full written date for screen readers:
- * split across three lines it reads as "Sep 4 2026", which is not a date.
- */
-function DateTile({ date }: { date: Date }) {
-  return (
-    <div
-      aria-hidden
-      className="flex h-[4.75rem] w-16 flex-none flex-col items-center justify-center rounded-xl border border-[#d3deef] bg-[#f8fbff]"
-    >
-      <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#003580]">
-        {date.toLocaleDateString('en-GB', { month: 'short' })}
-      </span>
-      <span className="text-2xl font-bold leading-tight text-[#003580]">
-        {date.getDate()}
-      </span>
-      <span className="text-[11px] text-slate-500">{date.getFullYear()}</span>
-    </div>
-  );
-}
 
 function longDate(value: string) {
   return new Date(value).toLocaleDateString('en-GB', {
@@ -136,124 +113,149 @@ export default async function PublicEventPage({
   const timeOpts = { hour: '2-digit', minute: '2-digit' } as const;
 
   return (
-    <PublicShell>
-      {/* Fills the shell's content column rather than sitting at max-w-3xl
-          inside it — at 768px the page was half the width of its own header
-          and footer, which is what made it look cramped. */}
-      <article className="w-full space-y-6">
-        <Link
-          href={`/?y=${start.getFullYear()}&m=${start.getMonth()}`}
-          className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[#003580]"
-        >
-          <ArrowLeft className="h-4 w-4" /> Back to Calendar
-        </Link>
+    <PublicShell
+      hero={
+        // Full-bleed, with the title over the photograph rather than stacked
+        // above it. The solid brand colour is the base, so an activity with no
+        // banner — or a dead image URL — still gets a deliberate hero.
+        <section className="relative isolate overflow-hidden bg-[#003580]">
+          {event.bannerImage && <EventBanner src={event.bannerImage} />}
 
-        {event.bannerImage && <EventBanner src={event.bannerImage} />}
+          {/* Darkened top and bottom so white text holds up over any
+              photograph, whatever its exposure. */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#001a3d]/75 via-[#001a3d]/55 to-[#001a3d]/85" />
 
-        <header className="space-y-3">
-          <span
-            className={`inline-block rounded border px-2.5 py-1 text-xs font-medium ${eventColor(
-              event.colorCategory,
-              event.type,
-            )}`}
-          >
-            {eventCategoryLabel(event.colorCategory, event.type)}
-          </span>
-          <h1 className="text-3xl font-bold text-[#003580]">{event.title}</h1>
-          {event.ministry && (
-            <p className="flex items-center gap-2 text-sm text-slate-600">
-              <Building2 className="h-4 w-4" />
-              Hosted by {event.ministry.name}
+          <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 py-20 text-center sm:px-6 sm:py-24 lg:px-8">
+            <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">
+              {eventCategoryLabel(event.colorCategory, event.type)}
+            </span>
+
+            <p className="mt-6 text-sm font-medium text-white/80">
+              {longDate(event.startAt)}
             </p>
-          )}
-        </header>
 
-        {/* Two columns once there is room: what the activity is on the left,
-            the practical detail a visitor came for on the right. With no
-            description there is no left column, so the details take the full
-            width instead of leaving two thirds of the row empty. */}
-        <div
-          className={
-            event.description ? 'grid gap-6 lg:grid-cols-3' : 'space-y-6'
-          }
-        >
-          {event.description && (
-            <section className="rounded-2xl border border-[#d3deef] bg-white p-6 lg:col-span-2">
-              <h2 className="text-sm font-semibold text-slate-900">
-                About this activity
-              </h2>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
-                {event.description}
+            <h1 className="mt-3 text-balance text-4xl font-bold leading-tight text-white sm:text-5xl">
+              {event.title}
+            </h1>
+
+            {event.ministry && (
+              <p className="mt-6 text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">
+                by{' '}
+                <span className="text-white underline underline-offset-4">
+                  {event.ministry.name}
+                </span>
               </p>
-            </section>
-          )}
-
-          {/* The date anchors the panel; everything under it is plain lines,
-              separated by hairlines rather than labelled or boxed. */}
-          <div className="space-y-5 rounded-2xl border border-[#d3deef] bg-white p-6">
-            <div className="flex items-center gap-4">
-              <DateTile date={start} />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-slate-900">
-                  {start.toLocaleDateString('en-GB', { weekday: 'long' })}
-                </p>
-                <p className="mt-1 text-sm text-slate-600">
-                  {start.toLocaleTimeString('en-GB', timeOpts)} –{' '}
-                  {end.toLocaleTimeString('en-GB', timeOpts)}
-                </p>
-                {/* What the tile cannot say out loud. */}
-                <span className="sr-only">
+            )}
+          </div>
+        </section>
+      }
+    >
+      <article className="w-full">
+        {/* The practical facts, lifted out of the body and onto a strip
+            directly under the hero: date and time on the left, the one action
+            this page offers on the right. */}
+        <div className="flex flex-col gap-6 rounded-2xl border border-[#d3deef] bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          <dl className="flex flex-wrap gap-x-10 gap-y-3">
+            <div className="flex items-center gap-3">
+              <CalendarDays
+                aria-hidden
+                className="h-5 w-5 flex-none text-[#003580]"
+              />
+              <div>
+                <dt className="sr-only">Date</dt>
+                <dd className="text-sm font-medium text-slate-900">
                   {start.toLocaleDateString('en-GB', {
-                    weekday: 'long',
+                    weekday: 'short',
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
                   })}
-                </span>
+                </dd>
               </div>
             </div>
 
+            <div className="flex items-center gap-3">
+              <Clock aria-hidden className="h-5 w-5 flex-none text-[#003580]" />
+              <div>
+                <dt className="sr-only">Time</dt>
+                <dd className="text-sm font-medium text-slate-900">
+                  {start.toLocaleTimeString('en-GB', timeOpts)} –{' '}
+                  {end.toLocaleTimeString('en-GB', timeOpts)}
+                </dd>
+              </div>
+            </div>
+          </dl>
+
+          {event.externalUrl && (
+            <a
+              href={event.externalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 rounded-xl bg-[#003580] px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:bg-[#00296b] sm:flex-none"
+            >
+              <ExternalLink aria-hidden className="h-4 w-4" /> More information
+            </a>
+          )}
+        </div>
+
+        <div className="mt-12 grid gap-12 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <h2 className="text-2xl font-bold text-slate-900">
+              Event Overview
+            </h2>
+            <div className="mt-5 h-px w-full bg-[#e6eef8]" />
+            <p className="mt-5 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+              {event.description?.trim() ||
+                `Further details for this activity have not been published yet. Check back closer to ${longDate(event.startAt)}.`}
+            </p>
+          </div>
+
+          <aside className="space-y-8">
             {event.venueName && (
-              <p className="border-t border-[#eef3fa] pt-5 text-sm text-slate-900">
-                <span className="sr-only">Location: </span>
-                {event.venueName}
-              </p>
+              <section>
+                <h2 className="text-sm font-bold text-slate-900">Location</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {event.venueName}
+                </p>
+              </section>
             )}
 
             {(event.contactEmail || event.contactPhone) && (
-              <div className="space-y-1.5 border-t border-[#eef3fa] pt-5 text-sm">
-                {event.contactEmail && (
-                  <a
-                    href={`mailto:${event.contactEmail}`}
-                    className="block break-all text-[#003580] hover:underline"
-                  >
-                    <span className="sr-only">Email: </span>
-                    {event.contactEmail}
-                  </a>
-                )}
-                {event.contactPhone && (
-                  <a
-                    href={`tel:${event.contactPhone}`}
-                    className="block text-[#003580] hover:underline"
-                  >
-                    <span className="sr-only">Phone: </span>
-                    {event.contactPhone}
-                  </a>
-                )}
-              </div>
+              <section>
+                <h2 className="text-sm font-bold text-slate-900">Contact</h2>
+                <div className="mt-2 space-y-1 text-sm">
+                  {event.contactEmail && (
+                    <a
+                      href={`mailto:${event.contactEmail}`}
+                      className="block break-all text-[#003580] hover:underline"
+                    >
+                      {event.contactEmail}
+                    </a>
+                  )}
+                  {event.contactPhone && (
+                    <a
+                      href={`tel:${event.contactPhone}`}
+                      className="block text-[#003580] hover:underline"
+                    >
+                      {event.contactPhone}
+                    </a>
+                  )}
+                </div>
+              </section>
             )}
 
-            {event.externalUrl && (
-              <a
-                href={event.externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#003580] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[#00296b]"
+            <section>
+              <h2 className="text-sm font-bold text-slate-900">
+                More activities
+              </h2>
+              <Link
+                href={`/?y=${start.getFullYear()}&m=${start.getMonth()}`}
+                className="mt-2 inline-flex items-center gap-2 text-sm text-[#003580] hover:underline"
               >
-                <ExternalLink className="h-4 w-4" /> More information
-              </a>
-            )}
-          </div>
+                <ArrowLeft aria-hidden className="h-4 w-4" /> Back to Calendar
+              </Link>
+            </section>
+          </aside>
         </div>
       </article>
     </PublicShell>
