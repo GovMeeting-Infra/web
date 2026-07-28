@@ -124,10 +124,13 @@ export default function LoginPage() {
                   after the ampersand and left a wide gap mid-heading. The
                   non-breaking space keeps "& Attendance" from starting a line
                   with a stranded ampersand. */}
-              <h1 className="text-balance text-5xl font-bold leading-[1.1] tracking-tight text-white lg:text-6xl">
+              {/* Scaled back: the panel is only 40% wide now, so 5xl/6xl
+                  crowded it. text-balance and the non-breaking space stay —
+                  they are what stop the ampersand stranding at a line end. */}
+              <h1 className="text-balance text-3xl font-bold leading-[1.15] tracking-tight text-white lg:text-4xl">
                 Smart Meeting&nbsp;&amp; Attendance Logger
               </h1>
-              <p className="text-balance text-lg text-white/90 lg:text-xl">
+              <p className="text-balance text-base text-white/90 lg:text-lg">
                 Streamline government meetings with secure check-in and real-time attendance tracking
               </p>
             </div>
