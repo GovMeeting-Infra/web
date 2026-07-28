@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { STAFF_ROLES, ADMIN_ROLES, type SystemRole } from './roles';
 
 export interface CurrentUser {
   id: string;
@@ -75,21 +76,11 @@ export async function getMyPreferences(): Promise<MyPreferences | null> {
   }
 }
 
-export type SystemRole = CurrentUser['systemRole'];
-
-/** Every role that counts as staff-or-above, per PAGES.md's "Staff+". */
-export const STAFF_ROLES: SystemRole[] = [
-  'SUPER_ADMIN',
-  'MINISTER',
-  'MINISTRY_ADMIN',
-  'STAFF',
-];
-
-export const ADMIN_ROLES: SystemRole[] = [
-  'SUPER_ADMIN',
-  'MINISTER',
-  'MINISTRY_ADMIN',
-];
+// Re-exported so existing server-side imports keep working. The definitions
+// live in lib/roles.ts because this module imports next/headers, which makes it
+// unusable from a client component.
+export type { SystemRole };
+export { STAFF_ROLES, ADMIN_ROLES };
 
 /**
  * Page-level role gate for server components. Redirects to /forbidden rather
