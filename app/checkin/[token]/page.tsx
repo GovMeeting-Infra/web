@@ -1,152 +1,169 @@
-'use client';
+import Link from 'next/link';
+import { getCheckInContext } from '@/lib/checkin';
+import { getCurrentUser } from '@/lib/session';
+import { StaffCheckInForm } from './StaffCheckInForm';
+import { GuestCheckInForm } from './GuestCheckInForm';
 
-import { useState, useRef, use } from 'react';
-import { useGeolocation } from '@/lib/hooks/useGeolocation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import SignatureCanvas from 'react-signature-canvas';
+export const metadata = {
+  title: 'Check in',
+  robots: { index: false, follow: false },
+};
 
-export default function CheckInPage({ params }: { params: Promise<{ token: string }> }) {
-  const resolvedParams = use(params);
-  const { latitude, longitude, accuracy, error: geoError } = useGeolocation();
-  const signCanvasRef = useRef<any>(null);
-  const [signedName, setSignedName] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#f6faff] p-4">
+      <div className="w-full max-w-sm rounded-[1.5rem] border border-border bg-card p-6 shadow-lg">
+        {children}
+      </div>
+    </main>
+  );
+}
 
-  const handleCheckIn = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      if (!signedName.trim()) {
-        setError('Please enter your name');
-        setIsLoading(false);
-        return;
-      }
-
-      const signature = signCanvasRef.current?.getTrimmedCanvas().toDataURL();
-      if (!signature) {
-        setError('Please provide a signature');
-        setIsLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/v1/checkin/${resolvedParams.token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          signedName,
-          signature,
-          lat: latitude,
-          lng: longitude,
-          gpsAccuracy: accuracy,
-          withinGeofence: true,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || 'Check-in failed');
-        return;
-      }
-
-      setSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
+function Notice({
+  tone,
+  title,
+  body,
+}: {
+  tone: 'red' | 'amber' | 'slate';
+  title: string;
+  body: string;
+}) {
+  const tones = {
+    red: 'border-destructive/20 bg-destructive/5 text-destructive',
+    amber: 'border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]',
+    slate: 'border-border bg-muted/40 text-foreground',
   };
 
-  if (success) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-        <Card className="w-96">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-green-600">✓ Check-In Successful</CardTitle>
-            <CardDescription>Thank you for attending!</CardDescription>
-          </CardHeader>
-          <CardContent className="text-center text-slate-600">
-            Your attendance has been recorded.
-          </CardContent>
-        </Card>
+  return (
+    <Shell>
+      <div className={`rounded-[1.25rem] border p-5 text-center ${tones[tone]}`}>
+        <h1 className="text-lg font-bold">{title}</h1>
+        <p className="mt-2 text-sm opacity-90">{body}</p>
       </div>
+    </Shell>
+  );
+}
+
+export default async function CheckInPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ as?: string }>;
+}) {
+  const { token } = await params;
+  const { as } = await searchParams;
+
+  // Reading the session cookie makes this render dynamically, so no route
+  // segment config is needed.
+  const [context, user] = await Promise.all([
+    getCheckInContext(token),
+    getCurrentUser(),
+  ]);
+
+  // UNAVAILABLE (draft/cancelled) renders identically to INVALID on purpose: a
+  // stranger holding a code should not learn an unpublished event exists.
+  if (context.status === 'INVALID' || context.status === 'UNAVAILABLE') {
+    return (
+      <Notice
+        tone="red"
+        title="Invalid code"
+        body="This check-in code was not recognized."
+      />
     );
   }
 
+  if (context.status === 'EXPIRED') {
+    return (
+      <Notice
+        tone="amber"
+        title="Code expired"
+        body="Ask the meeting organizer for a fresh QR code."
+      />
+    );
+  }
+
+  if (context.status === 'ENDED') {
+    return (
+      <Notice
+        tone="slate"
+        title="Meeting ended"
+        body="This meeting has ended. Check-in is closed."
+      />
+    );
+  }
+
+  const event = context.event!;
+  const signInHref = `/login?callbackUrl=${encodeURIComponent(`/checkin/${token}`)}`;
+
+  if (user) {
+    return (
+      <Shell>
+        <StaffCheckInForm
+          token={token}
+          eventTitle={event.title}
+          venueName={event.venueName}
+          defaultName={user.name}
+          geofenceRequired={context.geofenceRequired}
+        />
+      </Shell>
+    );
+  }
+
+  if (as === 'guest' && event.allowGuestCheckIn) {
+    return (
+      <Shell>
+        <GuestCheckInForm
+          token={token}
+          eventTitle={event.title}
+          venueName={event.venueName}
+          geofenceRequired={context.geofenceRequired}
+          signInHref={signInHref}
+        />
+      </Shell>
+    );
+  }
+
+  // Signed out: offer both routes rather than guessing who scanned the code.
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Event Check-In</CardTitle>
-          <CardDescription>Sign in to confirm your attendance</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {error && (
-            <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
-              {error}
-            </div>
-          )}
+    <Shell>
+      <header className="text-center">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+          Check in
+        </p>
+        <h1 className="mt-1 text-xl font-bold text-primary">{event.title}</h1>
+        {event.venueName && (
+          <p className="mt-1 text-sm text-muted-foreground">{event.venueName}</p>
+        )}
+      </header>
 
-          {geoError && (
-            <div className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-700">
-              Location: {geoError}
-            </div>
-          )}
+      <div className="mt-6 space-y-3">
+        <Link
+          href={signInHref}
+          className="block w-full rounded-[1.25rem] bg-primary px-5 py-3 text-center text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          Sign in to check in
+        </Link>
 
-          {latitude && longitude && (
-            <div className="rounded-md bg-blue-50 p-3 text-sm text-blue-700">
-              Location obtained ({accuracy?.toFixed(1)}m accuracy)
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Your Name</label>
-            <Input
-              type="text"
-              placeholder="Enter your full name"
-              value={signedName}
-              onChange={(e) => setSignedName(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Your Signature</label>
-            <div className="border border-slate-300 rounded-lg overflow-hidden bg-white">
-              <SignatureCanvas
-                ref={signCanvasRef}
-                canvasProps={{
-                  width: 280,
-                  height: 150,
-                  className: 'border-0 w-full',
-                }}
-                penColor="black"
-                backgroundColor="white"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => signCanvasRef.current?.clear()}
-              className="text-sm text-slate-600 hover:text-slate-900"
-            >
-              Clear signature
-            </button>
-          </div>
-
-          <Button
-            onClick={handleCheckIn}
-            className="w-full"
-            disabled={isLoading || !signedName.trim()}
+        {event.allowGuestCheckIn ? (
+          <Link
+            href={`/checkin/${encodeURIComponent(token)}?as=guest`}
+            className="block w-full rounded-[1.25rem] border border-border bg-background px-5 py-3 text-center text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
           >
-            {isLoading ? 'Checking in...' : 'Check In'}
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+            I&apos;m a guest
+          </Link>
+        ) : (
+          <p className="rounded-xl bg-muted/40 p-3 text-center text-xs text-muted-foreground">
+            This meeting is open to staff accounts only.
+          </p>
+        )}
+      </div>
+
+      {context.geofenceRequired && (
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          This meeting requires you to be physically at the venue.
+        </p>
+      )}
+    </Shell>
   );
 }

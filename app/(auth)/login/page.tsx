@@ -17,6 +17,22 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+const DEFAULT_DESTINATION = '/administrative/dashboard';
+
+/**
+ * Where to land after signing in, honouring ?callbackUrl= so a scanned check-in
+ * code returns to the check-in page instead of the dashboard.
+ *
+ * Only same-site absolute paths are accepted. A value starting with `//` (or
+ * any scheme) would be an open redirect: the browser reads `//evil.test` as a
+ * protocol-relative URL to another host.
+ */
+function safeDestination(raw: string | null): string {
+  if (!raw) return DEFAULT_DESTINATION;
+  if (!raw.startsWith('/') || raw.startsWith('//')) return DEFAULT_DESTINATION;
+  return raw;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +66,12 @@ export default function LoginPage() {
         return;
       }
 
-      router.push('/administrative/dashboard');
+      // Read at submit time rather than with useSearchParams, which would
+      // require wrapping this client page in a Suspense boundary.
+      const callbackUrl = new URLSearchParams(window.location.search).get(
+        'callbackUrl',
+      );
+      router.push(safeDestination(callbackUrl));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
