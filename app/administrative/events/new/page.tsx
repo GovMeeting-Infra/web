@@ -121,6 +121,17 @@ export default function NewEventPage() {
       ),
   });
 
+  // The ministry hosting the activity — its own, or the one a super-admin filed
+  // it under. It is never an "invited" ministry: it is the host, so offering it
+  // in the invite list is offering to invite yourself.
+  const hostMinistryId = isSuperAdmin
+    ? ministryId || currentUser?.ministryId
+    : currentUser?.ministryId;
+
+  const invitableMinistries = (ministries ?? []).filter(
+    (m) => m.id !== hostMinistryId,
+  );
+
   const filteredCategories = DEFAULT_CATEGORIES.filter((c) =>
     c.toLowerCase().includes(categoryInput.toLowerCase()),
   );
@@ -190,6 +201,12 @@ export default function NewEventPage() {
       setError('Start time must be before end time.');
       return;
     }
+    // Mirrors the server. Public activities are exempt — they have no organizer
+    // to deputise for.
+    if (!isPublic && coOrganizers.length === 0) {
+      setError('Add at least one co-organizer.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -211,9 +228,11 @@ export default function NewEventPage() {
         payload.colorCategory = selectedCategory || undefined;
         payload.bannerImage = bannerImage.trim() || undefined;
         payload.externalUrl = externalUrl.trim() || undefined;
-        payload.invitedMinistryIds = invitedMinistries.length
-          ? invitedMinistries
-          : undefined;
+        // Filtered again rather than trusting the chips: a super-admin can pick
+        // a ministry, then change which ministry is hosting, leaving the host
+        // sitting in its own invite list.
+        const invited = invitedMinistries.filter((m) => m !== hostMinistryId);
+        payload.invitedMinistryIds = invited.length ? invited : undefined;
       } else {
         payload.type = type;
         payload.roomId = roomId || undefined;
@@ -466,7 +485,9 @@ export default function NewEventPage() {
             </div>
 
             <div>
-              <label className={label}>Co-organizers</label>
+              <label className={label}>
+                Co-organizers <span className="text-destructive">*</span>
+              </label>
 
               {coOrganizers.length > 0 && (
                 <div className="mb-3 mt-1 flex flex-wrap gap-2">
@@ -515,7 +536,9 @@ export default function NewEventPage() {
                   ))}
               </select>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Co-organizers can edit this event and manage its attendees.
+                At least one is required. Co-organizers can edit this event and
+                manage its attendees, so the meeting stays manageable when you
+                are unavailable.
               </p>
             </div>
           </>
@@ -682,7 +705,7 @@ export default function NewEventPage() {
                 className={field}
               >
                 <option value="">+ Add ministry</option>
-                {(ministries ?? [])
+                {invitableMinistries
                   .filter((m) => !invitedMinistries.includes(m.id))
                   .map((m) => (
                     <option key={m.id} value={m.id}>

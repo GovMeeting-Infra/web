@@ -153,7 +153,7 @@ export default function CheckInCodePage({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8 p-8">
+    <div className="w-full space-y-8 p-8">
       <Link
         href={`/administrative/events/${id}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -183,7 +183,9 @@ export default function CheckInCodePage({
       )}
 
       {!qrCode?.token ? (
-        <div className="space-y-5 rounded-[1.75rem] border border-border bg-card p-12 text-center">
+        // The empty state is one call to action, so it stays a narrow centred
+        // column rather than stretching a single button across the page.
+        <div className="mx-auto max-w-xl space-y-5 rounded-[1.75rem] border border-border bg-card p-12 text-center">
           <QrCode className="mx-auto h-12 w-12 text-muted-foreground" />
           <div>
             <h2 className="font-semibold text-foreground">
@@ -205,8 +207,11 @@ export default function CheckInCodePage({
           </button>
         </div>
       ) : (
-        <div className="space-y-8 rounded-[1.75rem] border border-border bg-card p-12">
-          <div className="flex justify-center">
+        // Two columns once there is room: the code itself on the left, and
+        // everything you do to it on the right. Centring a 256px code in a
+        // full-width card would leave it stranded in the middle of the page.
+        <div className="grid items-start gap-10 rounded-[1.75rem] border border-border bg-card p-12 lg:grid-cols-2">
+          <div className="flex flex-col items-center gap-4">
             <div className="rounded-2xl border-4 border-border bg-white p-6">
               <QRCodeSVG
                 value={qrCode.qrCodeUrl!}
@@ -215,15 +220,15 @@ export default function CheckInCodePage({
                 includeMargin={true}
               />
             </div>
+            <div className="space-y-1 text-center">
+              <p className="text-sm font-medium text-foreground">{countdown}</p>
+              <p className="text-xs text-muted-foreground">
+                Codes last 5 minutes. Refresh before it expires.
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-2 text-center">
-            <p className="text-sm font-medium text-foreground">{countdown}</p>
-            <p className="text-xs text-muted-foreground">
-              Codes last 5 minutes. Refresh before it expires.
-            </p>
-          </div>
-
+          <div className="space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
               onClick={() => {
@@ -310,6 +315,7 @@ export default function CheckInCodePage({
                 </button>
               </>
             )}
+          </div>
           </div>
         </div>
       )}

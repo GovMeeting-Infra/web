@@ -11,8 +11,10 @@ export function PublicCalendarView() {
   const params = useSearchParams();
   const today = new Date();
 
-  const yParam = Number(params.get('y'));
-  const mParam = Number(params.get('m'));
+  // Number(null) is 0, which passed the 0–11 month test below and pinned a
+  // param-less calendar to January. See the same fix in the internal calendar.
+  const yParam = params.get('y') === null ? NaN : Number(params.get('y'));
+  const mParam = params.get('m') === null ? NaN : Number(params.get('m'));
   const year = Number.isInteger(yParam) && yParam > 1970 ? yParam : today.getFullYear();
   const month =
     Number.isInteger(mParam) && mParam >= 0 && mParam <= 11 ? mParam : today.getMonth();

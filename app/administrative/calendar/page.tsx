@@ -12,8 +12,11 @@ export default function CalendarPage() {
   const params = useSearchParams();
   const today = new Date();
 
-  const yParam = Number(params.get('y'));
-  const mParam = Number(params.get('m'));
+  // Number(null) is 0, so a missing ?m= used to pass the 0–11 month test and
+  // pin the calendar to January no matter what month it actually was. Absent
+  // has to be distinguished from present-and-zero before converting.
+  const yParam = params.get('y') === null ? NaN : Number(params.get('y'));
+  const mParam = params.get('m') === null ? NaN : Number(params.get('m'));
   const year = Number.isInteger(yParam) && yParam > 1970 ? yParam : today.getFullYear();
   const month =
     Number.isInteger(mParam) && mParam >= 0 && mParam <= 11 ? mParam : today.getMonth();

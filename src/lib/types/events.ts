@@ -385,6 +385,12 @@ export interface AttendanceRecord {
   /** A guest with no matching invite for this event. */
   isWalkIn?: boolean;
   signedName: string;
+  /**
+   * Whether the attendee signed. False for a walk-in an organizer recorded at
+   * the desk, where nobody was there to sign. The signature itself never leaves
+   * the server on this endpoint — it is large and only needed per record.
+   */
+  hasSignature?: boolean;
   checkInAt: string;
   checkInMethod: CheckInMethod;
   /** null means no check-in area was set, not that the check failed. */
