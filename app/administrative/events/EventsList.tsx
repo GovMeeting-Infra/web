@@ -197,10 +197,7 @@ export function EventsList() {
     'all',
   );
   const [sort, setSort] = useState<string>('startAt:asc');
-  // Upcoming rather than the first tab: "Happening now" is empty most of the
-  // day, and opening the page onto an empty panel hides the thing people came
-  // for.
-  const [active, setActive] = useState<Timeframe>('upcoming');
+  const [active, setActive] = useState<Timeframe>('now');
 
   // Called unconditionally and in a fixed order — see useEventsQuery.
   const queries: Record<Timeframe, ReturnType<typeof useEventsQuery>> = {
