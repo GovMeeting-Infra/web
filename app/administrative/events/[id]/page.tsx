@@ -575,14 +575,18 @@ export default function EventDetailPage({
 
       </div>
 
-      {/* The three places this page leads to. Kept out of the two-column block
-          and pinned to the bottom of the viewport — they are where you go next,
-          not another card competing with the event's details. */}
+      {/* Where this page leads next. Kept out of the two-column block and
+          pinned to the bottom of the viewport — they are destinations, not
+          another card competing with the event's details. */}
       <div className="mt-auto pt-8">
         <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Manage
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div
+          className={`grid grid-cols-1 gap-4 ${
+            event.isPublic ? 'sm:grid-cols-2' : 'sm:grid-cols-3'
+          }`}
+        >
           <ActionTile
             href={`/administrative/events/${event.id}/attendees`}
             icon={<Users className="h-5 w-5" />}
@@ -593,11 +597,16 @@ export default function EventDetailPage({
             icon={<Zap className="h-5 w-5" />}
             label="Check-in QR"
           />
-          <ActionTile
-            href={`/administrative/events/${event.id}/minutes`}
-            icon={<FileText className="h-5 w-5" />}
-            label="Meeting Minutes"
-          />
+          {/* A public activity is a launch or a ceremony, not a meeting that
+              produces a record of proceedings. Attendance still matters, so
+              the other two stay. */}
+          {!event.isPublic && (
+            <ActionTile
+              href={`/administrative/events/${event.id}/minutes`}
+              icon={<FileText className="h-5 w-5" />}
+              label="Meeting Minutes"
+            />
+          )}
         </div>
       </div>
     </div>
