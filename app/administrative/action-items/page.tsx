@@ -1,95 +1,272 @@
 'use client';
 
-import { CheckCircle2, Clock, User, AlertCircle } from 'lucide-react';
+import { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Table2, LayoutGrid, ClipboardList } from 'lucide-react';
+import { apiFetch } from '@/lib/api/client';
+import { useCurrentUser } from '@/components/SessionProvider';
+import { KanbanBoard } from '@/components/action-items/KanbanBoard';
+import { ActionItemModal } from '@/components/action-items/ActionItemModal';
+import {
+  ACTION_ITEM_STATUS_LABELS,
+  POINT_LABELS,
+  POINT_STYLES,
+  isActionItemOverdue,
+  type ActionItemStatus,
+  type BoardActionItem,
+  type CoOrganizerCandidate,
+} from '@/lib/types/events';
+
+/** Roles that may move any item; everyone else only their own. */
+const ADMIN_ROLES = ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'];
+
+const STATUS_OPTIONS: ActionItemStatus[] = [
+  'TODO',
+  'IN_PROGRESS',
+  'BLOCKED',
+  'COMPLETED',
+  'CANCELLED',
+];
+
+function initials(name?: string | null) {
+  if (!name) return '—';
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? '')
+    .join('');
+}
 
 export default function ActionItemsPage() {
-  const actionItems = [
-    {
-      id: 1,
-      title: 'Prepare quarterly health report',
-      owner: 'Dr. Sarah Johnson',
-      dueDate: 'July 31, 2026',
-      status: 'In Progress',
-      priority: 'High',
-    },
-    {
-      id: 2,
-      title: 'Schedule follow-up meeting',
-      owner: 'John Kamara',
-      dueDate: 'August 5, 2026',
-      status: 'Todo',
-      priority: 'Medium',
-    },
-    {
-      id: 3,
-      title: 'Distribute meeting minutes',
-      owner: 'Mary Sesay',
-      dueDate: 'July 24, 2026',
-      status: 'Completed',
-      priority: 'Low',
-    },
-  ];
+  const queryClient = useQueryClient();
+  const currentUser = useCurrentUser();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Completed':
-        return 'bg-[#edf8f1] text-[#007236]';
-      case 'In Progress':
-        return 'bg-[#fff8e5] text-[#8d6400]';
-      default:
-        return 'bg-[#edf3fd] text-[#003580]';
+  const [view, setView] = useState<'board' | 'table'>('board');
+  const [owner, setOwner] = useState('');
+  const [selected, setSelected] = useState<BoardActionItem | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const isAdmin = !!currentUser && ADMIN_ROLES.includes(currentUser.systemRole);
+
+  const { data: items = [], isLoading, error: loadError } = useQuery({
+    queryKey: ['action-items', owner],
+    queryFn: () =>
+      apiFetch<BoardActionItem[]>(
+        `/api/v1/action-items${owner ? `?owner=${encodeURIComponent(owner)}` : ''}`,
+      ),
+  });
+
+  // Ministry colleagues, reusing the picker list added for the event form.
+  const { data: people = [] } = useQuery({
+    queryKey: ['co-organizer-candidates'],
+    queryFn: () =>
+      apiFetch<CoOrganizerCandidate[]>('/api/v1/events/co-organizer-candidates'),
+  });
+
+  const counts = {
+    todo: items.filter((i) => i.status === 'TODO' || i.status === 'BLOCKED').length,
+    inProgress: items.filter((i) => i.status === 'IN_PROGRESS').length,
+    done: items.filter((i) => i.status === 'COMPLETED' || i.status === 'CANCELLED')
+      .length,
+  };
+
+  // Mirrors the server: assigned owner, or a ministry-level admin.
+  const canChange = (item: BoardActionItem) =>
+    isAdmin || (!!currentUser && item.ownerId === currentUser.id);
+
+  const changeStatus = async (item: BoardActionItem, status: ActionItemStatus) => {
+    setError(null);
+    try {
+      await apiFetch(`/api/v1/action-items/${item.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      queryClient.invalidateQueries({ queryKey: ['action-items'] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Couldn't update "${item.title}".`);
     }
   };
 
   return (
-    <div className="space-y-8 p-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-[#003580]">Action Items</h1>
-        <p className="mt-2 text-slate-600">Track and manage tasks assigned from meetings</p>
+    <div className="w-full space-y-6 p-8">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+            Task board
+          </p>
+          <h1 className="text-3xl font-bold text-primary">Action Items</h1>
+          <p className="mt-2 text-muted-foreground">
+            {counts.todo} to do · {counts.inProgress} in progress · {counts.done} done
+          </p>
+        </div>
+
+        {items.length > 0 && (
+          <div className="flex flex-wrap items-center gap-3">
+            {people.length > 0 && (
+              <select
+                value={owner}
+                onChange={(e) => setOwner(e.target.value)}
+                className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                <option value="">All assignees</option>
+                {currentUser && <option value={currentUser.id}>Assigned to me</option>}
+                {people.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name ?? p.email}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1">
+              <button
+                onClick={() => setView('table')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  view === 'table'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-secondary/50'
+                }`}
+              >
+                <Table2 className="h-3.5 w-3.5" /> Table
+              </button>
+              <button
+                onClick={() => setView('board')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  view === 'board'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-secondary/50'
+                }`}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" /> Board
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Action Items Table */}
-      <div className="rounded-[2rem] border border-[#d3deef] bg-[#fafdff] shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-slate-200">
-              <tr>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-[#003580] sm:px-8">Task</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-[#003580] sm:px-8">Owner</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-[#003580] sm:px-8">Due Date</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-[#003580] sm:px-8">Status</th>
-                <th className="px-6 py-4 text-left text-sm font-semibold text-[#003580] sm:px-8">Action</th>
+      {(error || loadError) && (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+          {error ??
+            (loadError instanceof Error
+              ? loadError.message
+              : 'Failed to load action items')}
+        </div>
+      )}
+
+      {isLoading && (
+        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
+          Loading action items…
+        </div>
+      )}
+
+      {!isLoading && items.length === 0 && (
+        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center">
+          <ClipboardList className="mx-auto h-10 w-10 text-muted-foreground" />
+          <p className="mt-4 font-medium text-foreground">No action items yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Action items are created from meeting minutes.
+          </p>
+        </div>
+      )}
+
+      {!isLoading && items.length > 0 && view === 'board' && (
+        <KanbanBoard
+          items={items}
+          canDragItem={canChange}
+          onOpen={setSelected}
+          onMove={changeStatus}
+        />
+      )}
+
+      {!isLoading && items.length > 0 && view === 'table' && (
+        <div className="overflow-x-auto rounded-[1.5rem] border border-border bg-card">
+          <table className="w-full min-w-[52rem] text-sm">
+            <thead className="border-b border-border bg-muted/40">
+              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <th className="px-4 py-3">Task</th>
+                <th className="px-4 py-3">Event</th>
+                <th className="px-4 py-3">Assignee</th>
+                <th className="px-4 py-3">Timeline</th>
+                <th className="px-4 py-3">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
-              {actionItems.map((item) => (
-                <tr key={item.id} className="hover:bg-[#f8fbff] transition-colors">
-                  <td className="px-6 py-4 sm:px-8">
-                    <p className="font-medium text-[#11243d]">{item.title}</p>
-                  </td>
-                  <td className="px-6 py-4 sm:px-8">
-                    <p className="text-sm text-slate-600">{item.owner}</p>
-                  </td>
-                  <td className="px-6 py-4 sm:px-8">
-                    <p className="text-sm text-slate-600">{item.dueDate}</p>
-                  </td>
-                  <td className="px-6 py-4 sm:px-8">
-                    <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(item.status)}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 sm:px-8">
-                    <button className="text-sm font-medium text-[#003580] hover:text-[#002563]">
-                      Update
-                    </button>
-                  </td>
-                </tr>
-              ))}
+            <tbody>
+              {items.map((item, i) => {
+                const overdue = isActionItemOverdue(item);
+                const ownerName = item.owner?.name ?? item.ownerName;
+
+                return (
+                  <tr
+                    key={item.id}
+                    onClick={() => setSelected(item)}
+                    className={`cursor-pointer border-b border-border transition-colors hover:bg-muted/40 ${
+                      i % 2 === 1 ? 'bg-muted/10' : ''
+                    }`}
+                  >
+                    <td className="px-4 py-3 font-medium text-foreground">
+                      {item.title}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {item.minutes.event.title}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">
+                          {initials(ownerName)}
+                        </span>
+                        {ownerName ?? '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={
+                          overdue
+                            ? 'font-semibold text-destructive'
+                            : 'text-muted-foreground'
+                        }
+                      >
+                        {new Date(item.dueDate).toLocaleDateString(undefined, {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                        {overdue ? ' · Overdue' : ''}
+                      </span>
+                    </td>
+                    {/* Stop propagation so using the select doesn't open the modal */}
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium ${POINT_STYLES[item.point]}`}
+                        >
+                          {POINT_LABELS[item.point]}
+                        </span>
+                        <select
+                          value={item.status}
+                          disabled={!canChange(item)}
+                          onChange={(e) =>
+                            changeStatus(item, e.target.value as ActionItemStatus)
+                          }
+                          className="rounded-lg border border-border bg-input px-2 py-1 text-xs text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>
+                              {ACTION_ITEM_STATUS_LABELS[s]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
-      </div>
+      )}
+
+      {selected && (
+        <ActionItemModal item={selected} onClose={() => setSelected(null)} />
+      )}
     </div>
   );
 }
