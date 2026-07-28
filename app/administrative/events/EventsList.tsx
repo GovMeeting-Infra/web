@@ -36,8 +36,10 @@ const SORT_OPTIONS = [
   { value: 'status:asc', label: 'Status' },
 ] as const;
 
-// The reference groups events this way rather than paginating a flat list.
-const SECTIONS = [
+// Three timeframes, shown one at a time as tabs rather than stacked down the
+// page — all three at once meant scrolling past whatever was empty to reach
+// whatever was not.
+const TABS = [
   {
     timeframe: 'now',
     title: 'Happening now',
@@ -57,6 +59,8 @@ const SECTIONS = [
     empty: 'No past events.',
   },
 ] as const;
+
+type Timeframe = (typeof TABS)[number]['timeframe'];
 
 function formatDateTime(startAt: string, endAt: string) {
   const start = new Date(startAt);
@@ -122,22 +126,20 @@ function EventCard({ event }: { event: EventListItem }) {
   );
 }
 
-function EventSection({
-  timeframe,
-  title,
-  icon: Icon,
-  empty,
-  isPublicFilter,
-  sort,
-}: {
-  timeframe: string;
-  title: string;
-  icon: typeof CalendarDays;
-  empty: string;
-  isPublicFilter: 'all' | 'internal' | 'public';
-  sort: string;
-}) {
-  const { data, isLoading, error } = useQuery({
+/**
+ * One timeframe's worth of events.
+ *
+ * Kept as a hook rather than living inside the panel so all three run whatever
+ * tab is open — that is what lets each tab carry its own count, so an empty
+ * "Happening now" is visible without clicking into it. It is the same three
+ * requests the stacked layout already made, so nothing got more expensive.
+ */
+function useEventsQuery(
+  timeframe: Timeframe,
+  isPublicFilter: 'all' | 'internal' | 'public',
+  sort: string,
+) {
+  return useQuery({
     queryKey: ['events', timeframe, isPublicFilter, sort],
     queryFn: () => {
       const [sortBy, order] = sort.split(':');
@@ -148,21 +150,19 @@ function EventSection({
       return apiFetch<EventListResponse>(`/api/v1/events?${params.toString()}`);
     },
   });
+}
+
+function EventPanel({
+  query,
+  empty,
+}: {
+  query: ReturnType<typeof useEventsQuery>;
+  empty: string;
+}) {
+  const { data, isLoading, error } = query;
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </h2>
-        {data && (
-          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            {data.total}
-          </span>
-        )}
-      </div>
-
+    <div>
       {error && (
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
           {error instanceof Error ? error.message : 'Failed to load events'}
@@ -188,7 +188,7 @@ function EventSection({
           ))}
         </div>
       )}
-    </section>
+    </div>
   );
 }
 
@@ -197,6 +197,17 @@ export function EventsList() {
     'all',
   );
   const [sort, setSort] = useState<string>('startAt:asc');
+  // Upcoming rather than the first tab: "Happening now" is empty most of the
+  // day, and opening the page onto an empty panel hides the thing people came
+  // for.
+  const [active, setActive] = useState<Timeframe>('upcoming');
+
+  // Called unconditionally and in a fixed order — see useEventsQuery.
+  const queries: Record<Timeframe, ReturnType<typeof useEventsQuery>> = {
+    now: useEventsQuery('now', isPublicFilter, sort),
+    upcoming: useEventsQuery('upcoming', isPublicFilter, sort),
+    past: useEventsQuery('past', isPublicFilter, sort),
+  };
 
   return (
     <div className="space-y-8 p-8">
@@ -250,17 +261,60 @@ export function EventsList() {
         </label>
       </div>
 
-      {SECTIONS.map((s) => (
-        <EventSection
-          key={s.timeframe}
-          timeframe={s.timeframe}
-          title={s.title}
-          icon={s.icon}
-          empty={s.empty}
-          isPublicFilter={isPublicFilter}
-          sort={sort}
-        />
-      ))}
+      <div>
+        <div
+          role="tablist"
+          aria-label="Event timeframe"
+          className="flex flex-wrap gap-1 border-b border-border"
+        >
+          {TABS.map(({ timeframe, title, icon: Icon }) => {
+            const isActive = active === timeframe;
+            const count = queries[timeframe].data?.total;
+            return (
+              <button
+                key={timeframe}
+                role="tab"
+                type="button"
+                id={`events-tab-${timeframe}`}
+                aria-selected={isActive}
+                aria-controls={`events-panel-${timeframe}`}
+                onClick={() => setActive(timeframe)}
+                className={`-mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'border-primary text-primary'
+                    : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {title}
+                {count !== undefined && (
+                  <span
+                    className={`rounded-full px-2 py-0.5 text-xs ${
+                      isActive
+                        ? 'bg-secondary text-primary'
+                        : 'bg-muted text-muted-foreground'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {TABS.filter((t) => t.timeframe === active).map((t) => (
+          <div
+            key={t.timeframe}
+            role="tabpanel"
+            id={`events-panel-${t.timeframe}`}
+            aria-labelledby={`events-tab-${t.timeframe}`}
+            className="pt-6"
+          >
+            <EventPanel query={queries[t.timeframe]} empty={t.empty} />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
