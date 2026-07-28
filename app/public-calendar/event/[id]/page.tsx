@@ -123,7 +123,10 @@ export default async function PublicEventPage({
 
   return (
     <PublicShell>
-      <article className="mx-auto max-w-3xl space-y-6">
+      {/* Fills the shell's content column rather than sitting at max-w-3xl
+          inside it — at 768px the page was half the width of its own header
+          and footer, which is what made it look cramped. */}
+      <article className="w-full space-y-6">
         <Link
           href={`/?y=${start.getFullYear()}&m=${start.getMonth()}`}
           className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[#003580]"
@@ -151,88 +154,106 @@ export default async function PublicEventPage({
           )}
         </header>
 
-        <dl className="grid grid-cols-1 gap-4 rounded-2xl border border-[#d3deef] bg-white p-6 sm:grid-cols-2">
-          <div>
-            <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <CalendarDays className="h-4 w-4" /> Date
-            </dt>
-            <dd className="mt-1 text-sm font-medium text-slate-900">
-              {start.toLocaleDateString('en-GB', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-            </dd>
-          </div>
-
-          <div>
-            <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-              <Clock className="h-4 w-4" /> Time
-            </dt>
-            <dd className="mt-1 text-sm font-medium text-slate-900">
-              {start.toLocaleTimeString('en-GB', timeOpts)} –{' '}
-              {end.toLocaleTimeString('en-GB', timeOpts)}
-            </dd>
-          </div>
-
-          {event.venueName && (
-            <div>
-              <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <MapPin className="h-4 w-4" /> Location
-              </dt>
-              <dd className="mt-1 text-sm font-medium text-slate-900">
-                {event.venueName}
-              </dd>
-            </div>
+        {/* Two columns once there is room: what the activity is on the left,
+            the practical detail a visitor came for on the right. With no
+            description there is no left column, so the details take the full
+            width instead of leaving two thirds of the row empty. */}
+        <div
+          className={
+            event.description ? 'grid gap-6 lg:grid-cols-3' : 'space-y-6'
+          }
+        >
+          {event.description && (
+            <section className="rounded-2xl border border-[#d3deef] bg-white p-6 lg:col-span-2">
+              <h2 className="text-sm font-semibold text-slate-900">
+                About this activity
+              </h2>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
+                {event.description}
+              </p>
+            </section>
           )}
 
-          {(event.contactEmail || event.contactPhone) && (
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Contact
-              </dt>
-              <dd className="mt-1 space-y-1 text-sm font-medium text-slate-900">
-                {event.contactEmail && (
-                  <a
-                    href={`mailto:${event.contactEmail}`}
-                    className="flex items-center gap-2 hover:text-[#003580]"
-                  >
-                    <Mail className="h-4 w-4" /> {event.contactEmail}
-                  </a>
-                )}
-                {event.contactPhone && (
-                  <a
-                    href={`tel:${event.contactPhone}`}
-                    className="flex items-center gap-2 hover:text-[#003580]"
-                  >
-                    <Phone className="h-4 w-4" /> {event.contactPhone}
-                  </a>
-                )}
-              </dd>
-            </div>
-          )}
-        </dl>
+          <div className="space-y-6">
+            <dl
+              className={`grid grid-cols-1 gap-4 rounded-2xl border border-[#d3deef] bg-white p-6 sm:grid-cols-2 ${
+                event.description ? 'lg:grid-cols-1' : 'lg:grid-cols-4'
+              }`}
+            >
+              <div>
+                <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <CalendarDays className="h-4 w-4" /> Date
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">
+                  {start.toLocaleDateString('en-GB', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </dd>
+              </div>
 
-        {event.description && (
-          <section className="rounded-2xl border border-[#d3deef] bg-white p-6">
-            <h2 className="text-sm font-semibold text-slate-900">About this activity</h2>
-            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">
-              {event.description}
-            </p>
-          </section>
-        )}
+              <div>
+                <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <Clock className="h-4 w-4" /> Time
+                </dt>
+                <dd className="mt-1 text-sm font-medium text-slate-900">
+                  {start.toLocaleTimeString('en-GB', timeOpts)} –{' '}
+                  {end.toLocaleTimeString('en-GB', timeOpts)}
+                </dd>
+              </div>
 
-        {event.externalUrl && (
-          <a
-            href={event.externalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#003580] px-5 py-2.5 text-sm font-medium text-white"
-          >
-            <ExternalLink className="h-4 w-4" /> More information
-          </a>
-        )}
+              {event.venueName && (
+                <div>
+                  <dt className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <MapPin className="h-4 w-4" /> Location
+                  </dt>
+                  <dd className="mt-1 text-sm font-medium text-slate-900">
+                    {event.venueName}
+                  </dd>
+                </div>
+              )}
+
+              {(event.contactEmail || event.contactPhone) && (
+                <div>
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Contact
+                  </dt>
+                  <dd className="mt-1 space-y-1 text-sm font-medium text-slate-900">
+                    {event.contactEmail && (
+                      <a
+                        href={`mailto:${event.contactEmail}`}
+                        className="flex items-center gap-2 hover:text-[#003580]"
+                      >
+                        <Mail className="h-4 w-4" /> {event.contactEmail}
+                      </a>
+                    )}
+                    {event.contactPhone && (
+                      <a
+                        href={`tel:${event.contactPhone}`}
+                        className="flex items-center gap-2 hover:text-[#003580]"
+                      >
+                        <Phone className="h-4 w-4" /> {event.contactPhone}
+                      </a>
+                    )}
+                  </dd>
+                </div>
+              )}
+            </dl>
+
+            {event.externalUrl && (
+              <a
+                href={event.externalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl bg-[#003580] px-5 py-2.5 text-sm font-medium text-white"
+              >
+                <ExternalLink className="h-4 w-4" /> More information
+              </a>
+            )}
+          </div>
+        </div>
       </article>
     </PublicShell>
   );
