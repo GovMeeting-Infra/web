@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import {
   CalendarRange,
@@ -84,6 +85,26 @@ const NAV_ITEMS: NavItem[] = [
 
 export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await fetch('/api/v1/auth/sign-out', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // The session is what matters, and the server drops it on receipt. If
+      // the request never landed, leaving the browser is still the right move.
+    }
+
+    // A full document load, not router.push: the session is read by server
+    // components, so a client-side navigation would keep rendering the cached
+    // signed-in tree. This also discards any in-memory query cache, so the
+    // next person to sign in cannot see the previous user's data.
+    window.location.href = '/login';
+  };
 
   return (
     <nav
@@ -126,14 +147,16 @@ export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
 
       <div className="border-t border-sidebar-border pt-6">
         <button
+          onClick={handleSignOut}
+          disabled={isSigningOut}
           className={cn(
-            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive transition-all duration-200 hover:bg-red-50',
+            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive transition-all duration-200 hover:bg-red-50 disabled:opacity-60',
             collapsed && 'justify-center',
           )}
           title={collapsed ? 'Sign Out' : undefined}
         >
           <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Sign Out</span>}
+          {!collapsed && <span>{isSigningOut ? 'Signing out…' : 'Sign Out'}</span>}
         </button>
       </div>
     </nav>
