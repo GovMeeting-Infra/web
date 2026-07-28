@@ -80,10 +80,17 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <section className="grid w-full max-w-6xl grid-cols-1 gap-0 rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,53,128,0.12)] md:grid-cols-[1.1fr_0.95fr] md:overflow-hidden">
+    // Full-bleed: the two columns fill the viewport rather than sitting in a
+    // floating card.
+    //
+    // h-screen with its own scroll, not min-h-screen: the root layout pins
+    // <body> to h-screen, so a taller child would overflow a container that
+    // cannot grow. Scrolling inside main keeps the form reachable on a short
+    // window and on mobile, where only this column is shown.
+    <main className="h-screen overflow-y-auto">
+      <section className="grid min-h-full grid-cols-1 md:grid-cols-[1.1fr_0.95fr]">
         {/* Left Hero Panel */}
-        <aside className="hidden flex-col justify-between bg-[linear-gradient(145deg,#003580_0%,#0a4aa0_58%,#007236_100%)] p-12 md:flex relative overflow-hidden">
+        <aside className="relative hidden flex-col justify-between overflow-hidden bg-[linear-gradient(145deg,#003580_0%,#0a4aa0_58%,#007236_100%)] p-12 md:flex lg:p-16">
           {/* Decorative circles */}
           <div className="absolute top-20 right-20 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
           <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-amber-400/10 blur-3xl" />
@@ -140,7 +147,10 @@ export default function LoginPage() {
         </aside>
 
         {/* Right Form Panel */}
-        <div className="flex flex-col justify-center px-6 py-12 sm:px-8 md:px-12">
+        {/* The form column fills its half but the fields stay a readable width,
+            rather than stretching across a wide monitor. */}
+        <div className="flex flex-col justify-center bg-white px-6 py-12 sm:px-10 md:px-12 lg:px-16">
+          <div className="mx-auto w-full max-w-md">
           {/* Mobile header (hidden on desktop) */}
           <div className="mb-8 text-center md:hidden">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -247,6 +257,7 @@ export default function LoginPage() {
                 This portal is restricted to government officials only. Unauthorized access is prohibited by law. All activity is monitored and logged for security purposes.
               </p>
             </div>
+          </div>
           </div>
         </div>
       </section>
