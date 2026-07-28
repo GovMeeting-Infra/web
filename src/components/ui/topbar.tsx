@@ -1,6 +1,6 @@
 'use client';
 
-import { Menu, Bell, Building2 } from 'lucide-react';
+import { Menu, Bell, Building2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils/cn';
 import { SierraLeoneFlag } from '../SierraLeoneFlag';
@@ -24,7 +24,7 @@ export function Topbar({ ministryName, userName, userEmail }: TopbarProps) {
         <Menu className="h-5 w-5" />
       </button>
 
-      <div className="flex flex-1 items-center gap-6">
+      <div className="flex min-w-0 flex-1 items-center gap-6">
         {ministryName && (
           <div className="hidden flex-shrink-0 items-center gap-3 sm:flex">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-color-secondary text-color-primary">
@@ -37,15 +37,34 @@ export function Topbar({ ministryName, userName, userEmail }: TopbarProps) {
             </div>
           </div>
         )}
+
+        {/* Global search. A plain GET form so it works without JS and lands on
+            /administrative/search?q=… exactly as a shared link would. */}
+        <form
+          action="/administrative/search"
+          method="GET"
+          role="search"
+          className="relative hidden min-w-0 max-w-sm flex-1 md:block"
+        >
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            name="q"
+            placeholder="Search events, minutes, rooms…"
+            aria-label="Search"
+            className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          />
+        </form>
       </div>
 
       <div className="flex items-center gap-3">
-        <button
+        <Link
+          href="/administrative/notifications"
           className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-muted"
           aria-label="Notifications"
         >
           <Bell className="h-5 w-5 text-foreground" />
-        </button>
+        </Link>
 
         <SierraLeoneFlag className="hidden h-8 w-14 sm:inline-flex" />
 
