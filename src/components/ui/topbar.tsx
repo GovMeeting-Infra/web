@@ -1,9 +1,10 @@
 'use client';
 
-import { Menu, Bell, Building2, Search } from 'lucide-react';
+import { Menu, Building2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils/cn';
 import { SierraLeoneFlag } from '../SierraLeoneFlag';
+import { NotificationBell } from './notification-bell';
 
 interface TopbarProps {
   ministryName?: string;
@@ -58,13 +59,9 @@ export function Topbar({ ministryName, userName, userEmail }: TopbarProps) {
       </div>
 
       <div className="flex items-center gap-3">
-        <Link
-          href="/administrative/notifications"
-          className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-muted"
-          aria-label="Notifications"
-        >
-          <Bell className="h-5 w-5 text-foreground" />
-        </Link>
+        {/* Opens a panel of unread items rather than navigating; the full
+            history lives on the Notifications page in the sidebar. */}
+        <NotificationBell />
 
         <SierraLeoneFlag className="hidden h-8 w-14 sm:inline-flex" />
 

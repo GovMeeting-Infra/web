@@ -15,14 +15,19 @@ import {
   ClipboardList,
   BarChart3,
   Building2,
+  Bell,
+  ScrollText,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { useCurrentUser } from '@/components/SessionProvider';
 
 interface NavItem {
   href: string;
   label: string;
   icon: React.ReactNode;
+  /** When set, only these roles see the entry. */
+  roles?: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
@@ -67,6 +72,19 @@ const NAV_ITEMS: NavItem[] = [
     icon: <HelpCircle className="h-4 w-4" />,
   },
   {
+    href: '/administrative/notifications',
+    label: 'Notifications',
+    icon: <Bell className="h-4 w-4" />,
+  },
+  {
+    // Oversight rather than day-to-day administration, so ministry admins are
+    // deliberately not on this list — it matches the API, which refuses them.
+    href: '/administrative/activity-log',
+    label: 'Activity Log',
+    icon: <ScrollText className="h-4 w-4" />,
+    roles: ['MINISTER', 'SUPER_ADMIN'],
+  },
+  {
     href: '/administrative/profile',
     label: 'Profile',
     icon: <UserCircle className="h-4 w-4" />,
@@ -85,7 +103,14 @@ const NAV_ITEMS: NavItem[] = [
 
 export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
   const pathname = usePathname();
+  const currentUser = useCurrentUser();
   const [isSigningOut, setIsSigningOut] = useState(false);
+
+  // The server is the authority; this only decides what to render, so an entry
+  // is never offered to someone the API would refuse.
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => !item.roles || item.roles.includes(currentUser?.systemRole ?? ''),
+  );
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
@@ -123,7 +148,7 @@ export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
           Main
         </p>
         <div className="space-y-0.5">
-          {NAV_ITEMS.map((item) => {
+          {visibleItems.map((item) => {
             const isActive = pathname.startsWith(item.href);
             return (
               <Link
