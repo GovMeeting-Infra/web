@@ -80,10 +80,20 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <section className="grid w-full max-w-6xl grid-cols-1 gap-0 rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,53,128,0.12)] md:grid-cols-[1.1fr_0.95fr] md:overflow-hidden">
+    // A centred card again, but a substantially larger one — wider than the
+    // old max-w-6xl and with a real minimum height, so it fills most of the
+    // screen instead of floating small in the middle.
+    //
+    // h-screen with its own scroll rather than min-h-screen: the root layout
+    // pins <body> to h-screen, so a taller child would overflow a container
+    // that cannot grow. my-auto on the card centres it while still allowing
+    // that scroll — items-center would clip the top on a short window.
+    <main className="flex h-screen justify-center overflow-y-auto p-4 sm:p-6 lg:p-8">
+      {/* 45fr/55fr — written as the percentages themselves so the intended
+          split is obvious. The sign-in content keeps the larger share. */}
+      <section className="my-auto grid w-full max-w-[88rem] grid-cols-1 overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,53,128,0.14)] md:min-h-[44rem] md:grid-cols-[45fr_55fr]">
         {/* Left Hero Panel */}
-        <aside className="hidden flex-col justify-between bg-[linear-gradient(145deg,#003580_0%,#0a4aa0_58%,#007236_100%)] p-12 md:flex relative overflow-hidden">
+        <aside className="relative hidden flex-col justify-between overflow-hidden bg-[linear-gradient(145deg,#003580_0%,#0a4aa0_58%,#007236_100%)] p-12 md:flex lg:p-16">
           {/* Decorative circles */}
           <div className="absolute top-20 right-20 h-64 w-64 rounded-full bg-white/5 blur-3xl" />
           <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-amber-400/10 blur-3xl" />
@@ -109,11 +119,18 @@ export default function LoginPage() {
             </div>
 
             {/* Branding */}
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight text-white">
-                Smart Meeting & Attendance Logger
+            <div className="space-y-3">
+              {/* text-balance evens the line lengths. Without it the title broke
+                  after the ampersand and left a wide gap mid-heading. The
+                  non-breaking space keeps "& Attendance" from starting a line
+                  with a stranded ampersand. */}
+              {/* Scaled back: the panel is only 40% wide now, so 5xl/6xl
+                  crowded it. text-balance and the non-breaking space stay —
+                  they are what stop the ampersand stranding at a line end. */}
+              <h1 className="text-balance text-3xl font-bold leading-[1.15] tracking-tight text-white lg:text-4xl">
+                Smart Meeting&nbsp;&amp; Attendance Logger
               </h1>
-              <p className="text-lg text-white/90">
+              <p className="text-balance text-base text-white/90 lg:text-lg">
                 Streamline government meetings with secure check-in and real-time attendance tracking
               </p>
             </div>
@@ -140,7 +157,10 @@ export default function LoginPage() {
         </aside>
 
         {/* Right Form Panel */}
-        <div className="flex flex-col justify-center px-6 py-12 sm:px-8 md:px-12">
+        {/* The form column fills its half but the fields stay a readable width,
+            rather than stretching across a wide monitor. */}
+        <div className="flex flex-col justify-center bg-white px-6 py-12 sm:px-10 md:px-12 lg:px-16">
+          <div className="mx-auto w-full max-w-md">
           {/* Mobile header (hidden on desktop) */}
           <div className="mb-8 text-center md:hidden">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -222,6 +242,15 @@ export default function LoginPage() {
               >
                 {isLoading ? 'Signing in...' : 'Sign In'}
               </button>
+
+              <p className="text-center text-sm">
+                <Link
+                  href="/forgot-password"
+                  className="font-medium text-primary hover:underline"
+                >
+                  Forgotten your password?
+                </Link>
+              </p>
             </form>
 
             {/* Footer */}
@@ -238,6 +267,7 @@ export default function LoginPage() {
                 This portal is restricted to government officials only. Unauthorized access is prohibited by law. All activity is monitored and logged for security purposes.
               </p>
             </div>
+          </div>
           </div>
         </div>
       </section>

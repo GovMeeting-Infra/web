@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bell, Monitor, Lock, Database } from 'lucide-react';
+import { Bell, Monitor, Lock, Database, Download } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
-import { SESSION_TIMEOUTS, type UserPreferences } from '@/lib/types/account';
+import type { UserPreferences } from '@/lib/types/account';
 
 function Toggle({
   checked,
@@ -79,6 +80,39 @@ function Section({
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const [isExporting, setIsExporting] = useState(false);
+
+  /**
+   * Streams the export to a file. Uses fetch rather than a plain link so the
+   * session cookie is sent and a failure surfaces as a message instead of the
+   * browser navigating to an error body.
+   */
+  const handleExport = async () => {
+    setIsExporting(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/v1/me/export', {
+        credentials: 'include',
+      });
+      if (!response.ok) throw new Error('Could not prepare your data.');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `smart-meeting-data-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setMessage({
+        ok: false,
+        text: err instanceof Error ? err.message : 'Could not prepare your data.',
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -108,10 +142,12 @@ export default function SettingsPage() {
           meetingReminders: prefs.meetingReminders,
           actionItemNotifications: prefs.actionItemNotifications,
           compactMode: prefs.compactMode,
-          sessionTimeout: prefs.sessionTimeout,
         }),
       });
       queryClient.invalidateQueries({ queryKey: ['my-preferences'] });
+      // Compact mode is applied by the server-rendered shell, so the new
+      // density only appears once that re-renders.
+      router.refresh();
       setMessage({ ok: true, text: 'Settings saved.' });
     } catch (err) {
       setMessage({
@@ -238,33 +274,30 @@ export default function SettingsPage() {
         />
       </Section>
 
+      {/* The session-timeout control lived here. It was removed rather than
+          fixed: sessions are governed centrally by a 12-hour inactivity window,
+          and a control that saved a value nothing read was worse than none. */}
       <Section icon={<Database className="h-5 w-5" />} title="Data & Storage">
         <Row
-          title="Session timeout"
-          description="Preference is saved; sign-in sessions currently use the server default"
+          title="Your data"
+          description="Download everything this platform holds about you, as a JSON file"
           control={
-            <select
-              value={prefs.sessionTimeout}
-              onChange={(e) => set('sessionTimeout', Number(e.target.value))}
-              disabled={isSaving}
-              className="rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-50"
             >
-              {SESSION_TIMEOUTS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+              <Download className="h-4 w-4" />
+              {isExporting ? 'Preparing…' : 'Download'}
+            </button>
           }
         />
         <div className="border-t border-border pt-4">
-          <button
-            type="button"
-            disabled
-            className="w-full cursor-not-allowed rounded-lg border border-border bg-muted px-4 py-3 text-sm font-medium text-muted-foreground"
-          >
-            Download your data (coming soon)
-          </button>
+          <p className="text-xs text-muted-foreground">
+            Sessions end after 12 hours without activity. Signing out from the
+            sidebar ends yours immediately.
+          </p>
         </div>
       </Section>
 

@@ -1,9 +1,19 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { BarChart3, Download, Calendar, TrendingUp, CheckCircle2 } from 'lucide-react';
+import {
+  BarChart3,
+  Download,
+  Calendar,
+  TrendingUp,
+  CheckCircle2,
+  Users,
+} from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { StatCardsSkeleton } from '@/components/ui/skeletons';
 import { CSV_EXPORTS, type AnalyticsDashboard } from '@/lib/types/reports';
+import { ROLE_LABELS } from '@/lib/types/account';
+import type { SystemRole } from '@/lib/session';
 
 /** Keeps the existing card shape; only the numbers are real now. */
 function ReportCard({
@@ -131,9 +141,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
       )}
 
       {isLoading && (
-        <div className="rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-12 text-center text-slate-600">
-          Loading analytics…
-        </div>
+        <StatCardsSkeleton />
       )}
 
       {data && (
@@ -188,7 +196,47 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 utilisation: `${Math.round(data.roomStats.averageUtilization)}%`,
               }}
             />
+
+            {/* userStats was fetched but never rendered, so the People figures
+                appeared on the dashboard and nowhere on this page. */}
+            <ReportCard
+              title="People"
+              description="Accounts and sign-in activity"
+              period={period}
+              icon={<Users className="h-6 w-6 text-[#003580]" />}
+              metrics={{
+                active: data.userStats.activeUsers,
+                total: data.userStats.totalUsers,
+                'avg. sign-ins': Math.round(
+                  data.userStats.averageLoginFrequency,
+                ),
+              }}
+            />
           </div>
+
+          {data.userStats.usersByRole.length > 0 && (
+            <section className="rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+              <h2 className="font-semibold text-[#003580]">People by role</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Who holds which level of access
+              </p>
+              <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+                {data.userStats.usersByRole.map((r) => (
+                  <div
+                    key={r.role}
+                    className="rounded-xl border border-[#d3deef] bg-white p-4"
+                  >
+                    <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {ROLE_LABELS[r.role as SystemRole] ?? r.role}
+                    </dt>
+                    <dd className="mt-1.5 text-2xl font-bold text-[#003580]">
+                      {r.count}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
 
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Check-in methods */}

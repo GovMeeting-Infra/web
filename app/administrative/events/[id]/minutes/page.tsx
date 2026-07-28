@@ -3,9 +3,10 @@
 import { use, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Send, Plus, Archive } from 'lucide-react';
+import { ArrowLeft, Send, Plus, Archive, Lock, RotateCcw } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
+import { PersonPicker } from '@/components/ui/person-picker';
 import { ACTION_ITEM_STATUS_LABELS, type EventDetail, type Minutes, type ActionItem } from '@/lib/types/events';
 
 export default function MinutesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -16,8 +17,14 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const [summary, setSummary] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newActionItem, setNewActionItem] = useState({ title: '', dueDate: '' });
+  const [newActionItem, setNewActionItem] = useState<{
+    title: string;
+    dueDate: string;
+    ownerId: string | null;
+    ownerName: string | null;
+  }>({ title: '', dueDate: '', ownerId: null, ownerName: null });
   const [isAddingActionItem, setIsAddingActionItem] = useState(false);
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const { data: event } = useQuery({
     queryKey: ['event', id],
@@ -68,10 +75,51 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const isSuperAdmin = currentUser?.systemRole === 'SUPER_ADMIN';
   const isPublished = minutes?.status === 'PUBLISHED';
 
-  // Super-admins read published minutes as an archival record rather than
-  // editing them.
-  const isArchivalView = isPublished && isSuperAdmin;
-  const canEdit = !!editPermission?.canEdit && !isArchivalView;
+  // Genuinely archived: frozen by the retention job once the meeting is old
+  // enough, and readable only by ministry leadership.
+  const isArchived = minutes?.status === 'ARCHIVED';
+
+  // Super-admins read published minutes without editing them. This is a
+  // read-only view, not an archived record — the two were previously conflated
+  // under the same "Archived" wording.
+  const isReadOnlyView = (isPublished && isSuperAdmin) || isArchived;
+  const canEdit = !!editPermission?.canEdit && !isReadOnlyView;
+
+  // Same roles the server allows to archive and restore. The server is still
+  // the authority; this only decides whether to offer the control.
+  const canManageArchive =
+    currentUser?.systemRole === 'MINISTER' || isSuperAdmin;
+
+  const handleArchiveToggle = async () => {
+    const restoring = isArchived;
+    if (
+      !restoring &&
+      !window.confirm(
+        'Archive these minutes? The record becomes permanent — nobody will be able to edit it, and only ministers and super admins will be able to read it.',
+      )
+    ) {
+      return;
+    }
+
+    setIsArchiving(true);
+    setError(null);
+    try {
+      await apiFetch(
+        `/api/v1/events/${id}/minutes/${restoring ? 'restore' : 'archive'}`,
+        { method: 'POST' },
+      );
+      queryClient.invalidateQueries({ queryKey: ['minutes', id] });
+      queryClient.invalidateQueries({ queryKey: ['minutes-can-edit', id] });
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Could not ${restoring ? 'restore' : 'archive'} these minutes.`,
+      );
+    } finally {
+      setIsArchiving(false);
+    }
+  };
 
   // Server rejects publishing without a body or without at least one attendee
   // (minutes.service.ts publishMinutes), so mirror both preconditions here.
@@ -137,9 +185,10 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({
           title: newActionItem.title,
           dueDate: new Date(newActionItem.dueDate).toISOString(),
+          ownerId: newActionItem.ownerId ?? undefined,
         }),
       });
-      setNewActionItem({ title: '', dueDate: '' });
+      setNewActionItem({ title: '', dueDate: '', ownerId: null, ownerName: null });
       queryClient.invalidateQueries({ queryKey: ['actionItems', id] });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add action item');
@@ -166,9 +215,30 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         <ArrowLeft className="h-4 w-4" /> Back to Event
       </Link>
 
-      <div>
-        <h1 className="text-3xl font-bold text-primary">Meeting Minutes</h1>
-        {minutes && <p className="mt-2 text-sm text-muted-foreground">Status: {minutes.status}</p>}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-primary">Meeting Minutes</h1>
+          {minutes && <p className="mt-2 text-sm text-muted-foreground">Status: {minutes.status}</p>}
+        </div>
+
+        {canManageArchive && minutes && (isPublished || isArchived) && (
+          <button
+            onClick={handleArchiveToggle}
+            disabled={isArchiving}
+            className="flex items-center gap-2 rounded-[1.25rem] border border-border bg-background px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50 disabled:opacity-60"
+          >
+            {isArchived ? (
+              <RotateCcw className="h-4 w-4" />
+            ) : (
+              <Archive className="h-4 w-4" />
+            )}
+            {isArchiving
+              ? 'Working…'
+              : isArchived
+                ? 'Restore from archive'
+                : 'Archive record'}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -177,12 +247,24 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      {isArchivalView && minutes && (
+      {isReadOnlyView && minutes && (
         <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
           <div className="flex items-center gap-2">
-            <Archive className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold text-foreground">Archived record</h2>
+            {isArchived ? (
+              <Archive className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <Lock className="h-4 w-4 text-muted-foreground" />
+            )}
+            <h2 className="text-sm font-semibold text-foreground">
+              {isArchived ? 'Archived record' : 'Read-only view'}
+            </h2>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            {isArchived
+              ? 'These minutes were archived because the meeting is over six months old. The record is permanent and can no longer be changed.'
+              : 'You are viewing a published record. Editing is left to the organizing team.'}
+          </p>
 
           {minutes.summary && (
             <p className="text-sm font-medium text-foreground">{minutes.summary}</p>
@@ -206,7 +288,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      {!canEdit && !isArchivalView && (
+      {!canEdit && !isReadOnlyView && (
         <div className="space-y-3 rounded-[1.75rem] border border-border bg-card p-8">
           <p className="text-sm text-muted-foreground">
             These minutes are read-only for you — the edit window has closed or you
@@ -276,28 +358,61 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
 
           {canEdit && (
             <div className="rounded-[1.75rem] border border-border bg-card p-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <input
-                  type="text"
-                  value={newActionItem.title}
-                  onChange={(e) => setNewActionItem((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="Action item title"
-                  className="rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <input
-                  type="date"
-                  value={newActionItem.dueDate}
-                  onChange={(e) => setNewActionItem((prev) => ({ ...prev, dueDate: e.target.value }))}
-                  className="rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                />
-                <button
-                  onClick={handleAddActionItem}
-                  disabled={isAddingActionItem || !newActionItem.title.trim()}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-2 font-medium text-secondary-foreground disabled:opacity-50"
-                >
-                  <Plus className="h-4 w-4" /> Add
-                </button>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Action
+                  </label>
+                  <input
+                    type="text"
+                    value={newActionItem.title}
+                    onChange={(e) => setNewActionItem((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="What needs to be done"
+                    className="mt-1 w-full rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Due date
+                  </label>
+                  <input
+                    type="date"
+                    value={newActionItem.dueDate}
+                    onChange={(e) => setNewActionItem((prev) => ({ ...prev, dueDate: e.target.value }))}
+                    className="mt-1 w-full rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
               </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground">
+                  Assign to (optional)
+                </label>
+                <PersonPicker
+                  value={newActionItem.ownerId}
+                  valueName={newActionItem.ownerName}
+                  onChange={(person) =>
+                    setNewActionItem((prev) => ({
+                      ...prev,
+                      ownerId: person?.id ?? null,
+                      ownerName: person?.name ?? null,
+                    }))
+                  }
+                  disabled={isAddingActionItem}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  An unassigned item still appears on the board, but nobody is
+                  reminded about it.
+                </p>
+              </div>
+
+              <button
+                onClick={handleAddActionItem}
+                disabled={isAddingActionItem || !newActionItem.title.trim() || !newActionItem.dueDate}
+                className="flex items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-2 font-medium text-secondary-foreground disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4" /> {isAddingActionItem ? 'Adding…' : 'Add action item'}
+              </button>
             </div>
           )}
 

@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import { STAFF_ROLES, ADMIN_ROLES, type SystemRole } from './roles';
 
 export interface CurrentUser {
   id: string;
@@ -41,21 +42,45 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   }
 }
 
-export type SystemRole = CurrentUser['systemRole'];
+export interface MyPreferences {
+  emailNotifications: boolean;
+  minutesNotifications: boolean;
+  meetingReminders: boolean;
+  actionItemNotifications: boolean;
+  compactMode: boolean;
+}
 
-/** Every role that counts as staff-or-above, per PAGES.md's "Staff+". */
-export const STAFF_ROLES: SystemRole[] = [
-  'SUPER_ADMIN',
-  'MINISTER',
-  'MINISTRY_ADMIN',
-  'STAFF',
-];
+/**
+ * The signed-in user's preferences, for settings the server-rendered shell has
+ * to know about before painting — currently just compact mode.
+ *
+ * Returns null rather than throwing: a preferences lookup failing should render
+ * the default layout, not break the page.
+ */
+export async function getMyPreferences(): Promise<MyPreferences | null> {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get('authToken')?.value;
 
-export const ADMIN_ROLES: SystemRole[] = [
-  'SUPER_ADMIN',
-  'MINISTER',
-  'MINISTRY_ADMIN',
-];
+  if (!authToken) return null;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/me/preferences`, {
+      headers: { Cookie: `authToken=${authToken}` },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) return null;
+    return (await response.json()) as MyPreferences;
+  } catch {
+    return null;
+  }
+}
+
+// Re-exported so existing server-side imports keep working. The definitions
+// live in lib/roles.ts because this module imports next/headers, which makes it
+// unusable from a client component.
+export type { SystemRole };
+export { STAFF_ROLES, ADMIN_ROLES };
 
 /**
  * Page-level role gate for server components. Redirects to /forbidden rather

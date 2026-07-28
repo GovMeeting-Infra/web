@@ -1,7 +1,11 @@
 import { ReactNode } from 'react';
 import { AdminLayout } from '@/components/ui/admin-layout';
 import { SessionProvider } from '@/components/SessionProvider';
-import { getCurrentUser, getMinistryName } from '@/lib/session';
+import {
+  getCurrentUser,
+  getMinistryName,
+  getMyPreferences,
+} from '@/lib/session';
 
 export default async function AdministrativeLayout({
   children,
@@ -9,9 +13,10 @@ export default async function AdministrativeLayout({
   children: ReactNode;
 }) {
   const user = await getCurrentUser();
-  const ministryName = user
-    ? await getMinistryName(user.ministryId, user.systemRole)
-    : null;
+  const [ministryName, preferences] = await Promise.all([
+    user ? getMinistryName(user.ministryId, user.systemRole) : null,
+    user ? getMyPreferences() : null,
+  ]);
 
   return (
     <SessionProvider user={user}>
@@ -19,6 +24,7 @@ export default async function AdministrativeLayout({
         ministryName={ministryName ?? undefined}
         userName={user?.name}
         userEmail={user?.email}
+        compact={preferences?.compactMode ?? false}
       >
         {children}
       </AdminLayout>

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Table2, LayoutGrid, ClipboardList } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { KanbanBoard } from '@/components/action-items/KanbanBoard';
 import { ActionItemModal } from '@/components/action-items/ActionItemModal';
@@ -70,9 +71,14 @@ export default function ActionItemsPage() {
       .length,
   };
 
-  // Mirrors the server: assigned owner, or a ministry-level admin.
+  // Mirrors the server: assigned owner, whoever raised the item, or a
+  // ministry-level admin. The creator matters because an unassigned item would
+  // otherwise be untouchable by the person who just added it.
   const canChange = (item: BoardActionItem) =>
-    isAdmin || (!!currentUser && item.ownerId === currentUser.id);
+    isAdmin ||
+    (!!currentUser &&
+      (item.ownerId === currentUser.id ||
+        item.createdBy?.id === currentUser.id));
 
   const changeStatus = async (item: BoardActionItem, status: ActionItemStatus) => {
     setError(null);
@@ -154,9 +160,7 @@ export default function ActionItemsPage() {
       )}
 
       {isLoading && (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Loading action items…
-        </div>
+        <ListSkeleton rows={6} label="Loading action items" />
       )}
 
       {!isLoading && items.length === 0 && (
@@ -265,7 +269,24 @@ export default function ActionItemsPage() {
       )}
 
       {selected && (
-        <ActionItemModal item={selected} onClose={() => setSelected(null)} />
+        <ActionItemModal
+          item={selected}
+          onClose={() => setSelected(null)}
+          onReassign={
+            canChange(selected)
+              ? async (ownerId) => {
+                  await apiFetch(`/api/v1/action-items/${selected.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({ ownerId }),
+                  });
+                  await queryClient.invalidateQueries({
+                    queryKey: ['action-items'],
+                  });
+                  setSelected(null);
+                }
+              : undefined
+          }
+        />
       )}
     </div>
   );

@@ -13,6 +13,8 @@ interface AdminLayoutProps {
   ministryName?: string;
   userName?: string;
   userEmail?: string;
+  /** The viewer's compact-mode preference. */
+  compact?: boolean;
 }
 
 export function AdminLayout({
@@ -20,11 +22,17 @@ export function AdminLayout({
   ministryName,
   userName,
   userEmail,
+  compact = false,
 }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className="flex h-screen bg-background">
+    // data-density drives the compact-mode rules in globals.css, which tighten
+    // spacing without every page having to know about the preference.
+    <div
+      className="flex h-screen bg-background"
+      data-density={compact ? 'compact' : undefined}
+    >
       {/* Sidebar */}
       <aside
         className={cn(

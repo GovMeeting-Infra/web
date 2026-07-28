@@ -1,7 +1,4 @@
-'use client';
-
-import { use } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -14,40 +11,97 @@ import {
   Building2,
 } from 'lucide-react';
 import { PublicShell } from '@/components/PublicShell';
-import { apiFetch, ApiError } from '@/lib/api/client';
+import { getPublicEvent } from '@/lib/public-events';
 import { eventColor, eventCategoryLabel } from '@/lib/event-colors';
+import { EventBanner } from './EventBanner';
 import type { PublicEventDetail } from '@/lib/types/events';
 
-export default function PublicEventPage({
+const NOT_AVAILABLE = 'Activity not available';
+
+function longDate(value: string) {
+  return new Date(value).toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/**
+ * What a share card shows. Falls back to a generated line when the activity has
+ * no description of its own, so a link is never posted with only a title.
+ */
+function summarise(event: PublicEventDetail): string {
+  const own = event.description?.trim();
+  if (own) {
+    return own.length > 200 ? `${own.slice(0, 197)}…` : own;
+  }
+
+  const parts = [longDate(event.startAt)];
+  if (event.venueName) parts.push(event.venueName);
+  if (event.ministry) parts.push(`Hosted by ${event.ministry.name}`);
+  return parts.join(' · ');
+}
+
+/**
+ * Per-event metadata is the whole reason this page is a server component. As a
+ * client component it could not export this, so every public activity shared
+ * anywhere showed the generic site title and no image.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const event = await getPublicEvent(id);
+
+  if (!event) {
+    return {
+      title: NOT_AVAILABLE,
+      // Nothing to index, and nothing about an unpublished event should leak
+      // into a crawler's cache.
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const description = summarise(event);
+  const images = event.bannerImage ? [{ url: event.bannerImage }] : undefined;
+
+  return {
+    title: event.title,
+    description,
+    openGraph: {
+      title: event.title,
+      description,
+      type: 'article',
+      images,
+    },
+    twitter: {
+      card: images ? 'summary_large_image' : 'summary',
+      title: event.title,
+      description,
+      images: event.bannerImage ? [event.bannerImage] : undefined,
+    },
+  };
+}
+
+export default async function PublicEventPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { id } = use(params);
+  const { id } = await params;
+  const event = await getPublicEvent(id);
 
-  const { data: event, isLoading, error } = useQuery({
-    queryKey: ['public-event', id],
-    queryFn: () => apiFetch<PublicEventDetail>(`/api/v1/public/events/${id}`),
-    retry: false,
-  });
-
-  // A draft or internal event returns 404 here by design, so treat any failure
-  // as "not publicly listed" rather than surfacing backend detail.
-  const notFound = error instanceof ApiError && error.status === 404;
-
-  if (isLoading) {
-    return (
-      <PublicShell>
-        <p className="p-10 text-center text-sm text-slate-500">Loading activity…</p>
-      </PublicShell>
-    );
-  }
-
-  if (notFound || !event) {
+  // A draft, an internal meeting and an unknown id all arrive here identically
+  // by design. Someone following a stale link gets an explanation rather than a
+  // bare 404.
+  if (!event) {
     return (
       <PublicShell>
         <div className="mx-auto max-w-lg p-10 text-center">
-          <h1 className="text-xl font-bold text-[#003580]">Activity not available</h1>
+          <h1 className="text-xl font-bold text-[#003580]">{NOT_AVAILABLE}</h1>
           <p className="mt-2 text-sm text-slate-600">
             This activity isn&apos;t published on the public calendar. It may have been
             removed, or it may not be a public event.
@@ -77,17 +131,7 @@ export default function PublicEventPage({
           <ArrowLeft className="h-4 w-4" /> Back to Calendar
         </Link>
 
-        {event.bannerImage && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={event.bannerImage}
-            alt=""
-            className="h-56 w-full rounded-2xl border border-[#d3deef] object-cover"
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = 'none';
-            }}
-          />
-        )}
+        {event.bannerImage && <EventBanner src={event.bannerImage} />}
 
         <header className="space-y-3">
           <span
@@ -113,7 +157,7 @@ export default function PublicEventPage({
               <CalendarDays className="h-4 w-4" /> Date
             </dt>
             <dd className="mt-1 text-sm font-medium text-slate-900">
-              {start.toLocaleDateString(undefined, {
+              {start.toLocaleDateString('en-GB', {
                 weekday: 'long',
                 day: 'numeric',
                 month: 'long',
@@ -127,8 +171,8 @@ export default function PublicEventPage({
               <Clock className="h-4 w-4" /> Time
             </dt>
             <dd className="mt-1 text-sm font-medium text-slate-900">
-              {start.toLocaleTimeString(undefined, timeOpts)} –{' '}
-              {end.toLocaleTimeString(undefined, timeOpts)}
+              {start.toLocaleTimeString('en-GB', timeOpts)} –{' '}
+              {end.toLocaleTimeString('en-GB', timeOpts)}
             </dd>
           </div>
 

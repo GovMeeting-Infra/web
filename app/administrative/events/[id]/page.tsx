@@ -24,6 +24,10 @@ import {
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
+  PersonPicker,
+  type DirectoryPerson,
+} from '@/components/ui/person-picker';
+import {
   EVENT_TYPE_LABELS,
   EVENT_STATUS_LABELS,
   FREQUENCY_LABELS,
@@ -123,7 +127,7 @@ export default function EventDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
-  const [coOrganizerInput, setCoOrganizerInput] = useState('');
+  const [coOrganizer, setCoOrganizer] = useState<DirectoryPerson | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
   const { data: event, isLoading } = useQuery({
@@ -154,8 +158,6 @@ export default function EventDetailPage({
     currentUser && event
       ? event.attendees.find((a) => a.userId === currentUser.id)
       : undefined;
-  const canSeeUserPicker =
-    currentUser?.systemRole === 'SUPER_ADMIN' || currentUser?.systemRole === 'MINISTRY_ADMIN';
 
   const handlePublish = async () => {
     setIsBusy(true);
@@ -221,15 +223,15 @@ export default function EventDetailPage({
   };
 
   const handleAddCoOrganizer = async () => {
-    if (!coOrganizerInput.trim()) return;
+    if (!coOrganizer) return;
     setIsBusy(true);
     setError(null);
     try {
       await apiFetch(`/api/v1/events/${id}/co-organizers`, {
         method: 'POST',
-        body: JSON.stringify({ userId: coOrganizerInput.trim() }),
+        body: JSON.stringify({ userId: coOrganizer.id }),
       });
-      setCoOrganizerInput('');
+      setCoOrganizer(null);
       queryClient.invalidateQueries({ queryKey: ['event', id] });
     } catch (err) {
       setError(
@@ -457,17 +459,24 @@ export default function EventDetailPage({
           </ul>
         )}
         {canAdminister && (
-          <div className="mt-4 flex gap-2">
-            <input
-              type="text"
-              placeholder={canSeeUserPicker ? 'User ID' : 'User ID (ask an admin for this)'}
-              value={coOrganizerInput}
-              onChange={(e) => setCoOrganizerInput(e.target.value)}
-              className="flex-1 rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
+          <div className="mt-4 flex flex-wrap items-start gap-2">
+            <div className="min-w-[16rem] flex-1">
+              {/* Was a free-text User ID box, which meant asking an
+                  administrator for an internal identifier before you could add
+                  a colleague. The candidates endpoint is open to every role. */}
+              <PersonPicker
+                endpoint="/api/v1/events/co-organizer-candidates"
+                excludeIds={event.coOrganizers.map((c) => c.userId)}
+                value={coOrganizer?.id ?? null}
+                valueName={coOrganizer?.name ?? null}
+                onChange={setCoOrganizer}
+                placeholder="Search for a colleague…"
+                disabled={isBusy}
+              />
+            </div>
             <button
               onClick={handleAddCoOrganizer}
-              disabled={isBusy || !coOrganizerInput.trim()}
+              disabled={isBusy || !coOrganizer}
               className="flex items-center gap-2 rounded-xl bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground disabled:opacity-50"
             >
               <UserPlus className="h-4 w-4" /> Add
