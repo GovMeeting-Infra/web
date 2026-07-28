@@ -247,7 +247,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-8">
+    <div className="w-full space-y-8 p-8">
       <Link
         href={`/administrative/events/${id}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -272,7 +272,14 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {canInvite && (
+      {/* Side by side when the viewer can do both — two tall forms stacked
+          down a full-width page pushed the lists themselves below the fold. */}
+      <div
+        className={`grid items-start gap-8 ${
+          canInvite && canDoWalkIn ? 'xl:grid-cols-2' : ''
+        }`}
+      >
+        {canInvite && (
         <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Invite Attendees</h2>
@@ -327,9 +334,9 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             {isInviting ? 'Inviting…' : 'Send Invitations'}
           </button>
         </div>
-      )}
+        )}
 
-      {canDoWalkIn && (
+        {canDoWalkIn && (
         <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
@@ -383,9 +390,12 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             {isSaving ? 'Checking in…' : 'Check In'}
           </button>
         </div>
-      )}
+        )}
+      </div>
 
-      <div className="grid grid-cols-1 gap-4">
+      {/* Four panels of names: two across once there is room, rather than one
+          tall column that buries Awaiting Response at the bottom. */}
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-2">
         <div className="rounded-[1.5rem] border border-border bg-card p-6">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-primary">

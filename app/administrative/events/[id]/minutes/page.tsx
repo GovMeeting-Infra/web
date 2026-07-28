@@ -210,7 +210,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   };
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 p-8">
+    <div className="w-full space-y-8 p-8">
       <Link href={`/administrative/events/${id}`} className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Event
       </Link>
@@ -247,6 +247,11 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
+      {/* The record on the left, what it produced on the right. Minutes are
+          long-form text, so the writing column stays a readable width instead
+          of stretching a textarea across the whole page. */}
+      <div className="grid items-start gap-8 xl:grid-cols-3">
+        <div className="space-y-8 xl:col-span-2">
       {isReadOnlyView && minutes && (
         <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
           <div className="flex items-center gap-2">
@@ -352,13 +357,15 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      {minutes && (
+        </div>
+
+        {minutes && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-foreground">Action Items</h2>
 
           {canEdit && (
             <div className="rounded-[1.75rem] border border-border bg-card p-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className="text-xs font-medium text-muted-foreground">
                     Action
@@ -442,7 +449,8 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
             </div>
           )}
         </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
