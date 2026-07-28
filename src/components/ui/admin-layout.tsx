@@ -111,8 +111,14 @@ export function AdminLayout({
         />
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="min-w-0 bg-background">
+        {/* A flex column all the way down, so a page can opt into filling the
+            viewport with flex-1 and push a trailing section to the bottom.
+            Deliberately not min-h-full: a percentage height needs a definite
+            height on the parent, and this wrapper's is content-driven, so it
+            resolved to nothing. flex-1 has no such dependency, and still lets
+            taller content grow past the viewport and scroll. */}
+        <main className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+          <div className="flex min-w-0 flex-1 flex-col bg-background">
             {children}
           </div>
         </main>
