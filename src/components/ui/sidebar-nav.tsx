@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
+  CalendarRange,
   LayoutDashboard,
   CalendarDays,
   KanbanSquare,
@@ -29,6 +30,11 @@ const NAV_ITEMS: NavItem[] = [
     href: '/administrative/events',
     label: 'Events',
     icon: <CalendarDays className="h-4 w-4" />,
+  },
+  {
+    href: '/administrative/calendar',
+    label: 'Calendar',
+    icon: <CalendarRange className="h-4 w-4" />,
   },
   {
     href: '/administrative/action-items',
