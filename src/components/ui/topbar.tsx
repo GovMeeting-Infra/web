@@ -1,10 +1,9 @@
 'use client';
 
 import { Menu, Building2, Search } from 'lucide-react';
-import Link from 'next/link';
-import { cn } from '@/lib/utils/cn';
 import { SierraLeoneFlag } from '../SierraLeoneFlag';
 import { NotificationBell } from './notification-bell';
+import { UserMenu } from './user-menu';
 
 interface TopbarProps {
   ministryName?: string;
@@ -13,8 +12,6 @@ interface TopbarProps {
 }
 
 export function Topbar({ ministryName, userName, userEmail }: TopbarProps) {
-  const initial = (userName ?? userEmail ?? 'U').charAt(0).toUpperCase();
-
   return (
     <header className="relative flex h-20 flex-shrink-0 items-center justify-between border-b border-color-border bg-[#f8fbff] px-6">
       <button
@@ -65,14 +62,10 @@ export function Topbar({ ministryName, userName, userEmail }: TopbarProps) {
 
         <SierraLeoneFlag className="hidden h-8 w-14 sm:inline-flex" />
 
-        <Link
-          href="/administrative/profile"
-          className="flex items-center rounded-full border border-border bg-card p-1 transition-colors hover:bg-muted"
-        >
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-            {initial}
-          </div>
-        </Link>
+        {/* Opens an account menu rather than jumping straight to the profile:
+            it is also where people look for who they are signed in as, and for
+            the way out. */}
+        <UserMenu userName={userName} userEmail={userEmail} />
       </div>
     </header>
   );

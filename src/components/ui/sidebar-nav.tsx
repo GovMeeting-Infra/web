@@ -22,6 +22,7 @@ import {
 import { cn } from '@/lib/utils/cn';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { ADMIN_ROLES } from '@/lib/roles';
+import { signOut } from '@/lib/sign-out';
 
 interface NavItem {
   href: string;
@@ -163,23 +164,10 @@ export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
     ),
   })).filter((group) => group.items.length > 0);
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     setIsSigningOut(true);
-    try {
-      await fetch('/api/v1/auth/sign-out', {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch {
-      // The session is what matters, and the server drops it on receipt. If
-      // the request never landed, leaving the browser is still the right move.
-    }
-
-    // A full document load, not router.push: the session is read by server
-    // components, so a client-side navigation would keep rendering the cached
-    // signed-in tree. This also discards any in-memory query cache, so the
-    // next person to sign in cannot see the previous user's data.
-    window.location.href = '/login';
+    // Shared with the profile menu, so both routes out behave identically.
+    signOut();
   };
 
   return (
