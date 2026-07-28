@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Table2, LayoutGrid, ClipboardList } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { KanbanBoard } from '@/components/action-items/KanbanBoard';
 import { ActionItemModal } from '@/components/action-items/ActionItemModal';
@@ -159,9 +160,7 @@ export default function ActionItemsPage() {
       )}
 
       {isLoading && (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Loading action items…
-        </div>
+        <ListSkeleton rows={6} label="Loading action items" />
       )}
 
       {!isLoading && items.length === 0 && (

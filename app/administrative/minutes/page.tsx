@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import type { MinutesListResponse, MinutesSummary } from '@/lib/types/events';
 
 const STATUS_FILTERS = [
@@ -135,9 +136,7 @@ export default function MinutesPage() {
       )}
 
       {isLoading ? (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Loading minutes…
-        </div>
+        <ListSkeleton rows={5} label="Loading minutes" />
       ) : minutes.length === 0 ? (
         <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center">
           <FileText className="mx-auto h-10 w-10 text-muted-foreground" />

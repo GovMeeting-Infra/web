@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Plus, MapPin, Users, Calendar, DoorOpen, Pencil, Trash2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { RoomForm } from '@/components/rooms/RoomForm';
 import type { Room, CreateRoomInput } from '@/lib/types/rooms';
@@ -188,9 +189,7 @@ export default function RoomsPage() {
       )}
 
       {isLoading && (
-        <div className="rounded-[1.75rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Loading rooms…
-        </div>
+        <ListSkeleton rows={4} label="Loading rooms" />
       )}
 
       {!isLoading && rooms && rooms.length === 0 && (

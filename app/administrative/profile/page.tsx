@@ -13,6 +13,8 @@ import {
   Clock,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageHeaderSkeleton, StatCardsSkeleton } from '@/components/ui/skeletons';
 import { uploadImage } from '@/lib/upload';
 import {
   ROLE_LABELS,
@@ -141,7 +143,13 @@ export default function ProfilePage() {
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading profile…</div>;
+    return (
+      <div className="w-full space-y-6 p-8">
+        <PageHeaderSkeleton />
+        <Skeleton className="h-40 w-full rounded-[1.75rem]" />
+        <StatCardsSkeleton />
+      </div>
+    );
   }
 
   if (loadError || !profile) {

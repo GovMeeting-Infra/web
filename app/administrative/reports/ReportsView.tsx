@@ -10,6 +10,7 @@ import {
   Users,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { StatCardsSkeleton } from '@/components/ui/skeletons';
 import { CSV_EXPORTS, type AnalyticsDashboard } from '@/lib/types/reports';
 import { ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/session';
@@ -140,9 +141,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
       )}
 
       {isLoading && (
-        <div className="rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-12 text-center text-slate-600">
-          Loading analytics…
-        </div>
+        <StatCardsSkeleton />
       )}
 
       {data && (

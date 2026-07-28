@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
+import { Skeleton } from '@/components/ui/skeleton';
+import { StatCardsSkeleton, RowsSkeleton } from '@/components/ui/skeletons';
 import type { MyProfile } from '@/lib/types/account';
 import type { AnalyticsDashboard } from '@/lib/types/reports';
 import {
@@ -184,9 +186,7 @@ export default function DashboardPage() {
       </section>
 
       {loadingProfile ? (
-        <div className="rounded-[1.5rem] border border-border bg-card p-10 text-center text-muted-foreground">
-          Loading your dashboard…
-        </div>
+        <StatCardsSkeleton />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
@@ -256,7 +256,15 @@ export default function DashboardPage() {
           </div>
 
           {loadingAnalytics ? (
-            <p className="text-sm text-muted-foreground">Loading figures…</p>
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="rounded-xl border border-border bg-muted/30 p-4">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="mt-2 h-7 w-12" />
+                  <Skeleton className="mt-1 h-3 w-20" />
+                </div>
+              ))}
+            </div>
           ) : !analytics ? (
             <p className="text-sm text-muted-foreground">
               Ministry figures are unavailable right now.
@@ -315,7 +323,7 @@ export default function DashboardPage() {
           </div>
 
           {loadingEvents ? (
-            <p className="p-6 text-sm text-muted-foreground">Loading meetings…</p>
+            <RowsSkeleton />
           ) : events.length === 0 ? (
             <div className="p-8 text-center">
               <CalendarDays className="mx-auto h-8 w-8 text-muted-foreground" />
@@ -367,7 +375,7 @@ export default function DashboardPage() {
           </div>
 
           {loadingItems ? (
-            <p className="p-6 text-sm text-muted-foreground">Loading actions…</p>
+            <RowsSkeleton />
           ) : dueSoon.length === 0 ? (
             <div className="p-8 text-center">
               <CheckCircle2 className="mx-auto h-8 w-8 text-muted-foreground" />

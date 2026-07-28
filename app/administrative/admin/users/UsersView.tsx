@@ -13,6 +13,7 @@ import {
   Check,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { TableSkeleton } from '@/components/ui/skeletons';
 import { initialsOf, ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/types/events';
 
@@ -402,9 +403,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       )}
 
       {isLoading && (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Loading users…
-        </div>
+        <TableSkeleton rows={8} columns={5} label="Loading users" />
       )}
 
       {!isLoading && users.length === 0 && (

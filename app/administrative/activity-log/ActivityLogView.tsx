@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X, ScrollText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { TableSkeleton } from '@/components/ui/skeletons';
 import {
   AUDIT_STATUS_STYLES,
   auditTimestamp,
@@ -178,9 +179,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
       )}
 
       {isLoading ? (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Loading activity…
-        </div>
+        <TableSkeleton rows={8} columns={isPlatformWide ? 6 : 5} label="Loading activity" />
       ) : entries.length === 0 ? (
         <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center">
           <ScrollText className="mx-auto h-10 w-10 text-muted-foreground" />

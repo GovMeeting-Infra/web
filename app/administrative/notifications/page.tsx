@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowUpRight, BellOff, CheckCheck } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import type { Notification } from '@/lib/types/account';
 
 export default function NotificationsPage() {
@@ -69,9 +70,7 @@ export default function NotificationsPage() {
       )}
 
       {isLoading && (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Loading notifications…
-        </div>
+        <ListSkeleton rows={5} label="Loading notifications" />
       )}
 
       {!isLoading && notifications.length === 0 && (
