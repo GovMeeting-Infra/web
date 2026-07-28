@@ -88,7 +88,9 @@ export default function LoginPage() {
     // cannot grow. Scrolling inside main keeps the form reachable on a short
     // window and on mobile, where only this column is shown.
     <main className="h-screen overflow-y-auto">
-      <section className="grid min-h-full grid-cols-1 md:grid-cols-[1.1fr_0.95fr]">
+      {/* 2fr/3fr is exactly 40/60 — the branded panel takes the smaller share
+          so the sign-in content gets the majority of the screen. */}
+      <section className="grid min-h-full grid-cols-1 md:grid-cols-[2fr_3fr]">
         {/* Left Hero Panel */}
         <aside className="relative hidden flex-col justify-between overflow-hidden bg-[linear-gradient(145deg,#003580_0%,#0a4aa0_58%,#007236_100%)] p-12 md:flex lg:p-16">
           {/* Decorative circles */}
@@ -116,11 +118,15 @@ export default function LoginPage() {
             </div>
 
             {/* Branding */}
-            <div className="space-y-2">
-              <h1 className="text-4xl font-bold tracking-tight text-white">
-                Smart Meeting & Attendance Logger
+            <div className="space-y-3">
+              {/* text-balance evens the line lengths. Without it the title broke
+                  after the ampersand and left a wide gap mid-heading. The
+                  non-breaking space keeps "& Attendance" from starting a line
+                  with a stranded ampersand. */}
+              <h1 className="text-balance text-5xl font-bold leading-[1.1] tracking-tight text-white lg:text-6xl">
+                Smart Meeting&nbsp;&amp; Attendance Logger
               </h1>
-              <p className="text-lg text-white/90">
+              <p className="text-balance text-lg text-white/90 lg:text-xl">
                 Streamline government meetings with secure check-in and real-time attendance tracking
               </p>
             </div>
