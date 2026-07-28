@@ -1,15 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  CalendarDays,
-  Clock,
-  MapPin,
-  Mail,
-  Phone,
-  ExternalLink,
-  Building2,
-} from 'lucide-react';
+import { ArrowLeft, ExternalLink, Building2 } from 'lucide-react';
 import { PublicShell } from '@/components/PublicShell';
 import { getPublicEvent } from '@/lib/public-events';
 import { eventColor, eventCategoryLabel } from '@/lib/event-colors';
@@ -19,35 +10,24 @@ import type { PublicEventDetail } from '@/lib/types/events';
 const NOT_AVAILABLE = 'Activity not available';
 
 /**
- * One key fact about the activity.
+ * The date, as a calendar tile.
  *
- * The badge spans both rows of a two-row grid, so the label and value sit in a
- * clean column beside it however long the value runs — the previous flat
- * icon-above-text pairs gave every fact the same weight and read as a form.
+ * Marked aria-hidden and paired with a full written date for screen readers:
+ * split across three lines it reads as "Sep 4 2026", which is not a date.
  */
-function Detail({
-  icon: Icon,
-  label,
-  children,
-}: {
-  icon: typeof CalendarDays;
-  label: string;
-  children: React.ReactNode;
-}) {
+function DateTile({ date }: { date: Date }) {
   return (
-    <div className="grid grid-cols-[2.5rem_1fr] items-start gap-x-4">
-      <span
-        aria-hidden
-        className="row-span-2 flex h-10 w-10 items-center justify-center rounded-xl bg-[#edf4fd] text-[#003580]"
-      >
-        <Icon className="h-4 w-4" />
+    <div
+      aria-hidden
+      className="flex h-[4.75rem] w-16 flex-none flex-col items-center justify-center rounded-xl border border-[#d3deef] bg-[#f8fbff]"
+    >
+      <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#003580]">
+        {date.toLocaleDateString('en-GB', { month: 'short' })}
       </span>
-      <dt className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">
-        {label}
-      </dt>
-      <dd className="mt-1 min-w-0 text-sm font-semibold text-slate-900">
-        {children}
-      </dd>
+      <span className="text-2xl font-bold leading-tight text-[#003580]">
+        {date.getDate()}
+      </span>
+      <span className="text-[11px] text-slate-500">{date.getFullYear()}</span>
     </div>
   );
 }
@@ -208,67 +188,60 @@ export default async function PublicEventPage({
             </section>
           )}
 
-          <div className="space-y-6">
-            <div className="overflow-hidden rounded-2xl border border-[#d3deef] bg-white">
-              <h2 className="border-b border-[#eaf1fa] bg-[#f8fbff] px-6 py-3.5 text-sm font-semibold text-[#003580]">
-                Activity details
-              </h2>
-
-              {/* One column while this sits in the side rail; when there is no
-                  description it has the full width to itself and spreads out
-                  rather than running as one tall list. */}
-              <dl
-                className={`grid gap-x-8 gap-y-6 p-6 ${
-                  event.description
-                    ? 'grid-cols-1'
-                    : 'sm:grid-cols-2 lg:grid-cols-4'
-                }`}
-              >
-                <Detail icon={CalendarDays} label="Date">
+          {/* The date anchors the panel; everything under it is plain lines,
+              separated by hairlines rather than labelled or boxed. */}
+          <div className="space-y-5 rounded-2xl border border-[#d3deef] bg-white p-6">
+            <div className="flex items-center gap-4">
+              <DateTile date={start} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-slate-900">
+                  {start.toLocaleDateString('en-GB', { weekday: 'long' })}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  {start.toLocaleTimeString('en-GB', timeOpts)} –{' '}
+                  {end.toLocaleTimeString('en-GB', timeOpts)}
+                </p>
+                {/* What the tile cannot say out loud. */}
+                <span className="sr-only">
                   {start.toLocaleDateString('en-GB', {
                     weekday: 'long',
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',
                   })}
-                </Detail>
-
-                <Detail icon={Clock} label="Time">
-                  {start.toLocaleTimeString('en-GB', timeOpts)} –{' '}
-                  {end.toLocaleTimeString('en-GB', timeOpts)}
-                </Detail>
-
-                {event.venueName && (
-                  <Detail icon={MapPin} label="Location">
-                    {event.venueName}
-                  </Detail>
-                )}
-
-                {/* Email and phone are separate facts, so they get a row each
-                    rather than being stacked under one "Contact" heading. */}
-                {event.contactEmail && (
-                  <Detail icon={Mail} label="Email">
-                    <a
-                      href={`mailto:${event.contactEmail}`}
-                      className="break-all text-[#003580] underline-offset-2 hover:underline"
-                    >
-                      {event.contactEmail}
-                    </a>
-                  </Detail>
-                )}
-
-                {event.contactPhone && (
-                  <Detail icon={Phone} label="Phone">
-                    <a
-                      href={`tel:${event.contactPhone}`}
-                      className="text-[#003580] underline-offset-2 hover:underline"
-                    >
-                      {event.contactPhone}
-                    </a>
-                  </Detail>
-                )}
-              </dl>
+                </span>
+              </div>
             </div>
+
+            {event.venueName && (
+              <p className="border-t border-[#eef3fa] pt-5 text-sm text-slate-900">
+                <span className="sr-only">Location: </span>
+                {event.venueName}
+              </p>
+            )}
+
+            {(event.contactEmail || event.contactPhone) && (
+              <div className="space-y-1.5 border-t border-[#eef3fa] pt-5 text-sm">
+                {event.contactEmail && (
+                  <a
+                    href={`mailto:${event.contactEmail}`}
+                    className="block break-all text-[#003580] hover:underline"
+                  >
+                    <span className="sr-only">Email: </span>
+                    {event.contactEmail}
+                  </a>
+                )}
+                {event.contactPhone && (
+                  <a
+                    href={`tel:${event.contactPhone}`}
+                    className="block text-[#003580] hover:underline"
+                  >
+                    <span className="sr-only">Phone: </span>
+                    {event.contactPhone}
+                  </a>
+                )}
+              </div>
+            )}
 
             {event.externalUrl && (
               <a
