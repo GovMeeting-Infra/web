@@ -45,13 +45,20 @@ export function ActionItemModal({
   item,
   onClose,
   onReassign,
+  onSaveProgress,
 }: {
   item: BoardActionItem;
   onClose: () => void;
   onReassign?: (ownerId: string | null) => Promise<void>;
+  /** Omitted when the viewer may not record progress — the block turns read-only. */
+  onSaveProgress?: (notes: string, link: string) => Promise<void>;
 }) {
   const [isReassigning, setIsReassigning] = useState(false);
   const [reassignError, setReassignError] = useState<string | null>(null);
+  const [notes, setNotes] = useState(item.progressNotes ?? '');
+  const [link, setLink] = useState(item.progressLink ?? '');
+  const [isSavingProgress, setIsSavingProgress] = useState(false);
+  const [progressError, setProgressError] = useState<string | null>(null);
 
   const handleReassign = async (person: DirectoryPerson | null) => {
     if (!onReassign) return;
@@ -146,13 +153,24 @@ export function ActionItemModal({
             <Field
               icon={<User className="h-3.5 w-3.5" />}
               label="Assignee"
-              value={item.owner?.name ?? item.ownerName ?? 'Unassigned'}
+              value={
+                <span>
+                  {item.owner?.name ?? item.ownerName ?? 'Unassigned'}
+                  {/* No account behind this name, so the address is the only
+                      way anyone can reach them. */}
+                  {!item.owner && item.ownerEmail && (
+                    <span className="block text-xs font-normal text-muted-foreground">
+                      {item.ownerEmail}
+                    </span>
+                  )}
+                </span>
+              }
             />
           )}
           <Field
             icon={<UserCheck className="h-3.5 w-3.5" />}
             label="Assigned by"
-            value={item.createdBy?.name ?? '—'}
+            value={item.assignedBy?.name ?? '—'}
           />
           <Field
             icon={<CalendarDays className="h-3.5 w-3.5" />}
@@ -170,6 +188,74 @@ export function ActionItemModal({
             value={ACTION_ITEM_STATUS_LABELS[item.status] ?? item.status}
           />
         </dl>
+
+        {onSaveProgress ? (
+          <div className="mt-6 space-y-3 rounded-xl border border-border p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Work done
+            </p>
+            <textarea
+              rows={3}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="What has been done so far…"
+              className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            <input
+              type="url"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              placeholder="Link to the work (optional)"
+              className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            {progressError && (
+              <p className="text-xs text-destructive">{progressError}</p>
+            )}
+            <button
+              type="button"
+              disabled={isSavingProgress}
+              onClick={async () => {
+                setIsSavingProgress(true);
+                setProgressError(null);
+                try {
+                  await onSaveProgress(notes, link);
+                } catch (err) {
+                  setProgressError(
+                    err instanceof Error ? err.message : 'Could not save.',
+                  );
+                } finally {
+                  setIsSavingProgress(false);
+                }
+              }}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            >
+              {isSavingProgress ? 'Saving…' : 'Save progress'}
+            </button>
+          </div>
+        ) : (
+          (item.progressNotes || item.progressLink) && (
+            <div className="mt-6 space-y-2 rounded-xl border border-border p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Work done
+              </p>
+              {item.progressNotes && (
+                <p className="whitespace-pre-wrap text-sm text-foreground">
+                  {item.progressNotes}
+                </p>
+              )}
+              {item.progressLink && (
+                <a
+                  href={item.progressLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block truncate text-sm text-primary hover:underline"
+                >
+                  {item.progressLink}
+                </a>
+              )}
+            </div>
+          )
+        )}
 
         <div className="mt-6 rounded-xl border border-border bg-muted/30 p-4">
           <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

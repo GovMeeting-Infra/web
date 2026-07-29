@@ -104,6 +104,14 @@ function Card({
           {item.minutes.event.title}
         </p>
 
+        {/* Who put this on you. Read from assignedBy, which is what the API
+            returns — it was read from createdBy, which never arrives. */}
+        {item.assignedBy?.name && (
+          <p className="mt-1 truncate text-xs text-muted-foreground">
+            Assigned by {item.assignedBy.name}
+          </p>
+        )}
+
         <div className="mt-3 flex items-center justify-between gap-2">
           <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">

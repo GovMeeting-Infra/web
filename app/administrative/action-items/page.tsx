@@ -78,7 +78,7 @@ export default function ActionItemsPage() {
     isAdmin ||
     (!!currentUser &&
       (item.ownerId === currentUser.id ||
-        item.createdBy?.id === currentUser.id));
+        item.assignedBy?.id === currentUser.id));
 
   const changeStatus = async (item: BoardActionItem, status: ActionItemStatus) => {
     setError(null);
@@ -272,6 +272,20 @@ export default function ActionItemsPage() {
         <ActionItemModal
           item={selected}
           onClose={() => setSelected(null)}
+          onSaveProgress={
+            canChange(selected)
+              ? async (notes, link) => {
+                  await apiFetch(`/api/v1/action-items/${selected.id}`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                      progressNotes: notes,
+                      progressLink: link,
+                    }),
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['action-items'] });
+                }
+              : undefined
+          }
           onReassign={
             canChange(selected)
               ? async (ownerId) => {

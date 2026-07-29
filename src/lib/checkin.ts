@@ -1,12 +1,5 @@
 import type { CheckInContext } from './types/events';
-
-/**
- * Server components must call the API directly rather than through the
- * /api/:path* rewrite in next.config.ts — that rewrite exists for the browser,
- * and a server-side fetch to a relative path has no origin to resolve against.
- * Mirrors what src/lib/session.ts already does.
- */
-const API_BASE = process.env.INTERNAL_API_URL || 'http://localhost:4000';
+import { API_BASE } from './api-base';
 
 /**
  * What a scanned check-in token can currently do.

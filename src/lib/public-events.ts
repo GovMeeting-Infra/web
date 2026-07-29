@@ -1,12 +1,5 @@
 import type { PublicEventDetail } from './types/events';
-
-/**
- * Server components must call the API directly rather than through the
- * /api/:path* rewrite in next.config.ts — that rewrite exists for the browser,
- * and a server-side fetch to a relative path has no origin to resolve against.
- * Same reasoning as src/lib/checkin.ts.
- */
-const API_BASE = process.env.INTERNAL_API_URL || 'http://localhost:4000';
+import { API_BASE } from './api-base';
 
 /**
  * A published public activity, or null.

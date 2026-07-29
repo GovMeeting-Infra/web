@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { STAFF_ROLES, ADMIN_ROLES, type SystemRole } from './roles';
+import { API_BASE } from './api-base';
 
 export interface CurrentUser {
   id: string;
@@ -10,8 +11,6 @@ export interface CurrentUser {
   jobTitle: string | null;
   ministryId: string | null;
 }
-
-const API_BASE = process.env.INTERNAL_API_URL || 'http://localhost:4000';
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   const cookieStore = await cookies();
