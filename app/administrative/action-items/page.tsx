@@ -365,10 +365,18 @@ export default function ActionItemsPage() {
           }
           onReassign={
             canChange(selected)
-              ? async (ownerId) => {
+              ? async (person) => {
+                  // A guest has no user row to point at, so they are assigned
+                  // by address instead. The endpoint marks them with a guest:
+                  // prefix precisely so this can tell the two apart.
+                  const isGuest = person?.id.startsWith('guest:') ?? false;
                   await apiFetch(`/api/v1/action-items/${selected.id}`, {
                     method: 'PATCH',
-                    body: JSON.stringify({ ownerId }),
+                    body: JSON.stringify(
+                      isGuest
+                        ? { ownerEmail: person!.email, ownerName: person!.name }
+                        : { ownerId: person?.id ?? null },
+                    ),
                   });
                   await queryClient.invalidateQueries({
                     queryKey: ['action-items'],

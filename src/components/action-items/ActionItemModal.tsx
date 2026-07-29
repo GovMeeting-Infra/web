@@ -49,7 +49,7 @@ export function ActionItemModal({
 }: {
   item: BoardActionItem;
   onClose: () => void;
-  onReassign?: (ownerId: string | null) => Promise<void>;
+  onReassign?: (person: DirectoryPerson | null) => Promise<void>;
   /** Omitted when the viewer may not record progress — the block turns read-only. */
   onSaveProgress?: (notes: string, link: string) => Promise<void>;
 }) {
@@ -65,7 +65,7 @@ export function ActionItemModal({
     setIsReassigning(true);
     setReassignError(null);
     try {
-      await onReassign(person?.id ?? null);
+      await onReassign(person);
     } catch (err) {
       setReassignError(
         err instanceof Error ? err.message : 'Could not change the assignee.',
@@ -139,7 +139,10 @@ export function ActionItemModal({
                   value={item.owner?.id ?? null}
                   valueName={item.owner?.name ?? item.ownerName ?? null}
                   onChange={handleReassign}
-                  placeholder="Search for a colleague to assign…"
+                  // This meeting's invitees, not the whole ministry: work
+                  // coming out of a meeting belongs to somebody who was in it.
+                  endpoint={`/api/v1/events/${item.minutes.event.id}/attendee-candidates`}
+                  placeholder="Search the people invited to this meeting…"
                   disabled={isReassigning}
                 />
                 {reassignError && (
