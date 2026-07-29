@@ -375,9 +375,22 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
 
         </div>
 
-        {minutes && (
+        {/* Always rendered, even before minutes exist. It used to disappear
+            entirely in that case, which read as a missing feature rather than
+            a prerequisite — and an action item genuinely cannot exist without
+            minutes, since the server resolves one from the other. */}
         <div className="space-y-4 border-t border-border pt-8">
           <h2 className="text-lg font-semibold text-foreground">Action Items</h2>
+
+          {!minutes && (
+            <p className="rounded-[1.75rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              Save the minutes first — action items are attached to the record,
+              so there has to be one before you can raise any.
+            </p>
+          )}
+
+          {minutes && (
+          <>
 
           {canEdit && (
             <div className="rounded-[1.75rem] border border-border bg-card p-6 space-y-4">
@@ -525,8 +538,9 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
               ))}
             </div>
           )}
+          </>
+          )}
         </div>
-        )}
       </div>
     </div>
   );
