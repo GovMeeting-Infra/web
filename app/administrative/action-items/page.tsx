@@ -64,7 +64,9 @@ export default function ActionItemsPage() {
   const queryClient = useQueryClient();
   const currentUser = useCurrentUser();
 
-  const [view, setView] = useState<'board' | 'table'>('table');
+  // The board is the page's own shape — the columns are the workflow. Table is
+  // the alternate view for scanning everything at once.
+  const [view, setView] = useState<'board' | 'table'>('board');
   const [owner, setOwner] = useState('');
   const [selected, setSelected] = useState<BoardActionItem | null>(null);
   const [error, setError] = useState<string | null>(null);
