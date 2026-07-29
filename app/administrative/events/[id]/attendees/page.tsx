@@ -3,7 +3,16 @@
 import { use, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Check, X, Clock, UserPlus, BadgeCheck, Plus } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  X,
+  Clock,
+  UserPlus,
+  BadgeCheck,
+  Plus,
+  Users,
+} from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
@@ -14,6 +23,8 @@ import {
   attendeeName,
   attendeeEmail,
   CHECK_IN_METHOD_LABELS,
+  ATTENDEE_STATUS_LABELS,
+  type AttendeeStatus,
   type EventDetail,
   type EventAttendee,
   type AttendanceRecord,
@@ -21,7 +32,15 @@ import {
 
 // Four views of the same event, shown one at a time. Order puts who actually
 // turned up first — that is what the desk is looking at during a meeting.
+const STATUS_PILL: Record<AttendeeStatus, string> = {
+  CONFIRMED: 'bg-[#edf8f1] text-ring',
+  DECLINED: 'bg-destructive/10 text-destructive',
+  INVITED: 'bg-[#fff8e5] text-[#8d6400]',
+  NO_RESPONSE: 'bg-[#fff8e5] text-[#8d6400]',
+};
+
 const TABS = [
+  { key: 'all', title: 'All Invited', icon: Users },
   { key: 'checkedIn', title: 'Checked In', icon: BadgeCheck },
   { key: 'confirmed', title: 'Confirmed', icon: Check },
   { key: 'declined', title: 'Declined', icon: X },
@@ -34,11 +53,14 @@ function AttendeeSection({
   rows,
   emptyLabel,
   showRespondedAt = false,
+  showStatus = false,
   onRemove,
 }: {
   rows: EventAttendee[];
   emptyLabel: string;
   showRespondedAt?: boolean;
+  /** Only the combined list needs it — the others are already one status. */
+  showStatus?: boolean;
   onRemove?: (attendeeId: string) => void;
 }) {
   // No heading or icon of its own any more — the tab above supplies both, and
@@ -66,6 +88,15 @@ function AttendeeSection({
               )}
             </div>
             <div className="flex shrink-0 items-center gap-3">
+              {showStatus && (
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                    STATUS_PILL[a.status] ?? STATUS_PILL.INVITED
+                  }`}
+                >
+                  {ATTENDEE_STATUS_LABELS[a.status] ?? a.status}
+                </span>
+              )}
               {showRespondedAt && a.respondedAt && (
                 <span className="text-xs text-muted-foreground">
                   {new Date(a.respondedAt).toLocaleDateString(undefined, {
@@ -107,7 +138,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>('checkedIn');
+  const [activeTab, setActiveTab] = useState<TabKey>('all');
 
   const { data: event } = useQuery({
     queryKey: ['event', id],
@@ -129,6 +160,11 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
     queryFn: () => apiFetch<AttendanceRecord[]>(`/api/v1/events/${id}/checkins`),
   });
 
+  // Everyone asked, whatever they answered. The event's own attendee list is
+  // already the full set — confirmed/declined have their own endpoints, but
+  // those are the same rows split three ways.
+  const all = event?.attendees ?? [];
+
   // No dedicated endpoint for these — derive from the event's full attendee list.
   const awaiting = (event?.attendees ?? []).filter(
     (a) => a.status !== 'CONFIRMED' && a.status !== 'DECLINED',
@@ -137,6 +173,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   // Every count is already in hand, so each tab can show its own without
   // needing the panel to be open.
   const counts: Record<TabKey, number> = {
+    all: all.length,
     checkedIn: checkIns.length,
     confirmed: confirmed.length,
     declined: declined.length,
@@ -539,6 +576,15 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           aria-labelledby={`attendees-tab-${activeTab}`}
           className="pt-6"
         >
+          {activeTab === 'all' && (
+            <AttendeeSection
+              rows={all}
+              emptyLabel="Nobody has been invited yet."
+              showStatus
+              onRemove={canInvite ? handleRemoveAttendee : undefined}
+            />
+          )}
+
           {activeTab === 'checkedIn' &&
             (checkIns.length === 0 ? (
               <p className="rounded-[1.5rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">

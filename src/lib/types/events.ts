@@ -80,6 +80,17 @@ export type ActionItemStatus =
 export type AttendeeStatus = 'INVITED' | 'CONFIRMED' | 'DECLINED' | 'NO_RESPONSE';
 export type RSVPStatus = 'CONFIRMED' | 'DECLINED';
 
+/**
+ * INVITED and NO_RESPONSE both mean "asked, hasn't answered" — the first is set
+ * on invitation, the second when a reminder lapses — so they read the same.
+ */
+export const ATTENDEE_STATUS_LABELS: Record<AttendeeStatus, string> = {
+  INVITED: 'Awaiting response',
+  NO_RESPONSE: 'Awaiting response',
+  CONFIRMED: 'Confirmed',
+  DECLINED: 'Declined',
+};
+
 /** Lean shape returned by the unauthenticated public calendar endpoints. */
 export interface PublicEventListItem {
   id: string;
