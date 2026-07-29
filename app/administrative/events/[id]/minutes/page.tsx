@@ -194,7 +194,11 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({
           title: newActionItem.title,
           dueDate: new Date(newActionItem.dueDate).toISOString(),
-          ownerId: newActionItem.ownerId ?? undefined,
+          // A guest: id is a marker for someone with no account, not something
+        // the server can look up — they are assigned by email instead.
+        ownerId: newActionItem.ownerId?.startsWith('guest:')
+          ? undefined
+          : (newActionItem.ownerId ?? undefined),
         }),
       });
       setNewActionItem({
@@ -446,6 +450,15 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
                     <PersonPicker
                       value={newActionItem.ownerId}
                       valueName={newActionItem.ownerName}
+                      // Everyone connected to this meeting — organizer,
+                      // co-organizers and invitees — rather than the whole
+                      // ministry. Work out of a meeting belongs to someone
+                      // who was in it.
+                      endpoint={`/api/v1/events/${id}/attendee-candidates`}
+                      placeholder="Search the people at this meeting…"
+                      // A guest's id is kept here so the picker shows them as
+                      // chosen; it is stripped at submit, since the server has
+                      // no user row to resolve it against.
                       onChange={(person) =>
                         setNewActionItem((prev) => ({
                           ...prev,
