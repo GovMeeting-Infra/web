@@ -138,7 +138,10 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabKey>('all');
+  // Not the first tab, deliberately: this page is mostly open while a meeting
+  // is running, and who has actually turned up is the live question. The full
+  // invite list stays first because that is the set the others are drawn from.
+  const [activeTab, setActiveTab] = useState<TabKey>('checkedIn');
 
   const { data: event } = useQuery({
     queryKey: ['event', id],
