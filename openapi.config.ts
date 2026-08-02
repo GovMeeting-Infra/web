@@ -2,7 +2,10 @@
 // Run: npm run openapi:generate
 
 module.exports = {
-  input: 'http://localhost:3001/api-docs-json',
+  // Points at a locally running API. OPENAPI_INPUT overrides it; the default
+  // tracks the server's APP_PORT.
+  input:
+    process.env.OPENAPI_INPUT || 'http://127.0.0.1:4000/api-docs-json',
   output: {
     path: 'src/lib/api',
   },
