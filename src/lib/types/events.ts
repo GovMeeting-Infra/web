@@ -80,6 +80,17 @@ export type ActionItemStatus =
 export type AttendeeStatus = 'INVITED' | 'CONFIRMED' | 'DECLINED' | 'NO_RESPONSE';
 export type RSVPStatus = 'CONFIRMED' | 'DECLINED';
 
+/**
+ * INVITED and NO_RESPONSE both mean "asked, hasn't answered" — the first is set
+ * on invitation, the second when a reminder lapses — so they read the same.
+ */
+export const ATTENDEE_STATUS_LABELS: Record<AttendeeStatus, string> = {
+  INVITED: 'Awaiting response',
+  NO_RESPONSE: 'Awaiting response',
+  CONFIRMED: 'Confirmed',
+  DECLINED: 'Declined',
+};
+
 /** Lean shape returned by the unauthenticated public calendar endpoints. */
 export interface PublicEventListItem {
   id: string;
@@ -309,13 +320,23 @@ export interface ActionItem {
   description: string | null;
   ownerId: string | null;
   ownerName: string | null;
+  /** Set when the owner has no account — the only way to reach them. */
+  ownerEmail: string | null;
   assignedById: string | null;
   dueDate: string;
   completedAt: string | null;
   status: ActionItemStatus;
   point: PointType;
+  /** What has been done, and a link to it. */
+  progressNotes: string | null;
+  progressLink: string | null;
   owner?: { id: string; name: string; email: string } | null;
-  createdBy?: { id: string; name: string; email: string } | null;
+  /**
+   * Who raised it. Named assignedBy to match what the API actually returns —
+   * this was `createdBy`, which is never present, so "Assigned by" rendered as
+   * a dash and the creator-can-edit rule never fired.
+   */
+  assignedBy?: { id: string; name: string; email: string } | null;
   completedBy?: { id: string; name: string; email: string } | null;
 }
 
@@ -367,6 +388,8 @@ export const POINT_STYLES: Record<PointType, string> = {
 };
 
 export interface CreateActionItemInput {
+  /** Assign to someone with no account; resolves to one when the email matches. */
+  ownerEmail?: string;
   title: string;
   description?: string;
   ownerId?: string;

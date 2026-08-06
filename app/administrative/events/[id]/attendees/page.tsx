@@ -3,7 +3,16 @@
 import { use, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Check, X, Clock, UserPlus, BadgeCheck, Plus } from 'lucide-react';
+import {
+  ArrowLeft,
+  Check,
+  X,
+  Clock,
+  UserPlus,
+  BadgeCheck,
+  Plus,
+  Users,
+} from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
@@ -14,14 +23,24 @@ import {
   attendeeName,
   attendeeEmail,
   CHECK_IN_METHOD_LABELS,
+  ATTENDEE_STATUS_LABELS,
+  type AttendeeStatus,
   type EventDetail,
   type EventAttendee,
   type AttendanceRecord,
 } from '@/lib/types/events';
 
-// Four views of the same event, shown one at a time. Order puts who actually
-// turned up first — that is what the desk is looking at during a meeting.
+const STATUS_PILL: Record<AttendeeStatus, string> = {
+  CONFIRMED: 'bg-[#edf8f1] text-ring',
+  DECLINED: 'bg-destructive/10 text-destructive',
+  INVITED: 'bg-[#fff8e5] text-[#8d6400]',
+  NO_RESPONSE: 'bg-[#fff8e5] text-[#8d6400]',
+};
+
+// Five views of the same event, shown one at a time. All comes first because
+// it is the set the other four are drawn from.
 const TABS = [
+  { key: 'all', title: 'All', icon: Users },
   { key: 'checkedIn', title: 'Checked In', icon: BadgeCheck },
   { key: 'confirmed', title: 'Confirmed', icon: Check },
   { key: 'declined', title: 'Declined', icon: X },
@@ -29,6 +48,22 @@ const TABS = [
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
+
+/**
+ * A row in the combined list. Two different records end up here — an invitation
+ * and a check-in with no invitation behind it — so they are flattened to what
+ * the list actually shows rather than rendered from two shapes.
+ */
+type AllRow =
+  | {
+      kind: 'invitee';
+      id: string;
+      name: string;
+      email: string | null;
+      status: AttendeeStatus;
+      respondedAt: string | null;
+    }
+  | { kind: 'walkIn'; id: string; name: string; email: string | null };
 
 function AttendeeSection({
   rows,
@@ -107,6 +142,9 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  // Not the first tab, deliberately: this page is mostly open while a meeting
+  // is running, and who has actually turned up is the live question. The full
+  // invite list stays first because that is the set the others are drawn from.
   const [activeTab, setActiveTab] = useState<TabKey>('checkedIn');
 
   const { data: event } = useQuery({
@@ -129,6 +167,34 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
     queryFn: () => apiFetch<AttendanceRecord[]>(`/api/v1/events/${id}/checkins`),
   });
 
+  // Everyone connected to the meeting: invitees, plus anyone who turned up
+  // without an invitation. isWalkIn is the server's
+  // own answer to "was this person invited?" — it is set by matching the
+  // check-in against the invite list — so filtering on it cannot drift from
+  // what the invite rows say. Without this, someone checked in at the desk
+  // appeared under Checked In and nowhere else.
+  const walkIns = checkIns.filter((c) => c.isWalkIn);
+  const all: AllRow[] = [
+    ...(event?.attendees ?? []).map(
+      (a): AllRow => ({
+        kind: 'invitee',
+        id: a.id,
+        name: attendeeName(a),
+        email: attendeeEmail(a),
+        status: a.status,
+        respondedAt: a.respondedAt,
+      }),
+    ),
+    ...walkIns.map(
+      (c): AllRow => ({
+        kind: 'walkIn',
+        id: c.id,
+        name: c.signedName,
+        email: c.user?.email ?? c.guestEmail ?? null,
+      }),
+    ),
+  ];
+
   // No dedicated endpoint for these — derive from the event's full attendee list.
   const awaiting = (event?.attendees ?? []).filter(
     (a) => a.status !== 'CONFIRMED' && a.status !== 'DECLINED',
@@ -137,6 +203,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   // Every count is already in hand, so each tab can show its own without
   // needing the panel to be open.
   const counts: Record<TabKey, number> = {
+    all: all.length,
     checkedIn: checkIns.length,
     confirmed: confirmed.length,
     declined: declined.length,
@@ -539,6 +606,70 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           aria-labelledby={`attendees-tab-${activeTab}`}
           className="pt-6"
         >
+          {activeTab === 'all' &&
+            (all.length === 0 ? (
+              <p className="rounded-[1.5rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+                Nobody has been invited or checked in yet.
+              </p>
+            ) : (
+              <ul className="divide-y divide-border rounded-[1.5rem] border border-border bg-card px-6">
+                {all.map((r) => (
+                  <li
+                    key={`${r.kind}-${r.id}`}
+                    className="flex items-baseline justify-between gap-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">
+                        {r.name}
+                      </p>
+                      {r.email && (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {r.email}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      {r.kind === 'invitee' ? (
+                        <span
+                          className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                            STATUS_PILL[r.status] ?? STATUS_PILL.INVITED
+                          }`}
+                        >
+                          {ATTENDEE_STATUS_LABELS[r.status] ?? r.status}
+                        </span>
+                      ) : (
+                        // Never invited, but present. Worth saying so rather
+                        // than showing an RSVP they were never asked for.
+                        <span className="rounded-full bg-[#fff8e5] px-2.5 py-0.5 text-[11px] font-medium text-[#8d6400]">
+                          Walk-in
+                        </span>
+                      )}
+                      {/* An invitation can be withdrawn; a walk-in has none, so
+                          the equivalent is removing the check-in itself. */}
+                      {r.kind === 'invitee' && canInvite && (
+                        <button
+                          onClick={() => handleRemoveAttendee(r.id)}
+                          aria-label={`Remove ${r.name}`}
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                      {r.kind === 'walkIn' && canDoWalkIn && (
+                        <button
+                          onClick={() => handleRemoveCheckIn(r.id)}
+                          aria-label={`Remove check-in for ${r.name}`}
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ))}
+
           {activeTab === 'checkedIn' &&
             (checkIns.length === 0 ? (
               <p className="rounded-[1.5rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">

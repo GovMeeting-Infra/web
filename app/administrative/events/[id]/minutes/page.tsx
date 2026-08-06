@@ -19,10 +19,19 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const [error, setError] = useState<string | null>(null);
   const [newActionItem, setNewActionItem] = useState<{
     title: string;
+    description: string;
     dueDate: string;
     ownerId: string | null;
     ownerName: string | null;
-  }>({ title: '', dueDate: '', ownerId: null, ownerName: null });
+    ownerEmail: string;
+  }>({
+    title: '',
+    description: '',
+    dueDate: '',
+    ownerId: null,
+    ownerName: null,
+    ownerEmail: '',
+  });
   const [isAddingActionItem, setIsAddingActionItem] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
 
@@ -185,10 +194,21 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         body: JSON.stringify({
           title: newActionItem.title,
           dueDate: new Date(newActionItem.dueDate).toISOString(),
-          ownerId: newActionItem.ownerId ?? undefined,
+          // A guest: id is a marker for someone with no account, not something
+        // the server can look up — they are assigned by email instead.
+        ownerId: newActionItem.ownerId?.startsWith('guest:')
+          ? undefined
+          : (newActionItem.ownerId ?? undefined),
         }),
       });
-      setNewActionItem({ title: '', dueDate: '', ownerId: null, ownerName: null });
+      setNewActionItem({
+        title: '',
+        description: '',
+        dueDate: '',
+        ownerId: null,
+        ownerName: null,
+        ownerEmail: '',
+      });
       queryClient.invalidateQueries({ queryKey: ['actionItems', id] });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add action item');
@@ -247,11 +267,11 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
         </div>
       )}
 
-      {/* The record on the left, what it produced on the right. Minutes are
-          long-form text, so the writing column stays a readable width instead
-          of stretching a textarea across the whole page. */}
-      <div className="grid items-start gap-8 xl:grid-cols-3">
-        <div className="space-y-8 xl:col-span-2">
+      {/* The record takes the full width, and what it produced sits in its own
+          container below. The action item form needs five fields across; a
+          one-third rail could not carry them. */}
+      <div className="space-y-8">
+        <div className="space-y-8">
       {isReadOnlyView && minutes && (
         <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
           <div className="flex items-center gap-2">
@@ -359,14 +379,27 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
 
         </div>
 
-        {minutes && (
-        <div className="space-y-4">
+        {/* Always rendered, even before minutes exist. It used to disappear
+            entirely in that case, which read as a missing feature rather than
+            a prerequisite — and an action item genuinely cannot exist without
+            minutes, since the server resolves one from the other. */}
+        <div className="space-y-4 border-t border-border pt-8">
           <h2 className="text-lg font-semibold text-foreground">Action Items</h2>
+
+          {!minutes && (
+            <p className="rounded-[1.75rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+              Save the minutes first — action items are attached to the record,
+              so there has to be one before you can raise any.
+            </p>
+          )}
+
+          {minutes && (
+          <>
 
           {canEdit && (
             <div className="rounded-[1.75rem] border border-border bg-card p-6 space-y-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div className="lg:col-span-2">
                   <label className="text-xs font-medium text-muted-foreground">
                     Action
                   </label>
@@ -393,25 +426,95 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground">
-                  Assign to (optional)
+                  Description
                 </label>
-                <PersonPicker
-                  value={newActionItem.ownerId}
-                  valueName={newActionItem.ownerName}
-                  onChange={(person) =>
-                    setNewActionItem((prev) => ({
-                      ...prev,
-                      ownerId: person?.id ?? null,
-                      ownerName: person?.name ?? null,
-                    }))
+                <textarea
+                  rows={2}
+                  value={newActionItem.description}
+                  onChange={(e) =>
+                    setNewActionItem((prev) => ({ ...prev, description: e.target.value }))
                   }
-                  disabled={isAddingActionItem}
+                  placeholder="Any detail the owner needs"
+                  className="mt-1 w-full rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">
-                  An unassigned item still appears on the board, but nobody is
-                  reminded about it.
-                </p>
               </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Assign to a colleague
+                  </label>
+                  {/* Picking someone fills the name and email below, so the
+                      common case needs no typing and cannot be misspelled. */}
+                  <div className="mt-1">
+                    <PersonPicker
+                      value={newActionItem.ownerId}
+                      valueName={newActionItem.ownerName}
+                      // Everyone connected to this meeting — organizer,
+                      // co-organizers and invitees — rather than the whole
+                      // ministry. Work out of a meeting belongs to someone
+                      // who was in it.
+                      endpoint={`/api/v1/events/${id}/attendee-candidates`}
+                      placeholder="Search the people at this meeting…"
+                      // A guest's id is kept here so the picker shows them as
+                      // chosen; it is stripped at submit, since the server has
+                      // no user row to resolve it against.
+                      onChange={(person) =>
+                        setNewActionItem((prev) => ({
+                          ...prev,
+                          ownerId: person?.id ?? null,
+                          ownerName: person?.name ?? null,
+                          ownerEmail: person?.email ?? '',
+                        }))
+                      }
+                      disabled={isAddingActionItem}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Owner name
+                  </label>
+                  <input
+                    type="text"
+                    value={newActionItem.ownerName ?? ''}
+                    onChange={(e) =>
+                      setNewActionItem((prev) => ({
+                        ...prev,
+                        ownerName: e.target.value,
+                        // Typing over a picked colleague means this is somebody
+                        // else, so the account link must not survive it.
+                        ownerId: null,
+                      }))
+                    }
+                    placeholder="Or type a name"
+                    className="mt-1 w-full rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Owner email
+                  </label>
+                  <input
+                    type="email"
+                    value={newActionItem.ownerEmail}
+                    onChange={(e) =>
+                      setNewActionItem((prev) => ({
+                        ...prev,
+                        ownerEmail: e.target.value,
+                        ownerId: null,
+                      }))
+                    }
+                    placeholder="name@ministry.gov.sl"
+                    className="mt-1 w-full rounded-2xl border border-border bg-input px-4 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+
+              <p className="text-xs text-muted-foreground">
+                An owner without an account is reached by email. An unassigned
+                item still appears on the board, but nobody is reminded about it.
+              </p>
 
               <button
                 onClick={handleAddActionItem}
@@ -448,8 +551,9 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
               ))}
             </div>
           )}
+          </>
+          )}
         </div>
-        )}
       </div>
     </div>
   );

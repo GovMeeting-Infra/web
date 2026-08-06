@@ -16,6 +16,8 @@ export default function robots(): MetadataRoute.Robots {
         '/administrative/',
         '/checkin/',
         '/rsvp/',
+        // Personal, token-bearing links to a government record.
+        '/guest/',
         '/set-password',
         '/reset-password',
         '/forgot-password',
