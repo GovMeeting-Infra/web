@@ -45,5 +45,14 @@
     "postcss": "^8.4.31",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "//optionalDependencies": "Named here only so package-lock.json records them. lightningcss, @tailwindcss/oxide and sharp ship their native binary in a per-platform package, and a lock generated on macOS captures the darwin one alone — `npm ci` on the Linux instance then finds nothing to install and the Tailwind build dies on a missing .node file. npm skips these on macOS because of the os/cpu fields, so they cost developers nothing. Versions are exact: each binary package must match its parent's version, so bump them together.",
+  "optionalDependencies": {
+    "@img/sharp-linux-arm64": "0.34.5",
+    "@img/sharp-linux-x64": "0.34.5",
+    "@tailwindcss/oxide-linux-arm64-gnu": "4.3.3",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.3",
+    "lightningcss-linux-arm64-gnu": "1.32.0",
+    "lightningcss-linux-x64-gnu": "1.32.0"
   }
 }
