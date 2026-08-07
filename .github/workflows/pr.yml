@@ -1,0 +1,58 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: pr-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # --legacy-peer-deps is required: lucide-react@0.346.0 declares a peer of
+      # react <19 while this project is on 19.2.4, so a plain `npm ci` fails
+      # with ERESOLVE.
+      - name: Install
+        run: npm ci --legacy-peer-deps
+
+      # Advisory for now: main has 5 pre-existing errors (a cypress namespace
+      # declaration and an empty interface in the shadcn input component) plus
+      # 3 warnings. Small enough to clear in one pass — do that, then delete
+      # continue-on-error and this comment. There is no prettier in this
+      # project, so eslint is the whole format gate.
+      - name: Lint (advisory)
+        continue-on-error: true
+        run: npm run lint
+
+      # INTERNAL_API_URL must be set for the BUILD, not just at runtime: the
+      # /api/:path* rewrite in next.config.ts is resolved here and written into
+      # .next/routes-manifest.json. Building without it bakes in the default,
+      # and no runtime variable can change it afterwards.
+      - name: Build
+        env:
+          INTERNAL_API_URL: http://127.0.0.1:4000
+          NEXT_PUBLIC_WEB_URL: https://calendar.gov.sl
+        run: npm run build
+
+      # Guards the above: if the rewrite ever stops pointing at the API, every
+      # browser call from the app 404s against the Next server instead.
+      - name: Check the API rewrite was baked in
+        run: |
+          dest=$(node -e "console.log(require('./.next/routes-manifest.json').rewrites.beforeFiles[0].destination)")
+          echo "rewrite destination: $dest"
+          [ "$dest" = "http://127.0.0.1:4000/api/:path*" ] || {
+            echo "::error::unexpected rewrite destination: $dest"; exit 1; }
