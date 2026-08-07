@@ -65,24 +65,25 @@ jobs:
           ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
           chmod 600 ~/.ssh/known_hosts
 
-      # --delete on .next/ so stale chunks from the previous build cannot be
-      # served to a client holding an old manifest. Nothing else is deleted:
-      # .env and logs/ belong to the instance.
-      - name: Ship build output
+      # tar over scp rather than rsync: rsync has to exist on BOTH ends, and the
+      # Amazon Linux AMI does not ship it. tar and scp are always there.
+      #
+      # Only build output and manifests travel. .env and logs/ live on the
+      # instance and are never in the archive, so they cannot be clobbered.
+      - name: Package build output
+        run: |
+          tar czf deploy.tar.gz \
+            .next public package.json package-lock.json \
+            next.config.ts ecosystem.config.js
+          ls -lh deploy.tar.gz
+
+      - name: Upload
         env:
           HOST: ${{ secrets.EC2_HOST }}
           USER: ${{ secrets.EC2_USER }}
         run: |
-          rsync -az --delete \
-            -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes" \
-            .next/ "$USER@$HOST:$APP_DIR/.next/"
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes" \
-            public/ "$USER@$HOST:$APP_DIR/public/"
-          rsync -az \
-            -e "ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes" \
-            package.json package-lock.json next.config.ts ecosystem.config.js \
-            "$USER@$HOST:$APP_DIR/"
+          scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes \
+            deploy.tar.gz "$USER@$HOST:/tmp/web-deploy.tar.gz"
 
       # --omit=dev keeps cypress (hundreds of MB) and eslint off the instance.
       # `next start` needs only the production dependencies.
@@ -96,6 +97,19 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$USER@$HOST" bash -euo pipefail <<EOF
             cd $APP_DIR
+            # Unpack beside the live build and swap, so .next is never partially
+            # written underneath a running next start. Merging instead would
+            # leave last release's chunks behind for a client holding an old
+            # manifest to request.
+            rm -rf .incoming && mkdir .incoming
+            tar xzf /tmp/web-deploy.tar.gz -C .incoming
+            rm -f /tmp/web-deploy.tar.gz
+            rm -rf .next public
+            mv .incoming/.next .next
+            mv .incoming/public public
+            mv .incoming/package.json .incoming/package-lock.json \
+               .incoming/next.config.ts .incoming/ecosystem.config.js .
+            rm -rf .incoming
             npm ci --omit=dev --legacy-peer-deps
             mkdir -p logs
             pm2 reload $PM2_APP --update-env
@@ -126,4 +140,4 @@ jobs:
       - name: Report failure
         if: failure()
         run: |
-          echo "::error::Deploy failed. The previous build is still running on the instance — PM2 only reloads after a successful rsync."
+          echo "::error::Deploy failed. The previous build is still running on the instance — PM2 only reloads after the new build has landed."
