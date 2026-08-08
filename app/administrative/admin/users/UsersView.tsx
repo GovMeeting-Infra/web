@@ -132,6 +132,13 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       setError('Name and email are required.');
       return;
     }
+    // A super admin belongs to no ministry, so there is no "my own ministry"
+    // to fall back on. The API rejects this too; catching it here saves a
+    // round trip and keeps the form filled in.
+    if (isSuperAdmin && form.systemRole !== 'SUPER_ADMIN' && !form.ministryId) {
+      setError('Choose which ministry this user belongs to.');
+      return;
+    }
     setIsSaving(true);
     try {
       const created = await apiFetch<{ invite: Invite }>('/api/v1/admin/users', {
@@ -320,21 +327,26 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                 className={field}
               />
             </div>
-            {isSuperAdmin && (
+            {isSuperAdmin && form.systemRole !== 'SUPER_ADMIN' && (
               <div className="sm:col-span-2">
-                <label className={label}>Ministry</label>
+                <label className={label}>Ministry *</label>
                 <select
                   value={form.ministryId}
                   onChange={(e) => setForm({ ...form, ministryId: e.target.value })}
                   className={field}
                 >
-                  <option value="">My own ministry</option>
+                  {/* No "my own ministry" option: a super admin does not have
+                      one, and picking it produced a user with no ministry. */}
+                  <option value="">Select a ministry…</option>
                   {ministries.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
                     </option>
                   ))}
                 </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  The email above must be on this ministry&apos;s domain.
+                </p>
               </div>
             )}
           </div>

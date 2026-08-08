@@ -102,6 +102,15 @@ const NAV_GROUPS: NavGroup[] = [
         roles: ADMIN_ROLES,
       },
       {
+        // Super-admin only, unlike Users: the API lets a ministry admin read
+        // ministries but not change one, so the page would be inert for them.
+        // requireRole(['SUPER_ADMIN']) in admin/ministries/page.tsx.
+        href: '/administrative/admin/ministries',
+        label: 'Ministries',
+        icon: <Building2 className="h-4 w-4" />,
+        roles: ['SUPER_ADMIN'],
+      },
+      {
         // requireRole(ADMIN_ROLES) in app/administrative/reports/page.tsx.
         href: '/administrative/reports',
         label: 'Reports',
