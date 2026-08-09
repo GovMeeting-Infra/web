@@ -15,7 +15,6 @@ interface Ministry {
   name: string;
   code: string;
   emailDomain: string;
-  compoundMaxGpsAccuracy: number;
   active: boolean;
   _count?: { users: number; events: number };
 }
@@ -32,11 +31,13 @@ const EMPTY_FORM = {
   name: '',
   code: '',
   emailDomain: '',
-  compoundMaxGpsAccuracy: '75',
   adminName: '',
   adminEmail: '',
   adminJobTitle: '',
 };
+
+/** Mirrors GEOFENCE_RADIUS_METERS in the API's attendance/geofence.constants.ts. */
+const CHECKIN_RADIUS_METERS = 100;
 
 export function MinistriesView() {
   const queryClient = useQueryClient();
@@ -93,7 +94,6 @@ export function MinistriesView() {
             name: form.name.trim(),
             code: form.code.trim().toUpperCase(),
             emailDomain: form.emailDomain.trim().toLowerCase(),
-            compoundMaxGpsAccuracy: Number(form.compoundMaxGpsAccuracy) || 75,
             ...(wantsAdmin
               ? {
                   firstAdmin: {
@@ -254,24 +254,16 @@ export function MinistriesView() {
                 ministry.
               </p>
             </div>
-            <div>
-              <label className={label}>GPS tolerance (metres)</label>
-              <input
-                type="number"
-                min={10}
-                max={1000}
-                value={form.compoundMaxGpsAccuracy}
-                onChange={(e) =>
-                  setForm({ ...form, compoundMaxGpsAccuracy: e.target.value })
-                }
-                className={field}
-              />
-              <p className="mt-1 text-xs text-muted-foreground">
-                How far off a phone&apos;s location may be and still count as
-                inside the venue. Default 75.
-              </p>
-            </div>
           </div>
+
+          {/* Not a setting. It reads as one of the fields above only because
+              administrators reasonably ask how far away someone can check in
+              from, and the answer should not require reading the source. */}
+          <p className="text-xs text-muted-foreground">
+            Check-in area: attendees must be within {CHECKIN_RADIUS_METERS} m of
+            wherever the organiser generated the QR code. The same for every
+            ministry, and not configurable here.
+          </p>
 
           <div className="rounded-[1rem] border border-border bg-muted/30 p-4">
             <h3 className="text-sm font-semibold text-foreground">
@@ -361,7 +353,6 @@ export function MinistriesView() {
               <tr>
                 <th className="px-6 py-3 font-medium">Ministry</th>
                 <th className="px-6 py-3 font-medium">Email domain</th>
-                <th className="px-6 py-3 font-medium">GPS tolerance</th>
                 <th className="px-6 py-3 font-medium">Users</th>
                 <th className="px-6 py-3 font-medium">Status</th>
                 <th className="px-6 py-3 text-right font-medium">Actions</th>
@@ -376,9 +367,6 @@ export function MinistriesView() {
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">
                     {m.emailDomain}
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {m.compoundMaxGpsAccuracy} m
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">
                     {m._count?.users ?? '—'}
@@ -440,28 +428,12 @@ export function MinistriesView() {
                   className={field}
                 />
               </div>
-              <div>
+              <div className="sm:col-span-2">
                 <label className={label}>Email domain</label>
                 <input
                   value={editing.emailDomain}
                   onChange={(e) =>
                     setEditing({ ...editing, emailDomain: e.target.value })
-                  }
-                  className={field}
-                />
-              </div>
-              <div>
-                <label className={label}>GPS tolerance (metres)</label>
-                <input
-                  type="number"
-                  min={10}
-                  max={1000}
-                  value={editing.compoundMaxGpsAccuracy}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      compoundMaxGpsAccuracy: Number(e.target.value),
-                    })
                   }
                   className={field}
                 />
@@ -474,7 +446,6 @@ export function MinistriesView() {
                     name: editing.name.trim(),
                     code: editing.code.trim().toUpperCase(),
                     emailDomain: editing.emailDomain.trim().toLowerCase(),
-                    compoundMaxGpsAccuracy: editing.compoundMaxGpsAccuracy,
                   });
                   setEditing(null);
                 }}
