@@ -144,7 +144,9 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     // A super admin belongs to no ministry, so there is no "my own ministry"
     // to fall back on. The API rejects this too; catching it here saves a
     // round trip and keeps the form filled in.
-    if (isSuperAdmin && form.systemRole !== 'SUPER_ADMIN' && !form.ministryId) {
+    // A super admin has no ministry of their own to fall back on, and every
+    // creatable role belongs to one — SUPER_ADMIN is not among them.
+    if (isSuperAdmin && !form.ministryId) {
       setError('Choose which ministry this user belongs to.');
       return;
     }
@@ -336,7 +338,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                 className={field}
               />
             </div>
-            {isSuperAdmin && form.systemRole !== 'SUPER_ADMIN' && (
+            {isSuperAdmin && (
               <div className="sm:col-span-2">
                 <label className={label}>Ministry *</label>
                 <select
