@@ -94,7 +94,7 @@ export default async function CheckInPage({
   }
 
   const event = context.event!;
-  const signInHref = `/login?callbackUrl=${encodeURIComponent(`/checkin/${token}`)}`;
+  const signInHref = `/administrative/login?callbackUrl=${encodeURIComponent(`/checkin/${token}`)}`;
 
   if (user) {
     return (

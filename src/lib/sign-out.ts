@@ -19,5 +19,5 @@ export async function signOut(): Promise<void> {
   // components, so a client-side navigation would keep rendering the cached
   // signed-in tree. This also discards any in-memory query cache, so the next
   // person to sign in cannot see the previous user's data.
-  window.location.href = '/login';
+  window.location.href = '/administrative/login';
 }

@@ -50,12 +50,9 @@ export function PublicShell({
                 Sierra Leone
               </span>
             </div>
-            <Link
-              href="/login"
-              className="rounded-xl border border-[#d3deef] bg-white px-4 py-2 text-sm font-medium text-[#003580] transition-colors hover:bg-[#edf4fd]"
-            >
-              Staff sign in
-            </Link>
+            {/* No staff sign-in link. This page is for the public, and the
+                link advertised the administrative entrance to everyone who
+                visited it. Staff reach it by its own address. */}
           </div>
         </div>
       </header>

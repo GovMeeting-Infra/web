@@ -93,7 +93,7 @@ export async function requireRole(allowed: SystemRole[]): Promise<CurrentUser> {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/administrative/login');
   }
 
   if (!allowed.includes(user.systemRole)) {
