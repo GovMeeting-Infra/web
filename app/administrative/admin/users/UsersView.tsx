@@ -11,6 +11,8 @@ import {
   ShieldAlert,
   Copy,
   Check,
+  LogOut,
+  UnlockKeyhole,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { TableSkeleton } from '@/components/ui/skeletons';
@@ -31,6 +33,13 @@ interface AdminUser {
   active: boolean;
   deletedAt: string | null;
   createdAt: string;
+  /** Set after five failed sign-ins; null once it lapses or is cleared. */
+  lockedUntil: string | null;
+}
+
+/** A lockedUntil in the past has lapsed on its own and needs no action. */
+function isLocked(u: AdminUser): boolean {
+  return Boolean(u.lockedUntil && new Date(u.lockedUntil) > new Date());
 }
 
 interface Invite {
@@ -527,6 +536,43 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                         >
                           <Mail className="h-4 w-4" />
                         </button>
+                        <button
+                          title={`Sign ${u.name} out on all devices`}
+                          onClick={() =>
+                            act(
+                              () =>
+                                apiFetch(
+                                  `/api/v1/admin/users/${u.id}/sessions`,
+                                  { method: 'DELETE' },
+                                ),
+                              'Could not sign them out.',
+                            )
+                          }
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <LogOut className="h-4 w-4" />
+                        </button>
+                        {/* Only where there is a lock to release — an Unlock
+                            button on every row invites clicking it as a guess
+                            when someone cannot sign in for an unrelated reason. */}
+                        {isLocked(u) && (
+                          <button
+                            title={`Unlock ${u.name} — locked until ${new Date(u.lockedUntil!).toLocaleTimeString()}`}
+                            onClick={() =>
+                              act(
+                                () =>
+                                  apiFetch(
+                                    `/api/v1/admin/users/${u.id}/unlock`,
+                                    { method: 'POST' },
+                                  ),
+                                'Could not unlock the account.',
+                              )
+                            }
+                            className="rounded-lg p-1.5 text-[#8d6400] hover:bg-[#8d6400]/10"
+                          >
+                            <UnlockKeyhole className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           title={`Erase ${u.name}'s personal data`}
                           onClick={() => {

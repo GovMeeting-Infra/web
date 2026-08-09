@@ -17,6 +17,7 @@ import {
   Building2,
   Bell,
   ScrollText,
+  SlidersHorizontal,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -108,6 +109,15 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/administrative/admin/ministries',
         label: 'Ministries',
         icon: <Building2 className="h-4 w-4" />,
+        roles: ['SUPER_ADMIN'],
+      },
+      {
+        // Platform-wide values, as opposed to /administrative/settings, which
+        // is each user's own preferences.
+        // requireRole(['SUPER_ADMIN']) in admin/settings/page.tsx.
+        href: '/administrative/admin/settings',
+        label: 'Platform settings',
+        icon: <SlidersHorizontal className="h-4 w-4" />,
         roles: ['SUPER_ADMIN'],
       },
       {
