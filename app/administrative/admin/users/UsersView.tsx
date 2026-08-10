@@ -35,11 +35,70 @@ interface AdminUser {
   createdAt: string;
   /** Set after five failed sign-ins; null once it lapses or is cleared. */
   lockedUntil: string | null;
+  /** Whether they have ever set a password. False means the invite is outstanding. */
+  hasCredential: boolean;
+  /** When that invitation lapses; null once accepted. */
+  inviteExpiresAt: string | null;
 }
 
 /** A lockedUntil in the past has lapsed on its own and needs no action. */
 function isLocked(u: AdminUser): boolean {
   return Boolean(u.lockedUntil && new Date(u.lockedUntil) > new Date());
+}
+
+/**
+ * What the status column says, in precedence order.
+ *
+ * "Active" used to cover anyone not deactivated, so someone created a minute
+ * ago read as active despite having no password and no way to sign in.
+ * Deactivation still outranks the invitation state: it is the deliberate act,
+ * and an administrator who turned someone off wants to see that.
+ */
+function statusOf(u: AdminUser): {
+  label: string;
+  className: string;
+  title?: string;
+} {
+  if (u.deletedAt) {
+    return {
+      label: 'Erased',
+      className: 'bg-muted text-muted-foreground',
+    };
+  }
+
+  if (!u.active) {
+    return {
+      label: 'Inactive',
+      className: 'bg-destructive/10 font-medium text-destructive',
+    };
+  }
+
+  if (!u.hasCredential) {
+    const expiry = u.inviteExpiresAt ? new Date(u.inviteExpiresAt) : null;
+
+    if (expiry && expiry < new Date()) {
+      // The one state that needs someone to act: the link no longer works, and
+      // the re-send button on this row is the fix.
+      return {
+        label: 'Invitation expired',
+        className: 'bg-[#fff8e5] font-medium text-[#8d6400]',
+        title: `Invitation lapsed on ${expiry.toLocaleDateString()} — re-send it`,
+      };
+    }
+
+    return {
+      label: 'Invited',
+      className: 'bg-muted font-medium text-muted-foreground',
+      title: expiry
+        ? `Waiting for them to set a password. Invitation valid until ${expiry.toLocaleDateString()}.`
+        : 'Waiting for them to set a password.',
+    };
+  }
+
+  return {
+    label: 'Active',
+    className: 'bg-[#edf8f1] font-medium text-ring',
+  };
 }
 
 interface Invite {
@@ -490,19 +549,17 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                     {u.jobTitle ?? '—'}
                   </td>
                   <td className="px-4 py-3">
-                    {u.deletedAt ? (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        Erased
-                      </span>
-                    ) : u.active ? (
-                      <span className="rounded-full bg-[#edf8f1] px-2 py-0.5 text-xs font-medium text-ring">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-                        Inactive
-                      </span>
-                    )}
+                    {(() => {
+                      const status = statusOf(u);
+                      return (
+                        <span
+                          title={status.title}
+                          className={`rounded-full px-2 py-0.5 text-xs ${status.className}`}
+                        >
+                          {status.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     {!u.deletedAt && (
