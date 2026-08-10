@@ -76,7 +76,7 @@ export function SetPasswordView() {
         body: JSON.stringify({ password }),
       });
       setDone(true);
-      setTimeout(() => router.push('/login'), 2000);
+      setTimeout(() => router.push('/administrative/login'), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not set your password.');
     } finally {
@@ -93,7 +93,7 @@ export function SetPasswordView() {
           Ask your ministry administrator to send a new one.
         </p>
         <Link
-          href="/login"
+          href="/administrative/login"
           className="mt-6 inline-block rounded-xl bg-[#003580] px-5 py-2.5 text-sm font-medium text-white"
         >
           Go to sign in

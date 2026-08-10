@@ -77,7 +77,7 @@ export default function ForgotPasswordPage() {
             administrator to help you back in.
           </p>
           <Link
-            href="/login"
+            href="/administrative/login"
             className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-[#003580] hover:underline"
           >
             <ArrowLeft className="h-4 w-4" /> Back to sign in
@@ -129,7 +129,7 @@ export default function ForgotPasswordPage() {
       </form>
 
       <Link
-        href="/login"
+        href="/administrative/login"
         className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[#003580]"
       >
         <ArrowLeft className="h-4 w-4" /> Back to sign in

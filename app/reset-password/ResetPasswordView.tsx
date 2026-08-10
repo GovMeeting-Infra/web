@@ -77,7 +77,7 @@ export function ResetPasswordView() {
         { method: 'POST', body: JSON.stringify({ password }) },
       );
       setDone(true);
-      setTimeout(() => router.push('/login'), 2000);
+      setTimeout(() => router.push('/administrative/login'), 2000);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Could not reset your password.',
