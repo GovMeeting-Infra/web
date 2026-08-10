@@ -1,5 +1,6 @@
 import { Mail, LifeBuoy } from 'lucide-react';
 import { HelpBrowser } from './HelpBrowser';
+import { StartTourButton } from '@/components/tour/StartTourButton';
 
 const SUPPORT_EMAIL = 'support@ministry.gov.sl';
 
@@ -22,6 +23,11 @@ export default function HelpPage() {
               Answers to the questions people ask most about scheduling
               meetings, checking attendees in, and keeping a record afterwards.
             </p>
+          </div>
+          {/* The tour shows itself once and then remembers. This is the way
+              back for anyone who clicked past it. */}
+          <div className="ml-auto rounded-[1.25rem] bg-white/10 p-1">
+            <StartTourButton />
           </div>
         </div>
       </div>

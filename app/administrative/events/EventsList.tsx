@@ -217,6 +217,7 @@ export function EventsList() {
         </div>
         <Link
           href="/administrative/events/new"
+          data-tour="events-create"
           className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-6 py-3 font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)] transition-all hover:shadow-[0_12px_24px_rgba(0,53,128,0.32)]"
         >
           <Plus className="h-5 w-5" />

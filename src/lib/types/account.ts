@@ -32,6 +32,8 @@ export interface UserPreferences {
   compactMode: boolean;
   /** Seconds; -1 means never. */
   sessionTimeout: number;
+  /** Guided tour version this user finished or dismissed; null if never shown. */
+  tourCompletedVersion: string | null;
 }
 
 export interface Notification {
