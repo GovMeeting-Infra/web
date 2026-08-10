@@ -26,15 +26,31 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
   const [status, setStatus] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  // Super-admins only. A minister's scope comes from their own record, and the
+  // API discards this if they send it anyway.
+  const [ministryId, setMinistryId] = useState('');
   const [page, setPage] = useState(0);
 
   const { data: categories = [] } = useQuery({
-    queryKey: ['audit-categories'],
-    queryFn: () => apiFetch<string[]>('/api/v1/audit/categories'),
+    queryKey: ['audit-categories', ministryId],
+    queryFn: () => {
+      const p = new URLSearchParams();
+      if (ministryId) p.set('ministryId', ministryId);
+      return apiFetch<string[]>(`/api/v1/audit/categories?${p.toString()}`);
+    },
+  });
+
+  const { data: ministries = [] } = useQuery({
+    queryKey: ['ministry-options'],
+    queryFn: () =>
+      apiFetch<{ id: string; name: string }[]>(
+        '/api/v1/events/ministry-options',
+      ),
+    enabled: isPlatformWide,
   });
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['audit', q, category, status, from, to, page],
+    queryKey: ['audit', q, category, status, from, to, ministryId, page],
     queryFn: () => {
       const p = new URLSearchParams();
       if (q.trim()) p.set('q', q.trim());
@@ -43,6 +59,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
       // The date inputs give a day; widen to the whole day so "to" includes it.
       if (from) p.set('from', new Date(`${from}T00:00:00`).toISOString());
       if (to) p.set('to', new Date(`${to}T23:59:59.999`).toISOString());
+      if (ministryId) p.set('ministryId', ministryId);
       p.set('skip', String(page * PAGE_SIZE));
       p.set('take', String(PAGE_SIZE));
       return apiFetch<AuditListResponse>(`/api/v1/audit?${p.toString()}`);
@@ -58,7 +75,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
     setPage(0);
   };
 
-  const hasFilters = !!(q.trim() || category || status || from || to);
+  const hasFilters = !!(q.trim() || category || status || from || to || ministryId);
 
   return (
     <div className="w-full space-y-6 p-8">
@@ -114,6 +131,25 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
             ))}
           </select>
 
+          {isPlatformWide && (
+            <select
+              value={ministryId}
+              onChange={(e) => reset(() => setMinistryId(e.target.value))}
+              aria-label="Filter by ministry"
+              className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none"
+            >
+              <option value="">All ministries</option>
+              {ministries.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+              {/* Sign-in failures for an unknown address belong to no
+                  ministry, and are otherwise only findable by scrolling. */}
+              <option value="none">Platform-level</option>
+            </select>
+          )}
+
           <div className="flex gap-1 rounded-xl border border-border bg-muted/40 p-1">
             {STATUSES.map((s) => (
               <button
@@ -159,6 +195,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
                   setStatus('');
                   setFrom('');
                   setTo('');
+                  setMinistryId('');
                 })
               }
               className="text-xs font-medium text-primary hover:underline"

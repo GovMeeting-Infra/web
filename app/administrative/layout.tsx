@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { AdminLayout } from '@/components/ui/admin-layout';
 import { SessionProvider } from '@/components/SessionProvider';
+import { PlatformTour } from '@/components/tour/PlatformTour';
 import {
   getCurrentUser,
   getMinistryName,
@@ -27,6 +28,16 @@ export default async function AdministrativeLayout({
         compact={preferences?.compactMode ?? false}
       >
         {children}
+        {/* Mounted in the layout, not on a page: the tour walks between pages,
+            so it has to survive each navigation. It renders nothing until it
+            has a reason to run. */}
+        {user && (
+          <PlatformTour
+            role={user.systemRole}
+            firstName={user.name?.split(' ')[0] ?? 'there'}
+            completedVersion={preferences?.tourCompletedVersion ?? null}
+          />
+        )}
       </AdminLayout>
     </SessionProvider>
   );
