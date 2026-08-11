@@ -157,8 +157,12 @@ describe('Dashboard', () => {
           })
           .map((el) => `${el.tagName.toLowerCase()}.${el.className}`.slice(0, 120));
 
-        expect(offenders, `clipped elements:\n${offenders.join('\n')}`).to.be
-          .empty;
+        // have.length(0) rather than be.empty: the latter is a bare property
+        // access, which reads to eslint as an expression that does nothing.
+        expect(
+          offenders,
+          `clipped elements:\n${offenders.join('\n')}`,
+        ).to.have.length(0);
       });
     };
 
