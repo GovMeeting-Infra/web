@@ -31,9 +31,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-screen antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-dvh antialiased`}
     >
-      <body className="h-screen bg-background text-foreground">
+      {/* dvh rather than vh: on iOS Safari 100vh is taller than the visible
+          area while the URL bar is expanded, which would push the bottom of
+          the app under the browser chrome. The shell scrolls an inner pane,
+          not the document, so there is nothing to scroll that strip back into
+          view. */}
+      <body className="h-dvh bg-background text-foreground">
         <Providers>{children}</Providers>
       </body>
     </html>

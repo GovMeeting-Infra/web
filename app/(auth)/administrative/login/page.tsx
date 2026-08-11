@@ -84,11 +84,11 @@ export default function LoginPage() {
     // old max-w-6xl and with a real minimum height, so it fills most of the
     // screen instead of floating small in the middle.
     //
-    // h-screen with its own scroll rather than min-h-screen: the root layout
-    // pins <body> to h-screen, so a taller child would overflow a container
+    // h-dvh with its own scroll rather than min-h-dvh: the root layout
+    // pins <body> to h-dvh, so a taller child would overflow a container
     // that cannot grow. my-auto on the card centres it while still allowing
     // that scroll — items-center would clip the top on a short window.
-    <main className="flex h-screen justify-center overflow-y-auto p-4 sm:p-6 lg:p-8">
+    <main className="flex h-dvh justify-center overflow-y-auto p-4 sm:p-6 lg:p-8">
       {/* 45fr/55fr — written as the percentages themselves so the intended
           split is obvious. The sign-in content keeps the larger share. */}
       <section className="my-auto grid w-full max-w-[88rem] grid-cols-1 overflow-hidden rounded-[2rem] bg-white shadow-[0_30px_90px_rgba(0,53,128,0.14)] md:min-h-[44rem] md:grid-cols-[45fr_55fr]">

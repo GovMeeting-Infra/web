@@ -30,13 +30,13 @@ export function AdminLayout({
     // data-density drives the compact-mode rules in globals.css, which tighten
     // spacing without every page having to know about the preference.
     <div
-      className="flex h-screen bg-background"
+      className="flex h-dvh bg-background"
       data-density={compact ? 'compact' : undefined}
     >
       {/* Sidebar */}
       <aside
         className={cn(
-          'relative hidden h-screen flex-shrink-0 flex-col overflow-visible border-r border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#f1f7fe_100%)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:flex',
+          'relative hidden h-dvh flex-shrink-0 flex-col overflow-visible border-r border-sidebar-border bg-[linear-gradient(180deg,#f7fbff_0%,#f1f7fe_100%)] transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:flex',
           collapsed ? 'w-20' : 'w-72',
         )}
       >

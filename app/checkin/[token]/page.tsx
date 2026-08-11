@@ -11,7 +11,7 @@ export const metadata = {
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f6faff] p-4">
+    <main className="flex min-h-dvh items-center justify-center bg-[#f6faff] p-4">
       <div className="w-full max-w-sm rounded-[1.5rem] border border-border bg-card p-6 shadow-lg">
         {children}
       </div>
