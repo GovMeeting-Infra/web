@@ -38,13 +38,33 @@ function writeState(state: TourState | null) {
   }
 }
 
-/** Waits for a selector to appear, giving up rather than hanging forever. */
+/**
+ * A match that is actually rendered.
+ *
+ * querySelector matches display:none elements happily, which is what the
+ * sidebar is below lg — so the "skip steps whose target never arrives" guard
+ * never fired and driver.js highlighted a 0x0 box over the top-left corner.
+ * An element hidden that way has no client rects.
+ */
+function findVisible(selector: string): Element | null {
+  for (const el of document.querySelectorAll(selector)) {
+    const rect = el.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return el;
+  }
+  return null;
+}
+
+/** Waits for a visible match, giving up rather than hanging forever. */
 function waitForElement(selector: string, timeoutMs = 4000): Promise<boolean> {
-  if (document.querySelector(selector)) return Promise.resolve(true);
+  if (findVisible(selector)) return Promise.resolve(true);
+
+  // Present but hidden is a settled answer, not a race: CSS visibility changes
+  // fire no mutations, so waiting would only burn the timeout before skipping.
+  if (document.querySelector(selector)) return Promise.resolve(false);
 
   return new Promise((resolve) => {
     const observer = new MutationObserver(() => {
-      if (document.querySelector(selector)) {
+      if (findVisible(selector)) {
         observer.disconnect();
         clearTimeout(timer);
         resolve(true);

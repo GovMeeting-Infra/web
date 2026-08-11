@@ -101,7 +101,11 @@ export function NotificationBell() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-80 overflow-hidden rounded-[1.25rem] border border-border bg-card shadow-xl"
+          // Width clamps so the panel cannot reach past the left edge on a
+          // narrow phone. The height cap matters more: header, six items and
+          // the footer run past a landscape phone's ~390px, and the list's own
+          // max-h does not cover that chrome, so "See all" became unreachable.
+          className="absolute right-0 z-50 mt-2 max-h-[calc(100dvh-6rem)] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overflow-x-hidden rounded-[1.25rem] border border-border bg-card shadow-xl"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold text-primary">Unread</h2>

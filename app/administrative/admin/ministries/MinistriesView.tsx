@@ -348,62 +348,68 @@ export function MinistriesView() {
         </div>
       ) : (
         <div className="overflow-hidden rounded-[1.5rem] border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-6 py-3 font-medium">Ministry</th>
-                <th className="px-6 py-3 font-medium">Email domain</th>
-                <th className="px-6 py-3 font-medium">Users</th>
-                <th className="px-6 py-3 font-medium">Status</th>
-                <th className="px-6 py-3 text-right font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {ministries.map((m) => (
-                <tr key={m.id} className={m.active ? '' : 'opacity-60'}>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-foreground">{m.name}</div>
-                    <div className="text-xs text-muted-foreground">{m.code}</div>
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {m.emailDomain}
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {m._count?.users ?? '—'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={
-                        m.active
-                          ? 'rounded-full bg-[#edf8f1] px-2.5 py-1 text-xs font-medium text-[#007236]'
-                          : 'rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground'
-                      }
-                    >
-                      {m.active ? 'Active' : 'Deactivated'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setEditing(m)}
-                        title="Edit"
-                        className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setToggling(m)}
-                        title={m.active ? 'Deactivate' : 'Activate'}
-                        className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <Power className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+          {/* The inner scroller is what makes the Actions column reachable on a
+              narrow screen. Without it the card's overflow-hidden simply cut
+              the table off, and min-w keeps w-full from squashing five columns
+              into 375px instead of scrolling. Matches the activity log. */}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[56rem] text-sm">
+              <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Ministry</th>
+                  <th className="px-6 py-3 font-medium">Email domain</th>
+                  <th className="px-6 py-3 font-medium">Users</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3 text-right font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {ministries.map((m) => (
+                  <tr key={m.id} className={m.active ? '' : 'opacity-60'}>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-foreground">{m.name}</div>
+                      <div className="text-xs text-muted-foreground">{m.code}</div>
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {m.emailDomain}
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {m._count?.users ?? '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={
+                          m.active
+                            ? 'rounded-full bg-[#edf8f1] px-2.5 py-1 text-xs font-medium text-[#007236]'
+                            : 'rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground'
+                        }
+                      >
+                        {m.active ? 'Active' : 'Deactivated'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setEditing(m)}
+                          title="Edit"
+                          className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setToggling(m)}
+                          title={m.active ? 'Deactivate' : 'Activate'}
+                          className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <Power className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

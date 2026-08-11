@@ -17,6 +17,7 @@ import {
   Building2,
   Bell,
   ScrollText,
+  Search,
   SlidersHorizontal,
   LogOut,
 } from 'lucide-react';
@@ -54,6 +55,13 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/administrative/dashboard',
         label: 'Dashboard',
         icon: <LayoutDashboard className="h-4 w-4" />,
+      },
+      {
+        // The topbar's search form hides below md, so without an entry here
+        // the page had no door at all on a phone.
+        href: '/administrative/search',
+        label: 'Search',
+        icon: <Search className="h-4 w-4" />,
       },
     ],
   },
