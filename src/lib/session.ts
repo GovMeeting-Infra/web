@@ -47,6 +47,12 @@ export interface MyPreferences {
   meetingReminders: boolean;
   actionItemNotifications: boolean;
   compactMode: boolean;
+  /**
+   * Guided tour version this user finished or dismissed; null if never shown.
+   * Read by the layout so the tour can decide before the first paint, rather
+   * than flashing on screen for someone who has already seen it.
+   */
+  tourCompletedVersion: string | null;
 }
 
 /**
@@ -93,7 +99,7 @@ export async function requireRole(allowed: SystemRole[]): Promise<CurrentUser> {
   const user = await getCurrentUser();
 
   if (!user) {
-    redirect('/login');
+    redirect('/administrative/login');
   }
 
   if (!allowed.includes(user.systemRole)) {

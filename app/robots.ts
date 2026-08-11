@@ -21,7 +21,8 @@ export default function robots(): MetadataRoute.Robots {
         '/set-password',
         '/reset-password',
         '/forgot-password',
-        '/login',
+        // Sign-in now lives at /administrative/login, already covered by the
+        // /administrative/ rule above.
       ],
     },
   };

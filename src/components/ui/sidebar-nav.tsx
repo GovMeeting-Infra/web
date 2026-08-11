@@ -17,6 +17,7 @@ import {
   Building2,
   Bell,
   ScrollText,
+  SlidersHorizontal,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
@@ -100,6 +101,24 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Users',
         icon: <Users className="h-4 w-4" />,
         roles: ADMIN_ROLES,
+      },
+      {
+        // Super-admin only, unlike Users: the API lets a ministry admin read
+        // ministries but not change one, so the page would be inert for them.
+        // requireRole(['SUPER_ADMIN']) in admin/ministries/page.tsx.
+        href: '/administrative/admin/ministries',
+        label: 'Ministries',
+        icon: <Building2 className="h-4 w-4" />,
+        roles: ['SUPER_ADMIN'],
+      },
+      {
+        // Platform-wide values, as opposed to /administrative/settings, which
+        // is each user's own preferences.
+        // requireRole(['SUPER_ADMIN']) in admin/settings/page.tsx.
+        href: '/administrative/admin/settings',
+        label: 'Platform settings',
+        icon: <SlidersHorizontal className="h-4 w-4" />,
+        roles: ['SUPER_ADMIN'],
       },
       {
         // requireRole(ADMIN_ROLES) in app/administrative/reports/page.tsx.
@@ -202,6 +221,9 @@ export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  // Anchor for the guided tour. Derived from the href so a new
+                  // nav entry is reachable without remembering to label it.
+                  data-tour={`nav-${item.href.split('/').pop()}`}
                   className={cn(
                     'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                     collapsed && 'justify-center',

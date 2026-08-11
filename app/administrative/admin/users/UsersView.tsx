@@ -11,6 +11,8 @@ import {
   ShieldAlert,
   Copy,
   Check,
+  LogOut,
+  UnlockKeyhole,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { TableSkeleton } from '@/components/ui/skeletons';
@@ -31,6 +33,72 @@ interface AdminUser {
   active: boolean;
   deletedAt: string | null;
   createdAt: string;
+  /** Set after five failed sign-ins; null once it lapses or is cleared. */
+  lockedUntil: string | null;
+  /** Whether they have ever set a password. False means the invite is outstanding. */
+  hasCredential: boolean;
+  /** When that invitation lapses; null once accepted. */
+  inviteExpiresAt: string | null;
+}
+
+/** A lockedUntil in the past has lapsed on its own and needs no action. */
+function isLocked(u: AdminUser): boolean {
+  return Boolean(u.lockedUntil && new Date(u.lockedUntil) > new Date());
+}
+
+/**
+ * What the status column says, in precedence order.
+ *
+ * "Active" used to cover anyone not deactivated, so someone created a minute
+ * ago read as active despite having no password and no way to sign in.
+ * Deactivation still outranks the invitation state: it is the deliberate act,
+ * and an administrator who turned someone off wants to see that.
+ */
+function statusOf(u: AdminUser): {
+  label: string;
+  className: string;
+  title?: string;
+} {
+  if (u.deletedAt) {
+    return {
+      label: 'Erased',
+      className: 'bg-muted text-muted-foreground',
+    };
+  }
+
+  if (!u.active) {
+    return {
+      label: 'Inactive',
+      className: 'bg-destructive/10 font-medium text-destructive',
+    };
+  }
+
+  if (!u.hasCredential) {
+    const expiry = u.inviteExpiresAt ? new Date(u.inviteExpiresAt) : null;
+
+    if (expiry && expiry < new Date()) {
+      // The one state that needs someone to act: the link no longer works, and
+      // the re-send button on this row is the fix.
+      return {
+        label: 'Invitation expired',
+        className: 'bg-[#fff8e5] font-medium text-[#8d6400]',
+        title: `Invitation lapsed on ${expiry.toLocaleDateString()} — re-send it`,
+      };
+    }
+
+    return {
+      label: 'Invited',
+      className: 'bg-muted font-medium text-muted-foreground',
+      title: expiry
+        ? `Waiting for them to set a password. Invitation valid until ${expiry.toLocaleDateString()}.`
+        : 'Waiting for them to set a password.',
+    };
+  }
+
+  return {
+    label: 'Active',
+    className: 'bg-[#edf8f1] font-medium text-ring',
+  };
 }
 
 interface Invite {
@@ -130,6 +198,15 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     setError(null);
     if (!form.name.trim() || !form.email.trim()) {
       setError('Name and email are required.');
+      return;
+    }
+    // A super admin belongs to no ministry, so there is no "my own ministry"
+    // to fall back on. The API rejects this too; catching it here saves a
+    // round trip and keeps the form filled in.
+    // A super admin has no ministry of their own to fall back on, and every
+    // creatable role belongs to one — SUPER_ADMIN is not among them.
+    if (isSuperAdmin && !form.ministryId) {
+      setError('Choose which ministry this user belongs to.');
       return;
     }
     setIsSaving(true);
@@ -322,19 +399,24 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             </div>
             {isSuperAdmin && (
               <div className="sm:col-span-2">
-                <label className={label}>Ministry</label>
+                <label className={label}>Ministry *</label>
                 <select
                   value={form.ministryId}
                   onChange={(e) => setForm({ ...form, ministryId: e.target.value })}
                   className={field}
                 >
-                  <option value="">My own ministry</option>
+                  {/* No "my own ministry" option: a super admin does not have
+                      one, and picking it produced a user with no ministry. */}
+                  <option value="">Select a ministry…</option>
                   {ministries.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.name}
                     </option>
                   ))}
                 </select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  The email above must be on this ministry&apos;s domain.
+                </p>
               </div>
             )}
           </div>
@@ -467,19 +549,17 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                     {u.jobTitle ?? '—'}
                   </td>
                   <td className="px-4 py-3">
-                    {u.deletedAt ? (
-                      <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                        Erased
-                      </span>
-                    ) : u.active ? (
-                      <span className="rounded-full bg-[#edf8f1] px-2 py-0.5 text-xs font-medium text-ring">
-                        Active
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-                        Inactive
-                      </span>
-                    )}
+                    {(() => {
+                      const status = statusOf(u);
+                      return (
+                        <span
+                          title={status.title}
+                          className={`rounded-full px-2 py-0.5 text-xs ${status.className}`}
+                        >
+                          {status.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3">
                     {!u.deletedAt && (
@@ -515,6 +595,43 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                         >
                           <Mail className="h-4 w-4" />
                         </button>
+                        <button
+                          title={`Sign ${u.name} out on all devices`}
+                          onClick={() =>
+                            act(
+                              () =>
+                                apiFetch(
+                                  `/api/v1/admin/users/${u.id}/sessions`,
+                                  { method: 'DELETE' },
+                                ),
+                              'Could not sign them out.',
+                            )
+                          }
+                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          <LogOut className="h-4 w-4" />
+                        </button>
+                        {/* Only where there is a lock to release — an Unlock
+                            button on every row invites clicking it as a guess
+                            when someone cannot sign in for an unrelated reason. */}
+                        {isLocked(u) && (
+                          <button
+                            title={`Unlock ${u.name} — locked until ${new Date(u.lockedUntil!).toLocaleTimeString()}`}
+                            onClick={() =>
+                              act(
+                                () =>
+                                  apiFetch(
+                                    `/api/v1/admin/users/${u.id}/unlock`,
+                                    { method: 'POST' },
+                                  ),
+                                'Could not unlock the account.',
+                              )
+                            }
+                            className="rounded-lg p-1.5 text-[#8d6400] hover:bg-[#8d6400]/10"
+                          >
+                            <UnlockKeyhole className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           title={`Erase ${u.name}'s personal data`}
                           onClick={() => {
