@@ -350,7 +350,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleSaveMinutes}
               disabled={isSaving}
@@ -532,7 +532,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
           ) : (
             <div className="space-y-2">
               {actionItems.map((item) => (
-                <div key={item.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-4">
+                <div key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground">{item.title}</p>
                     <p className="text-xs text-muted-foreground">Due: {new Date(item.dueDate).toLocaleDateString()}</p>
@@ -540,7 +540,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
                   <select
                     value={item.status}
                     onChange={(e) => handleUpdateActionStatus(item.id, e.target.value)}
-                    className="rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-max"
+                    className="rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:min-w-max"
                   >
                     {Object.entries(ACTION_ITEM_STATUS_LABELS).map(([status, label]) => (
                       <option key={status} value={status}>

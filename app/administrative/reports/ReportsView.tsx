@@ -260,7 +260,8 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               <h2 className="font-semibold text-[#003580]">Events Created</h2>
               <p className="mt-2 text-sm text-slate-600">Last 12 months</p>
 
-              <div className="mt-6 flex h-32 items-end gap-1">
+              <div className="mt-6 -mx-2 overflow-x-auto px-2">
+                <div className="flex h-32 min-w-[28rem] items-end gap-1">
                 {data.eventsOverTime.map((m) => (
                   <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
                     <div
@@ -271,11 +272,12 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                       }}
                       title={`${m.month}: ${m.count}`}
                     />
-                    <span className="text-[9px] text-slate-500">
+                    <span className="text-[10px] text-slate-500">
                       {m.month.slice(5)}
                     </span>
                   </div>
                 ))}
+                </div>
               </div>
             </section>
           </div>

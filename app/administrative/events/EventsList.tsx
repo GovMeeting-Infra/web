@@ -209,7 +209,7 @@ export function EventsList() {
 
   return (
     <PageContainer className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-primary">Events</h1>
           <p className="mt-2 text-muted-foreground">
@@ -227,7 +227,7 @@ export function EventsList() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(['all', 'internal', 'public'] as const).map((filter) => (
             <button
               key={filter}

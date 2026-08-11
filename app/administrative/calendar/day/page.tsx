@@ -95,7 +95,7 @@ export default function CalendarDayPage() {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             href={shift(-1)}
             aria-label="Previous day"

@@ -303,7 +303,7 @@ export default function EventDetailPage({
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-bold text-primary">{event.title}</h1>
               {/* Draft/published is a public-calendar distinction. An internal
                   meeting is always published now, so the badge would say
@@ -495,7 +495,7 @@ export default function EventDetailPage({
               )}
               {canAdminister && (
                 <div className="mt-4 flex flex-wrap items-start gap-2">
-                  <div className="min-w-[16rem] flex-1">
+                  <div className="min-w-0 flex-1 sm:min-w-[16rem]">
                     {/* Was a free-text User ID box, which meant asking an
                         administrator for an internal identifier before you could
                         add a colleague. The candidates endpoint is open to every

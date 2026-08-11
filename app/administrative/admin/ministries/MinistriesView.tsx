@@ -309,7 +309,7 @@ export function MinistriesView() {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={handleCreate}
               disabled={isSaving}
@@ -446,7 +446,7 @@ export function MinistriesView() {
                 />
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={async () => {
                   await handleUpdate(editing.id, {
@@ -484,7 +484,7 @@ export function MinistriesView() {
                 ? `Its ${toggling._count?.users ?? 0} user${toggling._count?.users === 1 ? '' : 's'} will not be able to sign in. Events, minutes and audit records are kept, and reactivating restores access.`
                 : 'Its users will be able to sign in again.'}
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={async () => {
                   await handleUpdate(toggling.id, { active: !toggling.active });

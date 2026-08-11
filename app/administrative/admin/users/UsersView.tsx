@@ -511,7 +511,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             )}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleCreate}
               disabled={isSaving}

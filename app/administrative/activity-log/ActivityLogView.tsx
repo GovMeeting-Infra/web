@@ -316,7 +316,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
               <span className="text-muted-foreground">
                 Page {page + 1} of {lastPage + 1}
               </span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
