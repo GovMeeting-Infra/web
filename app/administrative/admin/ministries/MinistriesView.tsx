@@ -348,7 +348,7 @@ export function MinistriesView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[1.5rem] border border-border bg-card">
+        <div className="hidden overflow-hidden rounded-[1.5rem] border border-border bg-card sm:block">
           {/* The inner scroller is what makes the Actions column reachable on a
               narrow screen. Without it the card's overflow-hidden simply cut
               the table off, and min-w keeps w-full from squashing five columns
@@ -412,6 +412,64 @@ export function MinistriesView() {
             </table>
           </div>
         </div>
+      )}
+
+      {!isLoading && ministries.length > 0 && (
+        <ul className="space-y-3 sm:hidden">
+          {ministries.map((m) => (
+            <li
+              key={m.id}
+              className={`space-y-3 rounded-[1.25rem] border border-border bg-card p-4 ${
+                m.active ? '' : 'opacity-60'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground">{m.name}</p>
+                  <p className="text-xs text-muted-foreground">{m.code}</p>
+                </div>
+                <span
+                  className={
+                    m.active
+                      ? 'shrink-0 rounded-full bg-[#edf8f1] px-2.5 py-1 text-xs font-medium text-[#007236]'
+                      : 'shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground'
+                  }
+                >
+                  {m.active ? 'Active' : 'Deactivated'}
+                </span>
+              </div>
+
+              <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <div className="flex gap-1.5">
+                  <dt>Domain</dt>
+                  <dd className="break-all text-foreground">{m.emailDomain}</dd>
+                </div>
+                <div className="flex gap-1.5">
+                  <dt>Users</dt>
+                  <dd className="text-foreground">{m._count?.users ?? '—'}</dd>
+                </div>
+              </dl>
+
+              {/* Full-width buttons rather than the table's icon pair: these
+                  were the controls a phone could not reach at all. */}
+              <div className="flex gap-2 border-t border-border pt-3">
+                <button
+                  onClick={() => setEditing(m)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Pencil className="h-4 w-4" /> Edit
+                </button>
+                <button
+                  onClick={() => setToggling(m)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Power className="h-4 w-4" />
+                  {m.active ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       {editing && (
