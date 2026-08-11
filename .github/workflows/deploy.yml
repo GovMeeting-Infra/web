@@ -96,7 +96,12 @@ jobs:
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
           printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          # `|| true` and touch: if keyscan returns nothing, the chmod that
+          # followed used to fail on a missing file and end the step with a bare
+          # exit 1 — hiding whatever ssh would have said. Let ssh report the
+          # real problem instead.
+          touch ~/.ssh/known_hosts
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
           chmod 600 ~/.ssh/known_hosts
           # Fails clearly on a wrong key or a closed port 22, rather than
           # letting the first real command carry the blame.
