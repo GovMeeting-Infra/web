@@ -7,6 +7,7 @@ import { ArrowUpRight, BellOff, CheckCheck } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { ListSkeleton } from '@/components/ui/skeletons';
 import type { Notification } from '@/lib/types/account';
+import { PageContainer } from '@/components/ui/page-container';
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
@@ -36,7 +37,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
@@ -131,6 +132,6 @@ export default function NotificationsPage() {
           })}
         </ul>
       )}
-    </div>
+    </PageContainer>
   );
 }

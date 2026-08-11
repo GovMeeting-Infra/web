@@ -9,6 +9,7 @@ import { apiFetch, ApiError } from '@/lib/api/client';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
 import type { EventDetail, RoomSummary } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 // Same styling constants as the create form.
 const field =
@@ -206,7 +207,7 @@ export default function EditEventPage({
   }
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <Link
         href={`/administrative/events/${id}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -501,6 +502,6 @@ export default function EditEventPage({
           {isSubmitting ? 'Saving…' : 'Save changes'}
         </button>
       </div>
-    </div>
+    </PageContainer>
   );
 }

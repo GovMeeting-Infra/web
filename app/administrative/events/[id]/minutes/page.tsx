@@ -8,6 +8,7 @@ import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PersonPicker } from '@/components/ui/person-picker';
 import { ACTION_ITEM_STATUS_LABELS, type EventDetail, type Minutes, type ActionItem } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 export default function MinutesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -230,7 +231,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   };
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <Link href={`/administrative/events/${id}`} className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Event
       </Link>
@@ -555,6 +556,6 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

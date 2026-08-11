@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   PersonPicker,
   type DirectoryPerson,
@@ -352,7 +353,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   };
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <Link
         href={`/administrative/events/${id}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -756,6 +757,6 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

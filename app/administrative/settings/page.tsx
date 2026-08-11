@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, Monitor, Lock, Database, Download } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import type { UserPreferences } from '@/lib/types/account';
+import { PageContainer } from '@/components/ui/page-container';
 
 function Toggle({
   checked,
@@ -168,7 +169,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
           Workspace
@@ -310,6 +311,6 @@ export default function SettingsPage() {
           {isSaving ? 'Saving…' : 'Save All Settings'}
         </button>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -16,6 +16,7 @@ import { apiFetch } from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeaderSkeleton, StatCardsSkeleton } from '@/components/ui/skeletons';
 import { uploadImage } from '@/lib/upload';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   ROLE_LABELS,
   initialsOf,
@@ -144,11 +145,11 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="w-full space-y-6 p-8">
+      <PageContainer>
         <PageHeaderSkeleton />
         <Skeleton className="h-40 w-full rounded-[1.75rem]" />
         <StatCardsSkeleton />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -161,7 +162,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
@@ -433,6 +434,6 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   EVENT_TYPE_LABELS,
   EVENT_STATUS_LABELS,
@@ -207,7 +208,7 @@ export function EventsList() {
   };
 
   return (
-    <div className="space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-primary">Events</h1>
@@ -313,6 +314,6 @@ export function EventsList() {
           </div>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }

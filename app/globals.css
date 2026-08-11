@@ -187,3 +187,26 @@
   font-size: 1.5rem;
   line-height: 2rem;
 }
+
+/* Page frames pad responsively (p-4 sm:p-6 lg:p-8), and those generate as
+   `.sm\:p-6` / `.lg\:p-8` — selectors the `.p-8` rule above cannot see. Keyed
+   to the attribute PageContainer sets instead, so the utilities stay free to
+   change without this block knowing. Breakpoints mirror Tailwind's sm and lg,
+   and the lg value matches the old compact `.p-8` exactly, so desktop compact
+   mode is unchanged. */
+
+[data-density='compact'] [data-page-container] {
+  padding: 0.875rem;
+}
+
+@media (min-width: 40rem) {
+  [data-density='compact'] [data-page-container] {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  [data-density='compact'] [data-page-container] {
+    padding: 1.25rem;
+  }
+}

@@ -16,6 +16,7 @@ import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { ListSkeleton } from '@/components/ui/skeletons';
 import type { MinutesListResponse, MinutesSummary } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 const STATUS_FILTERS = [
   { value: '', label: 'Current' },
@@ -76,7 +77,7 @@ export default function MinutesPage() {
   const minutes = data?.data ?? [];
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
           Records
@@ -216,6 +217,6 @@ export default function MinutesPage() {
           </div>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -17,6 +17,7 @@ import { ListSkeleton } from '@/components/ui/skeletons';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { KanbanBoard } from '@/components/action-items/KanbanBoard';
 import { ActionItemModal } from '@/components/action-items/ActionItemModal';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   ACTION_ITEM_STATUS_LABELS,
   POINT_LABELS,
@@ -118,7 +119,7 @@ export default function ActionItemsPage() {
   };
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
@@ -387,6 +388,6 @@ export default function ActionItemsPage() {
           }
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

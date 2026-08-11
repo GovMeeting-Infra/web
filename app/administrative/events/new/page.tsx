@@ -8,6 +8,7 @@ import { ArrowLeft, X, Building2, Globe, Upload } from 'lucide-react';
 import { apiFetch, ApiError } from '@/lib/api/client';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
+import { PageContainer } from '@/components/ui/page-container';
 import type {
   EventDetail,
   RoomSummary,
@@ -290,7 +291,7 @@ export default function NewEventPage() {
   };
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <Link
         href="/administrative/events"
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -950,6 +951,6 @@ export default function NewEventPage() {
           {isSubmitting ? 'Scheduling…' : 'Schedule activity'}
         </button>
       </div>
-    </div>
+    </PageContainer>
   );
 }

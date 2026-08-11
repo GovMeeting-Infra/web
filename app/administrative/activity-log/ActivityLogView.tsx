@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, X, ScrollText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { TableSkeleton } from '@/components/ui/skeletons';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   AUDIT_STATUS_STYLES,
   auditTimestamp,
@@ -78,7 +79,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
   const hasFilters = !!(q.trim() || category || status || from || to || ministryId);
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
           Oversight
@@ -335,6 +336,6 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
           )}
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

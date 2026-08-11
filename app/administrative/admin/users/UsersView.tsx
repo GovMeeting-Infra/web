@@ -18,6 +18,7 @@ import { apiFetch } from '@/lib/api/client';
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { initialsOf, ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
@@ -235,7 +236,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   };
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
@@ -771,6 +772,6 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

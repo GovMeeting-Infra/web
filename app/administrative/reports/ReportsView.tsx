@@ -14,6 +14,7 @@ import { StatCardsSkeleton } from '@/components/ui/skeletons';
 import { CSV_EXPORTS, type AnalyticsDashboard } from '@/lib/types/reports';
 import { ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/session';
+import { PageContainer } from '@/components/ui/page-container';
 
 /** Keeps the existing card shape; only the numbers are real now. */
 function ReportCard({
@@ -125,7 +126,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
   const maxMonth = Math.max(1, ...(data?.eventsOverTime ?? []).map((m) => m.count));
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#007236]">
           Insight centre
@@ -299,6 +300,6 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
           </section>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

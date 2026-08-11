@@ -18,6 +18,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatCardsSkeleton, RowsSkeleton } from '@/components/ui/skeletons';
 import type { MyProfile } from '@/lib/types/account';
 import type { AnalyticsDashboard } from '@/lib/types/reports';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   isActionItemOverdue,
   ACTION_ITEM_STATUS_LABELS,
@@ -159,7 +160,7 @@ export default function DashboardPage() {
   const firstName = currentUser?.name?.split(' ')[0];
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <section className="overflow-hidden rounded-[1.75rem] border border-border bg-primary text-primary-foreground">
         <div className="flex flex-wrap items-center justify-between gap-4 p-8">
           <div className="min-w-0">
@@ -428,6 +429,6 @@ export default function DashboardPage() {
           )}
         </section>
       </div>
-    </div>
+    </PageContainer>
   );
 }

@@ -8,6 +8,7 @@ import { ArrowLeft, RefreshCw, MapPin, QrCode, XCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { requestLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
 import type { CheckInCodeResponse } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 interface GeneratePayload {
   lat?: number;
@@ -153,7 +154,7 @@ export default function CheckInCodePage({
   }
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <Link
         href={`/administrative/events/${id}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -319,6 +320,6 @@ export default function CheckInCodePage({
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
