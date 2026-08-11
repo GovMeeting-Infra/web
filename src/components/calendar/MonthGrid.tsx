@@ -120,7 +120,7 @@ export function MonthGrid({
 
       <div className="grid grid-cols-7 gap-1">
         {WEEKDAYS.map((w) => (
-          <div key={w} className="p-2 text-center">
+          <div key={w} className="p-1 text-center sm:p-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               <span className="sm:hidden">{w.slice(0, 1)}</span>
               <span className="hidden sm:inline">{w}</span>
@@ -130,7 +130,9 @@ export function MonthGrid({
 
         {cells.map((day, i) => {
           if (day === null) {
-            return <div key={`pad-${i}`} className="min-h-32 rounded-lg" />;
+            return (
+              <div key={`pad-${i}`} className="min-h-16 rounded-lg sm:min-h-32" />
+            );
           }
 
           const cellDate = new Date(year, month, day);
@@ -143,7 +145,7 @@ export function MonthGrid({
           return (
             <div
               key={day}
-              className={`min-h-32 rounded-lg border p-2 transition-colors ${
+              className={`min-h-16 rounded-lg border p-1 transition-colors sm:min-h-32 sm:p-2 ${
                 isToday
                   ? 'border-primary/40 bg-primary/5'
                   : dayEvents.length > 0
@@ -151,7 +153,37 @@ export function MonthGrid({
                     : 'border-border/30 hover:bg-muted/20'
               }`}
             >
-              <div className="mb-2 flex items-center justify-between">
+              {/* Seven columns leave ~34px a cell on a phone, and a chip with
+                  px-2 padding has about 2px left for its title. Below sm the
+                  day becomes one tap target showing a dot per event, and the
+                  detail lives in the day view the dots link to. */}
+              <Link
+                href={hrefForDay(dayParam)}
+                aria-label={`${day} — ${dayEvents.length} ${
+                  dayEvents.length === 1 ? 'event' : 'events'
+                }`}
+                className="flex h-full min-h-14 flex-col items-center justify-center gap-1 sm:hidden"
+              >
+                <span
+                  className={`text-sm font-semibold ${
+                    isToday ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  {day}
+                </span>
+                {dayEvents.length > 0 && (
+                  <span aria-hidden className="flex items-center gap-0.5">
+                    {dayEvents.slice(0, 3).map((e) => (
+                      <span
+                        key={e.id}
+                        className="h-1.5 w-1.5 rounded-full bg-primary"
+                      />
+                    ))}
+                  </span>
+                )}
+              </Link>
+
+              <div className="mb-2 hidden items-center justify-between sm:flex">
                 <Link
                   href={hrefForDay(dayParam)}
                   className={`text-sm font-semibold transition-colors hover:text-primary ${
@@ -167,7 +199,7 @@ export function MonthGrid({
                 )}
               </div>
 
-              <div className="space-y-1">
+              <div className="hidden space-y-1 sm:block">
                 {chips.map((e) => {
                   const time = new Date(e.startAt).toLocaleTimeString(undefined, {
                     hour: '2-digit',
