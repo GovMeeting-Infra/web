@@ -235,6 +235,95 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     }
   };
 
+  /**
+   * Six controls per user, shared by the table and the cards below it, so the
+   * two cannot drift apart. gap-2 rather than the table's gap-1: these are
+   * finger targets on a phone.
+   */
+  const rowActions = (u: AdminUser) =>
+    u.deletedAt ? null : (
+      <div className="flex items-center gap-1 max-sm:gap-2">
+        <button
+          title={u.active ? `Deactivate ${u.name}` : `Reactivate ${u.name}`}
+          onClick={() =>
+            act(
+              () =>
+                apiFetch(`/api/v1/admin/users/${u.id}/active`, {
+                  method: 'PATCH',
+                  body: JSON.stringify({ active: !u.active }),
+                }),
+              'Could not change the status.',
+            )
+          }
+          className="rounded-lg p-1.5 max-sm:p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <Power className="h-4 w-4" />
+        </button>
+        <button
+          title={`Edit ${u.name}`}
+          onClick={() => setEditing(u)}
+          className="rounded-lg p-1.5 max-sm:p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button
+          title={`Re-send invitation to ${u.name}`}
+          disabled={isResending}
+          onClick={() => resendInvite(u.id)}
+          className="rounded-lg p-1.5 max-sm:p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+        >
+          <Mail className="h-4 w-4" />
+        </button>
+        <button
+          title={`Sign ${u.name} out on all devices`}
+          onClick={() =>
+            act(
+              () =>
+                apiFetch(
+                  `/api/v1/admin/users/${u.id}/sessions`,
+                  { method: 'DELETE' },
+                ),
+              'Could not sign them out.',
+            )
+          }
+          className="rounded-lg p-1.5 max-sm:p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+        {/* Only where there is a lock to release — an Unlock
+            button on every row invites clicking it as a guess
+            when someone cannot sign in for an unrelated reason. */}
+        {isLocked(u) && (
+          <button
+            title={`Unlock ${u.name} — locked until ${new Date(u.lockedUntil!).toLocaleTimeString()}`}
+            onClick={() =>
+              act(
+                () =>
+                  apiFetch(
+                    `/api/v1/admin/users/${u.id}/unlock`,
+                    { method: 'POST' },
+                  ),
+                'Could not unlock the account.',
+              )
+            }
+            className="rounded-lg p-1.5 max-sm:p-2.5 text-[#8d6400] hover:bg-[#8d6400]/10"
+          >
+            <UnlockKeyhole className="h-4 w-4" />
+          </button>
+        )}
+        <button
+          title={`Erase ${u.name}'s personal data`}
+          onClick={() => {
+            setErasing(u);
+            setEraseConfirm('');
+          }}
+          className="rounded-lg p-1.5 max-sm:p-2.5 text-destructive hover:bg-destructive/10"
+        >
+          <ShieldAlert className="h-4 w-4" />
+        </button>
+      </div>
+    );
+
   return (
     <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -496,161 +585,151 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       )}
 
       {!isLoading && users.length > 0 && (
-        <div className="overflow-x-auto rounded-[1.5rem] border border-border bg-card">
+        // The radius sits on the outer element and the scroller inside it:
+        // on one element the rounded corners clip the content as it scrolls.
+        <div className="hidden overflow-hidden rounded-[1.5rem] border border-border bg-card sm:block">
+          <div className="overflow-x-auto">
           <table className="w-full min-w-[56rem] text-sm">
-            <thead className="border-b border-border bg-muted/40">
-              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Role</th>
-                <th className="px-4 py-3">Job title</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u, i) => (
-                <tr
-                  key={u.id}
-                  className={`border-b border-border ${i % 2 === 1 ? 'bg-muted/10' : ''}`}
-                >
-                  <td className="px-4 py-3">
-                    <span className="flex items-center gap-2 font-medium text-foreground">
-                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">
-                        {initialsOf(u.name)}
-                      </span>
-                      {u.name}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={u.systemRole}
-                      disabled={!!u.deletedAt}
-                      onChange={(e) =>
-                        act(
-                          () =>
-                            apiFetch(`/api/v1/admin/users/${u.id}/role`, {
-                              method: 'PATCH',
-                              body: JSON.stringify({ systemRole: e.target.value }),
-                            }),
-                          'Could not change the role.',
-                        )
-                      }
-                      className="rounded-lg border border-border bg-input px-2 py-1 text-xs disabled:opacity-50"
-                    >
-                      {assignableRoles.map((r) => (
-                        <option key={r} value={r}>
-                          {ROLE_LABELS[r]}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {u.jobTitle ?? '—'}
-                  </td>
-                  <td className="px-4 py-3">
-                    {(() => {
-                      const status = statusOf(u);
-                      return (
-                        <span
-                          title={status.title}
-                          className={`rounded-full px-2 py-0.5 text-xs ${status.className}`}
-                        >
-                          {status.label}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                  <td className="px-4 py-3">
-                    {!u.deletedAt && (
-                      <div className="flex items-center gap-1">
-                        <button
-                          title={u.active ? `Deactivate ${u.name}` : `Reactivate ${u.name}`}
-                          onClick={() =>
-                            act(
-                              () =>
-                                apiFetch(`/api/v1/admin/users/${u.id}/active`, {
-                                  method: 'PATCH',
-                                  body: JSON.stringify({ active: !u.active }),
-                                }),
-                              'Could not change the status.',
-                            )
-                          }
-                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                          <Power className="h-4 w-4" />
-                        </button>
-                        <button
-                          title={`Edit ${u.name}`}
-                          onClick={() => setEditing(u)}
-                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </button>
-                        <button
-                          title={`Re-send invitation to ${u.name}`}
-                          disabled={isResending}
-                          onClick={() => resendInvite(u.id)}
-                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </button>
-                        <button
-                          title={`Sign ${u.name} out on all devices`}
-                          onClick={() =>
-                            act(
-                              () =>
-                                apiFetch(
-                                  `/api/v1/admin/users/${u.id}/sessions`,
-                                  { method: 'DELETE' },
-                                ),
-                              'Could not sign them out.',
-                            )
-                          }
-                          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                        >
-                          <LogOut className="h-4 w-4" />
-                        </button>
-                        {/* Only where there is a lock to release — an Unlock
-                            button on every row invites clicking it as a guess
-                            when someone cannot sign in for an unrelated reason. */}
-                        {isLocked(u) && (
-                          <button
-                            title={`Unlock ${u.name} — locked until ${new Date(u.lockedUntil!).toLocaleTimeString()}`}
-                            onClick={() =>
-                              act(
-                                () =>
-                                  apiFetch(
-                                    `/api/v1/admin/users/${u.id}/unlock`,
-                                    { method: 'POST' },
-                                  ),
-                                'Could not unlock the account.',
-                              )
-                            }
-                            className="rounded-lg p-1.5 text-[#8d6400] hover:bg-[#8d6400]/10"
-                          >
-                            <UnlockKeyhole className="h-4 w-4" />
-                          </button>
-                        )}
-                        <button
-                          title={`Erase ${u.name}'s personal data`}
-                          onClick={() => {
-                            setErasing(u);
-                            setEraseConfirm('');
-                          }}
-                          className="rounded-lg p-1.5 text-destructive hover:bg-destructive/10"
-                        >
-                          <ShieldAlert className="h-4 w-4" />
-                        </button>
-                      </div>
-                    )}
-                  </td>
+              <thead className="border-b border-border bg-muted/40">
+                <tr className="text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">Job title</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Actions</th>
                 </tr>
-              ))}
+              </thead>
+              <tbody>
+                {users.map((u, i) => (
+                  <tr
+                    key={u.id}
+                    className={`border-b border-border ${i % 2 === 1 ? 'bg-muted/10' : ''}`}
+                  >
+                    <td className="px-4 py-3">
+                      <span className="flex items-center gap-2 font-medium text-foreground">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">
+                          {initialsOf(u.name)}
+                        </span>
+                        {u.name}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{u.email}</td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={u.systemRole}
+                        disabled={!!u.deletedAt}
+                        onChange={(e) =>
+                          act(
+                            () =>
+                              apiFetch(`/api/v1/admin/users/${u.id}/role`, {
+                                method: 'PATCH',
+                                body: JSON.stringify({ systemRole: e.target.value }),
+                              }),
+                            'Could not change the role.',
+                          )
+                        }
+                        className="rounded-lg border border-border bg-input px-2 py-1 text-xs disabled:opacity-50"
+                      >
+                        {assignableRoles.map((r) => (
+                          <option key={r} value={r}>
+                            {ROLE_LABELS[r]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {u.jobTitle ?? '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const status = statusOf(u);
+                        return (
+                          <span
+                            title={status.title}
+                            className={`rounded-full px-2 py-0.5 text-xs ${status.className}`}
+                          >
+                            {status.label}
+                          </span>
+                        );
+                      })()}
+                    </td>
+                    <td className="px-4 py-3">
+                      {rowActions(u)}
+                    </td>
+                  </tr>
+                ))}
             </tbody>
           </table>
+          </div>
         </div>
+      )}
+
+      {!isLoading && users.length > 0 && (
+        <ul className="space-y-3 sm:hidden">
+          {users.map((u) => {
+            const status = statusOf(u);
+            return (
+              <li
+                key={u.id}
+                className="space-y-3 rounded-[1.25rem] border border-border bg-card p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-2 font-medium text-foreground">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-secondary text-[11px] font-semibold text-secondary-foreground">
+                      {initialsOf(u.name)}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate">{u.name}</span>
+                      <span className="block truncate text-xs font-normal text-muted-foreground">
+                        {u.email}
+                      </span>
+                    </span>
+                  </span>
+                  <span
+                    title={status.title}
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${status.className}`}
+                  >
+                    {status.label}
+                  </span>
+                </div>
+
+                {u.jobTitle && (
+                  <p className="text-sm text-muted-foreground">{u.jobTitle}</p>
+                )}
+
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  {/* text-base, not the table's text-xs: Safari zooms the whole
+                      page when a control under 16px takes focus. */}
+                  <select
+                    value={u.systemRole}
+                    disabled={!!u.deletedAt}
+                    aria-label={`Role for ${u.name}`}
+                    onChange={(e) =>
+                      act(
+                        () =>
+                          apiFetch(`/api/v1/admin/users/${u.id}/role`, {
+                            method: 'PATCH',
+                            body: JSON.stringify({ systemRole: e.target.value }),
+                          }),
+                        'Could not change the role.',
+                      )
+                    }
+                    className="rounded-lg border border-border bg-input px-2 py-1.5 text-base disabled:opacity-50"
+                  >
+                    {assignableRoles.map((r) => (
+                      <option key={r} value={r}>
+                        {ROLE_LABELS[r]}
+                      </option>
+                    ))}
+                  </select>
+
+                  {rowActions(u)}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       {/* Edit dialog */}
