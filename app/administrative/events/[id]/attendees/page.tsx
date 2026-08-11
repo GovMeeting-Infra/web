@@ -386,7 +386,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         }`}
       >
         {canInvite && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Invite Attendees</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -519,7 +519,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         )}
 
         {canDoWalkIn && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
             <p className="mt-1 text-sm text-muted-foreground">

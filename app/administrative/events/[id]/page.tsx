@@ -286,7 +286,7 @@ export default function EventDetailPage({
     // flex-1 fills the viewport so Manage can sit at the bottom rather than
     // leaving a gap under it. space-y lives on the inner wrapper, not here,
     // because it would otherwise set a top margin on Manage and defeat mt-auto.
-    <div className="flex w-full flex-1 flex-col p-8">
+    <div className="flex w-full flex-1 flex-col p-8 max-sm:p-4">
       <div className="space-y-8">
         <Link
           href="/administrative/events"

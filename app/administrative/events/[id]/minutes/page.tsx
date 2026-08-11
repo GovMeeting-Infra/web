@@ -274,7 +274,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       <div className="space-y-8">
         <div className="space-y-8">
       {isReadOnlyView && minutes && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div className="flex items-center gap-2">
             {isArchived ? (
               <Archive className="h-4 w-4 text-muted-foreground" />
@@ -315,7 +315,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       )}
 
       {!canEdit && !isReadOnlyView && (
-        <div className="space-y-3 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-3 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <p className="text-sm text-muted-foreground">
             These minutes are read-only for you — the edit window has closed or you
             aren&apos;t an organizer.
@@ -327,7 +327,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       )}
 
       {canEdit && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Body</label>
             <textarea

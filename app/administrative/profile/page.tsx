@@ -196,7 +196,7 @@ export default function ProfilePage() {
       {!isEditing ? (
         <>
           <div className="overflow-hidden rounded-[1.75rem] border border-border bg-primary text-primary-foreground">
-            <div className="flex flex-wrap items-center gap-6 p-8">
+            <div className="flex flex-wrap items-center gap-6 p-8 max-sm:p-4">
               {profile.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

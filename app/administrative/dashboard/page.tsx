@@ -162,7 +162,7 @@ export default function DashboardPage() {
   return (
     <PageContainer>
       <section className="overflow-hidden rounded-[1.75rem] border border-border bg-primary text-primary-foreground">
-        <div className="flex flex-wrap items-center justify-between gap-4 p-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 p-8 max-sm:p-4">
           <div className="min-w-0">
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary-foreground/70">
               Dashboard

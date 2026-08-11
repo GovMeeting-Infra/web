@@ -42,7 +42,7 @@ function ReportCard({
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-4 border-t border-slate-200 pt-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 sm:grid-cols-3">
         {Object.entries(metrics).map(([key, value]) => (
           <div key={key}>
             <p className="text-xs uppercase tracking-wider text-slate-500">
@@ -280,7 +280,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             </section>
           </div>
 
-          <section className="rounded-[2rem] border border-[#d3deef] bg-[#fafdff] p-8 shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
+          <section className="rounded-[2rem] border border-[#d3deef] bg-[#fafdff] p-8 shadow-[0_24px_70px_rgba(0,53,128,0.08)] max-sm:p-4">
             <h2 className="text-2xl font-bold text-[#003580]">Quick Export</h2>
             <p className="mt-2 text-slate-600">Download report data as CSV</p>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
