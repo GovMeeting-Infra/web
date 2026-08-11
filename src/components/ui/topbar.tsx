@@ -13,10 +13,10 @@ interface TopbarProps {
 
 export function Topbar({ ministryName, userName, userEmail }: TopbarProps) {
   return (
-    <header className="relative flex h-20 flex-shrink-0 items-center justify-between border-b border-color-border bg-[#f8fbff] px-6">
+    <header className="relative flex h-20 flex-shrink-0 items-center justify-between border-b border-border bg-[#f8fbff] px-6">
       <button
         id="mobile-menu-button"
-        className="mr-4 hidden items-center justify-center rounded-xl border border-color-border bg-color-card p-2 transition-colors hover:bg-color-muted sm:hidden"
+        className="mr-4 hidden items-center justify-center rounded-xl border border-border bg-card p-2 transition-colors hover:bg-muted sm:hidden"
         aria-label="Toggle menu"
       >
         <Menu className="h-5 w-5" />
@@ -25,11 +25,11 @@ export function Topbar({ ministryName, userName, userEmail }: TopbarProps) {
       <div className="flex min-w-0 flex-1 items-center gap-6">
         {ministryName && (
           <div className="hidden flex-shrink-0 items-center gap-3 sm:flex">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-color-secondary text-color-primary">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-primary">
               <Building2 className="h-5 w-5" />
             </div>
             <div>
-              <span className="text-sm font-semibold text-color-foreground">
+              <span className="text-sm font-semibold text-foreground">
                 {ministryName}
               </span>
             </div>
