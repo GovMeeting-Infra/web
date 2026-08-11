@@ -66,12 +66,112 @@ describe('Dashboard', () => {
     it('should be responsive on mobile', () => {
       cy.viewport('iphone-x');
       cy.contains('Welcome back').should('be.visible');
-      cy.get('button[aria-label="Toggle menu"]').should('exist');
+      // be.visible, not exist: the button this replaced was hidden at every
+      // width and inert, and `exist` passed against it happily.
+      cy.get('#mobile-menu-button').should('be.visible');
+    });
+
+    it('should hide the sidebar and show the drawer trigger on mobile', () => {
+      cy.viewport('iphone-x');
+      cy.get('aside').should('not.be.visible');
+      cy.get('#mobile-menu-button')
+        .should('be.visible')
+        .and('have.attr', 'aria-expanded', 'false');
+    });
+
+    it('should open and close the navigation drawer on mobile', () => {
+      cy.viewport('iphone-x');
+
+      cy.get('#mobile-nav-drawer').should('not.exist');
+      cy.get('#mobile-menu-button').click();
+
+      cy.get('#mobile-nav-drawer')
+        .should('be.visible')
+        .and('have.attr', 'aria-modal', 'true');
+      cy.get('#mobile-nav-drawer').contains('Events').should('be.visible');
+      cy.get('#mobile-menu-button').should(
+        'have.attr',
+        'aria-expanded',
+        'true',
+      );
+
+      cy.get('button[aria-label="Close navigation menu"]').click();
+      cy.get('#mobile-nav-drawer').should('not.exist');
+    });
+
+    it('should close the drawer on Escape', () => {
+      cy.viewport('iphone-x');
+      cy.get('#mobile-menu-button').click();
+      cy.get('#mobile-nav-drawer').should('be.visible');
+      cy.get('body').type('{esc}');
+      cy.get('#mobile-nav-drawer').should('not.exist');
+    });
+
+    it('should close the drawer after navigating from it', () => {
+      cy.viewport('iphone-x');
+      cy.get('#mobile-menu-button').click();
+      cy.get('#mobile-nav-drawer').contains('Events').click();
+
+      cy.url().should('include', '/administrative/events');
+      cy.get('#mobile-nav-drawer').should('not.exist');
+    });
+
+    it('should keep the tour anchors unique while the drawer is open', () => {
+      cy.viewport('iphone-x');
+      cy.get('#mobile-menu-button').click();
+      cy.get('#mobile-nav-drawer').should('be.visible');
+      // The tour resolves targets with a document-wide query, so a second
+      // copy of the nav carrying data-tour would make it highlight the
+      // off-screen one.
+      cy.get('[data-tour="nav-calendar"]').should('have.length', 1);
     });
 
     it('should be responsive on tablet', () => {
       cy.viewport('ipad-2');
       cy.contains('Welcome back').should('be.visible');
+      // 768px: the sidebar costs 288px here, so the drawer stands in for it.
+      cy.get('aside').should('not.be.visible');
+      cy.get('#mobile-menu-button').should('be.visible');
+    });
+
+    it('should show the sidebar on desktop', () => {
+      cy.viewport(1280, 800);
+      cy.get('aside').should('be.visible');
+      cy.get('#mobile-menu-button').should('not.be.visible');
+    });
+  });
+
+  describe('Layout integrity', () => {
+    // <main> is overflow-x-hidden, so overflowing content is clipped rather
+    // than producing a page-level scrollbar. Checking the document alone would
+    // report clean while content sits unreachable off-screen.
+    const assertNoClipping = () => {
+      cy.document().then((doc) => {
+        const offenders = Array.from(doc.querySelectorAll<HTMLElement>('*'))
+          .filter((el) => {
+            const style = doc.defaultView!.getComputedStyle(el);
+            if (style.overflowX !== 'visible' || style.display === 'none') {
+              return false;
+            }
+            return el.scrollWidth > el.clientWidth + 1;
+          })
+          .map((el) => `${el.tagName.toLowerCase()}.${el.className}`.slice(0, 120));
+
+        expect(offenders, `clipped elements:\n${offenders.join('\n')}`).to.be
+          .empty;
+      });
+    };
+
+    it('should not clip content at 375px', () => {
+      cy.viewport(375, 812);
+      cy.contains('Welcome back').should('be.visible');
+      assertNoClipping();
+    });
+
+    it('should not clip content at 768px', () => {
+      cy.viewport(768, 1024);
+      cy.contains('Welcome back').should('be.visible');
+      assertNoClipping();
     });
   });
 });

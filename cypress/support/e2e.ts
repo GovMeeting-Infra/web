@@ -1,6 +1,9 @@
 // Cypress support commands
 Cypress.Commands.add('login', (email: string, password: string) => {
-  cy.visit('/login');
+  // /login has never existed — the page lives under the (auth) group at
+  // /administrative/login, so every spec using this command was failing on a
+  // 404 before it reached its own assertions.
+  cy.visit('/administrative/login');
   cy.get('input[type="email"]').type(email);
   cy.get('input[type="password"]').type(password);
   cy.get('button[type="submit"]').click();
