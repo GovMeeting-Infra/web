@@ -211,135 +211,229 @@ export default function ActionItemsPage() {
         /* Laid out the way a Notion database table is: no card around it, a
            hairline under the header, thin separators between columns, and rows
            that only shade on hover. The chrome recedes so the data reads. */
-        <div className="-mx-1 overflow-x-auto">
-          <table className="w-full min-w-[56rem] border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                {[
-                  { icon: AlignLeft, label: 'Task' },
-                  { icon: ClipboardList, label: 'Event' },
-                  { icon: User, label: 'Assignee' },
-                  { icon: CalendarDays, label: 'Due' },
-                  { icon: Tag, label: 'Type' },
-                  { icon: CircleDot, label: 'Status' },
-                ].map(({ icon: Icon, label }, i) => (
-                  <th
-                    key={label}
-                    className={`px-3 py-2 text-left text-[13px] font-normal text-muted-foreground ${
-                      i > 0 ? 'border-l border-border' : ''
-                    }`}
-                  >
-                    <span className="flex items-center gap-1.5">
-                      <Icon aria-hidden className="h-3.5 w-3.5 opacity-70" />
-                      {label}
-                    </span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((item) => {
-                const overdue = isActionItemOverdue(item);
-                const ownerName = item.owner?.name ?? item.ownerName;
-
-                return (
-                  <tr
-                    key={item.id}
-                    onClick={() => setSelected(item)}
-                    className="group cursor-pointer border-b border-border transition-colors hover:bg-muted/40"
-                  >
-                    <td className="px-3 py-2">
-                      <span className="flex items-center justify-between gap-3">
-                        <span className="truncate text-foreground">
-                          {item.title}
-                        </span>
-                        {/* Notion's hover affordance: the row is clickable, but
-                            nothing says so until you are on it. */}
-                        <span className="shrink-0 rounded border border-border bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                          Open
-                        </span>
-                      </span>
-                    </td>
-
-                    <td className="truncate border-l border-border px-3 py-2 text-muted-foreground">
-                      {item.minutes.event.title}
-                    </td>
-
-                    <td className="border-l border-border px-3 py-2">
-                      {ownerName ? (
-                        <span className="flex items-center gap-2 text-foreground">
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">
-                            {initials(ownerName)}
-                          </span>
-                          <span className="truncate">{ownerName}</span>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground/60">Empty</span>
-                      )}
-                    </td>
-
-                    <td className="border-l border-border px-3 py-2">
-                      <span
-                        className={
-                          overdue ? 'font-medium text-destructive' : 'text-foreground'
-                        }
-                      >
-                        {new Date(item.dueDate).toLocaleDateString(undefined, {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                        {overdue ? ' · Overdue' : ''}
-                      </span>
-                    </td>
-
-                    <td className="border-l border-border px-3 py-2">
-                      <span
-                        className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${POINT_STYLES[item.point]}`}
-                      >
-                        {POINT_LABELS[item.point]}
-                      </span>
-                    </td>
-
-                    {/* Stop propagation so using the select doesn't open the modal */}
-                    <td
-                      className="border-l border-border px-3 py-2"
-                      onClick={(e) => e.stopPropagation()}
+        <div>
+          {/* Six columns need 896px. Below sm the same rows render as cards
+              instead — a phone can scroll a table sideways but cannot tell you
+              which row it has ended up in. */}
+          <div className="-mx-1 hidden overflow-x-auto sm:block">
+            <table className="w-full min-w-[56rem] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {[
+                    { icon: AlignLeft, label: 'Task' },
+                    { icon: ClipboardList, label: 'Event' },
+                    { icon: User, label: 'Assignee' },
+                    { icon: CalendarDays, label: 'Due' },
+                    { icon: Tag, label: 'Type' },
+                    { icon: CircleDot, label: 'Status' },
+                  ].map(({ icon: Icon, label }, i) => (
+                    <th
+                      key={label}
+                      className={`px-3 py-2 text-left text-[13px] font-normal text-muted-foreground ${
+                        i > 0 ? 'border-l border-border' : ''
+                      }`}
                     >
-                      {canChange(item) ? (
-                        // Styled as the pill it replaces rather than as a form
-                        // control, so the column reads consistently whether or
-                        // not you happen to be allowed to change a given row.
-                        <select
-                          value={item.status}
-                          onChange={(e) =>
-                            changeStatus(item, e.target.value as ActionItemStatus)
-                          }
-                          className={`cursor-pointer appearance-none rounded px-2 py-0.5 text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                            STATUS_PILL[item.status]
-                          }`}
-                        >
-                          {STATUS_OPTIONS.map((st) => (
-                            <option key={st} value={st}>
-                              {ACTION_ITEM_STATUS_LABELS[st]}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span
-                          className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[item.status]}`}
-                        >
-                          {ACTION_ITEM_STATUS_LABELS[item.status]}
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                      <span className="flex items-center gap-1.5">
+                        <Icon aria-hidden className="h-3.5 w-3.5 opacity-70" />
+                        {label}
+                      </span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => {
+                  const overdue = isActionItemOverdue(item);
+                  const ownerName = item.owner?.name ?? item.ownerName;
 
-          {/* Notion closes a table with its row count. */}
+                  return (
+                    <tr
+                      key={item.id}
+                      onClick={() => setSelected(item)}
+                      className="group cursor-pointer border-b border-border transition-colors hover:bg-muted/40"
+                    >
+                      <td className="px-3 py-2">
+                        <span className="flex items-center justify-between gap-3">
+                          <span className="truncate text-foreground">
+                            {item.title}
+                          </span>
+                          {/* Notion's hover affordance: the row is clickable, but
+                              nothing says so until you are on it. */}
+                          <span className="shrink-0 rounded border border-border bg-card px-1.5 py-0.5 text-[11px] text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                            Open
+                          </span>
+                        </span>
+                      </td>
+
+                      <td className="truncate border-l border-border px-3 py-2 text-muted-foreground">
+                        {item.minutes.event.title}
+                      </td>
+
+                      <td className="border-l border-border px-3 py-2">
+                        {ownerName ? (
+                          <span className="flex items-center gap-2 text-foreground">
+                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">
+                              {initials(ownerName)}
+                            </span>
+                            <span className="truncate">{ownerName}</span>
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground/60">Empty</span>
+                        )}
+                      </td>
+
+                      <td className="border-l border-border px-3 py-2">
+                        <span
+                          className={
+                            overdue ? 'font-medium text-destructive' : 'text-foreground'
+                          }
+                        >
+                          {new Date(item.dueDate).toLocaleDateString(undefined, {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                          {overdue ? ' · Overdue' : ''}
+                        </span>
+                      </td>
+
+                      <td className="border-l border-border px-3 py-2">
+                        <span
+                          className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${POINT_STYLES[item.point]}`}
+                        >
+                          {POINT_LABELS[item.point]}
+                        </span>
+                      </td>
+
+                      {/* Stop propagation so using the select doesn't open the modal */}
+                      <td
+                        className="border-l border-border px-3 py-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {canChange(item) ? (
+                          // Styled as the pill it replaces rather than as a form
+                          // control, so the column reads consistently whether or
+                          // not you happen to be allowed to change a given row.
+                          <select
+                            value={item.status}
+                            onChange={(e) =>
+                              changeStatus(item, e.target.value as ActionItemStatus)
+                            }
+                            className={`cursor-pointer appearance-none rounded px-2 py-0.5 text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                              STATUS_PILL[item.status]
+                            }`}
+                          >
+                            {STATUS_OPTIONS.map((st) => (
+                              <option key={st} value={st}>
+                                {ACTION_ITEM_STATUS_LABELS[st]}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span
+                            className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[item.status]}`}
+                          >
+                            {ACTION_ITEM_STATUS_LABELS[item.status]}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <ul className="space-y-2 sm:hidden">
+            {items.map((item) => {
+              const overdue = isActionItemOverdue(item);
+              const ownerName = item.owner?.name ?? item.ownerName;
+
+              return (
+                <li
+                  key={item.id}
+                  onClick={() => setSelected(item)}
+                  className="cursor-pointer space-y-2 rounded-xl border border-border bg-card p-3 transition-colors hover:bg-muted/40"
+                >
+                  <p className="font-medium text-foreground">{item.title}</p>
+
+                  <p className="text-xs text-muted-foreground">
+                    {item.minutes.event.title}
+                  </p>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs">
+                    {ownerName ? (
+                      <span className="flex items-center gap-1.5 text-foreground">
+                        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-secondary text-[10px] font-semibold text-secondary-foreground">
+                          {initials(ownerName)}
+                        </span>
+                        {ownerName}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground/60">Unassigned</span>
+                    )}
+
+                    <span
+                      className={
+                        overdue
+                          ? 'font-medium text-destructive'
+                          : 'text-muted-foreground'
+                      }
+                    >
+                      {new Date(item.dueDate).toLocaleDateString(undefined, {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                      {overdue ? ' · Overdue' : ''}
+                    </span>
+                  </div>
+
+                  {/* Stop propagation so using the select doesn't open the modal */}
+                  <div
+                    className="flex flex-wrap items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span
+                      className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${POINT_STYLES[item.point]}`}
+                    >
+                      {POINT_LABELS[item.point]}
+                    </span>
+
+                    {canChange(item) ? (
+                      // text-base, unlike the table's 11px: Safari zooms the
+                      // whole page when a control under 16px takes focus.
+                      <select
+                        value={item.status}
+                        onChange={(e) =>
+                          changeStatus(item, e.target.value as ActionItemStatus)
+                        }
+                        aria-label="Status"
+                        className={`cursor-pointer appearance-none rounded px-2 py-1 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                          STATUS_PILL[item.status]
+                        }`}
+                      >
+                        {STATUS_OPTIONS.map((st) => (
+                          <option key={st} value={st}>
+                            {ACTION_ITEM_STATUS_LABELS[st]}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span
+                        className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[item.status]}`}
+                      >
+                        {ACTION_ITEM_STATUS_LABELS[item.status]}
+                      </span>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+
+          {/* Notion closes a table with its row count. Outside the scroller, or
+              it drifts off-screen along with the columns. */}
           <p className="px-3 py-2 text-[13px] text-muted-foreground">
             {items.length} {items.length === 1 ? 'item' : 'items'}
           </p>
