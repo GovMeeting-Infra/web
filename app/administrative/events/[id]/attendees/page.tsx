@@ -252,18 +252,18 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const isOrganizer = !!currentUser && currentUser.id === event?.organizerId;
   const isCoOrganizer =
     !!currentUser && !!event?.coOrganizers.some((c) => c.userId === currentUser.id);
-  // Mirrors assertCanAdminister on the server: organizer, co-organizer, or an
-  // admin role when the event has no organizer at all. That last case was
-  // missing, so on a public activity the API accepted an invitation while the
-  // page hid every control for making one. canDoWalkIn below already does this.
+  // Mirrors assertCanAdminister on the server: the organizer, a co-organizer,
+  // the super admin anywhere, or a ministry-level admin on an event that has
+  // no organizer to own it. The last two were missing, so the API accepted
+  // invitations the page gave you no way to make.
+  const isSuperAdmin = currentUser?.systemRole === 'SUPER_ADMIN';
   const canInvite =
     isOrganizer ||
     isCoOrganizer ||
+    isSuperAdmin ||
     (!event?.organizerId &&
       !!currentUser &&
-      ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'].includes(
-        currentUser.systemRole,
-      ));
+      ['MINISTER', 'MINISTRY_ADMIN'].includes(currentUser.systemRole));
 
   // POST /checkin/:eventId/manual is behind CanManageEventGuard now, so a role
   // check alone would offer the desk to people the API refuses. The server is
