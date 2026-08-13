@@ -14,7 +14,7 @@ const field =
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-[#f8fbff] p-4">
-      <div className="w-full max-w-md rounded-[1.75rem] border border-[#d3deef] bg-white p-8 shadow-[0_24px_70px_rgba(0,53,128,0.10)]">
+      <div className="w-full max-w-md rounded-[1.75rem] border border-[#d3deef] bg-white p-6 shadow-[0_24px_70px_rgba(0,53,128,0.10)] sm:p-8">
         <div className="mb-6 flex items-center gap-3">
           <Image
             src="/coat_of_arms.jpeg"
@@ -129,7 +129,13 @@ export function SetPasswordView() {
       <h1 className="text-xl font-bold text-[#003580]">Set your password</h1>
       <p className="mt-2 text-sm text-slate-600">
         Welcome{invite?.name ? `, ${invite.name}` : ''}. Choose a password for{' '}
-        <span className="font-medium text-slate-900">{invite?.email}</span>.
+        {/* break-all: an address has no break opportunity, and this card is a
+            flex item, so an unbreakable string grows the card past the
+            viewport rather than just overflowing it. */}
+        <span className="break-all font-medium text-slate-900">
+          {invite?.email}
+        </span>
+        .
       </p>
 
       {error && (

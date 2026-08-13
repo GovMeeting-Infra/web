@@ -88,8 +88,13 @@ export default function MinutesPage() {
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 rounded-[1.5rem] border border-border bg-card p-5">
-        <div className="relative min-w-0 flex-1">
+      {/* Two rows rather than one wrapping row. Sharing a line, the search box
+          and the status pills fought for the same width and each one squeezed
+          at a different point — the pills losing their labels on one handset,
+          the search box collapsing to a stub on the next. Stacked, each gets
+          the full width and the layout is the same on every phone. */}
+      <div className="space-y-3 rounded-[1.5rem] border border-border bg-card p-4 sm:p-5">
+        <div className="relative">
           <label htmlFor="minutes-search" className="sr-only">
             Search minutes
           </label>
@@ -113,12 +118,16 @@ export default function MinutesPage() {
           )}
         </div>
 
-        <div className="flex gap-1 rounded-xl border border-border bg-muted/40 p-1">
+        {/* Wraps rather than scrolls. There are at most four filters, and
+            dividing the row evenly clips "Published" below about 360px while a
+            horizontal scroll would hide "Archived" behind an affordance nobody
+            looks for. Two short rows on a small handset costs nothing. */}
+        <div className="flex flex-wrap gap-1 rounded-xl border border-border bg-muted/40 p-1">
           {filters.map((f) => (
             <button
               key={f.value}
               onClick={() => setStatus(f.value)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 status === f.value
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'

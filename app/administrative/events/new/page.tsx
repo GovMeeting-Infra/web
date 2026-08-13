@@ -497,15 +497,20 @@ export default function NewEventPage() {
                     return (
                       <div
                         key={id}
-                        className="flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
+                        // The last fallback is a raw cuid, which has no break
+                        // opportunity at all — without max-w-full it grew the
+                        // pill past the card and clipped the remove button.
+                        className="flex max-w-full items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
                       >
-                        <span>{c?.name ?? c?.email ?? id}</span>
+                        <span className="truncate">
+                          {c?.name ?? c?.email ?? id}
+                        </span>
                         <button
                           type="button"
                           onClick={() =>
                             setCoOrganizers(coOrganizers.filter((x) => x !== id))
                           }
-                          className="ml-1 text-primary/60 transition-colors hover:text-primary"
+                          className="ml-1 shrink-0 text-primary/60 transition-colors hover:text-primary"
                           aria-label="Remove co-organizer"
                         >
                           ✕
@@ -673,9 +678,9 @@ export default function NewEventPage() {
                     return (
                       <div
                         key={mid}
-                        className="flex items-center gap-2 rounded-full bg-ring/10 px-3 py-1 text-sm text-ring"
+                        className="flex max-w-full items-center gap-2 rounded-full bg-ring/10 px-3 py-1 text-sm text-ring"
                       >
-                        <span>{m?.name ?? mid}</span>
+                        <span className="truncate">{m?.name ?? mid}</span>
                         <button
                           type="button"
                           onClick={() =>

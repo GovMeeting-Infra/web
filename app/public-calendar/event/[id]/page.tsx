@@ -204,7 +204,7 @@ export default async function PublicEventPage({
               Event Overview
             </h2>
             <div className="mt-5 h-px w-full bg-[#e6eef8]" />
-            <p className="mt-5 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+            <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7 text-slate-600">
               {event.description?.trim() ||
                 `Further details for this activity have not been published yet. Check back closer to ${longDate(event.startAt)}.`}
             </p>

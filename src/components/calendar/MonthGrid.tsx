@@ -87,27 +87,30 @@ export function MonthGrid({
   const next = month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 };
 
   return (
-    <div className="rounded-[1.5rem] border border-border bg-card p-6">
+    // p-3 below sm: seven columns leave about 31px a cell at 320px, and the
+    // three event dots come to 22px inside a cell that has its own border and
+    // padding — so they touched the edge. This buys back ~3.4px a cell.
+    <div className="rounded-[1.5rem] border border-border bg-card p-3 sm:p-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-foreground">{monthLabel}</h2>
         <div className="flex gap-2">
           <Link
             href={navHref(prev)}
             aria-label="Previous month"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
           >
             <ChevronLeft className="h-4 w-4" />
           </Link>
           <Link
             href={navHref('today')}
-            className="rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            className="flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
           >
             Today
           </Link>
           <Link
             href={navHref(next)}
             aria-label="Next month"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
           >
             <ChevronRight className="h-4 w-4" />
           </Link>

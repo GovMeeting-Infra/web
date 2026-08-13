@@ -137,7 +137,10 @@ export default function ActionItemsPage() {
               <select
                 value={owner}
                 onChange={(e) => setOwner(e.target.value)}
-                className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                // Options fall back to the full email when a person has no
+                // name, which sizes this control to ~280px and pushes it off
+                // the screen. Same fix as the activity log and users filters.
+                className="min-w-0 max-w-full truncate rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:max-w-[14rem]"
               >
                 <option value="">All assignees</option>
                 {currentUser && <option value={currentUser.id}>Assigned to me</option>}

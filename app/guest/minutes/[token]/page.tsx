@@ -103,7 +103,7 @@ export default async function GuestMinutesPage({
 
         <section className="rounded-2xl border border-[#d3deef] bg-white p-4 sm:p-6">
           <h2 className="text-sm font-semibold text-slate-900">Minutes</h2>
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
+          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">
             {minutes.body}
           </p>
         </section>
@@ -131,7 +131,7 @@ export default async function GuestMinutesPage({
         </section>
 
         <p className="text-xs text-slate-500">
-          This link was sent to {viewerEmail} and is personal to you. It stops
+          This link was sent to <span className="break-all">{viewerEmail}</span> and is personal to you. It stops
           working once the record is archived.
         </p>
       </article>
