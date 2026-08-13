@@ -21,7 +21,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
-import { apiFetch } from '@/lib/api/client';
+import { apiFetch, ApiError } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
 import { PageContainer } from '@/components/ui/page-container';
 import { useCurrentUser } from '@/components/SessionProvider';
@@ -132,7 +132,12 @@ export default function EventDetailPage({
   const [coOrganizer, setCoOrganizer] = useState<DirectoryPerson | null>(null);
   const [isBusy, setIsBusy] = useState(false);
 
-  const { data: event, isLoading } = useQuery({
+  const {
+    data: event,
+    isLoading,
+    error: loadError,
+    refetch,
+  } = useQuery({
     queryKey: ['event', id],
     queryFn: () => apiFetch<EventDetail>(`/api/v1/events/${id}`),
   });
@@ -269,11 +274,63 @@ export default function EventDetailPage({
     );
   }
 
+  // A failed request and a genuinely missing event used to render the same
+  // "Event not found", so a 500, an expired session or a network fault all
+  // read as "this event does not exist" — which sent at least one real
+  // investigation down the wrong path. Only a 404 means not found.
   if (!event) {
+    const status = loadError instanceof ApiError ? loadError.status : null;
+
+    if (status === 404) {
+      return (
+        <PageContainer className="text-center">
+          <p className="text-muted-foreground">
+            This event doesn&apos;t exist. It may have been deleted.
+          </p>
+          <Link
+            href="/administrative/events"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Events
+          </Link>
+        </PageContainer>
+      );
+    }
+
+    if (status === 403) {
+      return (
+        <PageContainer className="text-center">
+          <p className="text-muted-foreground">
+            You don&apos;t have permission to view this event.
+          </p>
+          <Link
+            href="/administrative/events"
+            className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" /> Back to Events
+          </Link>
+        </PageContainer>
+      );
+    }
+
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Event not found.
-      </div>
+      <PageContainer className="text-center">
+        <p className="font-medium text-foreground">
+          Couldn&apos;t load this event.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {loadError instanceof Error
+            ? loadError.message
+            : 'The server did not respond.'}
+          {status ? ` (${status})` : ''}
+        </p>
+        <button
+          onClick={() => refetch()}
+          className="rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          Try again
+        </button>
+      </PageContainer>
     );
   }
 

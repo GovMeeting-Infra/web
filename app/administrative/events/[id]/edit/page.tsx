@@ -91,7 +91,11 @@ export default function EditEventPage({
   const [externalUrl, setExternalUrl] = useState('');
   const [bannerImage, setBannerImage] = useState('');
 
-  const { data: event, isLoading } = useQuery({
+  const {
+    data: event,
+    isLoading,
+    error: loadError,
+  } = useQuery({
     queryKey: ['event', id],
     queryFn: () => apiFetch<EventDetail>(`/api/v1/events/${id}`),
   });
@@ -181,8 +185,19 @@ export default function EditEventPage({
     return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
   }
 
+  // Only a 404 means the event is gone; anything else is a failure to load it,
+  // and saying "not found" for a 500 sends you looking for the wrong problem.
   if (!event) {
-    return <div className="p-8 text-center text-muted-foreground">Event not found.</div>;
+    const status = loadError instanceof ApiError ? loadError.status : null;
+    return (
+      <div className="p-6 text-center text-muted-foreground sm:p-8">
+        {status === 404
+          ? "This event doesn't exist. It may have been deleted."
+          : `Couldn't load this event. ${
+              loadError instanceof Error ? loadError.message : ''
+            }`}
+      </div>
+    );
   }
 
   // Mirrors updateEvent on the server: organizer, co-organizer, or a
