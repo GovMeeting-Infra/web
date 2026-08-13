@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
+import { PageContainer } from '@/components/ui/page-container';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
   PersonPicker,
@@ -284,9 +285,10 @@ export default function EventDetailPage({
 
   return (
     // flex-1 fills the viewport so Manage can sit at the bottom rather than
-    // leaving a gap under it. space-y lives on the inner wrapper, not here,
-    // because it would otherwise set a top margin on Manage and defeat mt-auto.
-    <div className="flex w-full flex-1 flex-col p-8 max-sm:p-4">
+    // leaving a gap under it. space-y-0 cancels the container's default: the
+    // spacing lives on the inner wrapper, because out here it would set a top
+    // margin on Manage and defeat mt-auto.
+    <PageContainer className="flex flex-1 flex-col space-y-0">
       <div className="space-y-8">
         <Link
           href="/administrative/events"
@@ -609,6 +611,6 @@ export default function EventDetailPage({
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

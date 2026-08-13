@@ -122,7 +122,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
             value={category}
             onChange={(e) => reset(() => setCategory(e.target.value))}
             aria-label="Filter by category"
-            className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none"
+            className="min-w-0 max-w-full truncate rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none sm:max-w-[14rem]"
           >
             <option value="">All categories</option>
             {categories.map((c) => (
@@ -137,7 +137,13 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
               value={ministryId}
               onChange={(e) => reset(() => setMinistryId(e.target.value))}
               aria-label="Filter by ministry"
-              className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none"
+              // A select sizes itself to its widest option, and ministry names
+              // run long ("Ministry of Health and Sanitation"). As a flex item
+              // with the default min-width:auto it then refused to shrink and
+              // pushed out of the filter card. min-w-0 lets it give way,
+              // max-w caps it before it crowds the search box, and truncate
+              // ellipsises the closed label rather than letting it overflow.
+              className="min-w-0 max-w-full truncate rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none sm:max-w-[14rem]"
             >
               <option value="">All ministries</option>
               {ministries.map((m) => (

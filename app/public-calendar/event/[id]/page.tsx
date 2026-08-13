@@ -91,7 +91,7 @@ export default async function PublicEventPage({
   if (!event) {
     return (
       <PublicShell>
-        <div className="mx-auto max-w-lg p-10 text-center">
+        <div className="mx-auto max-w-lg p-6 text-center sm:p-10">
           <h1 className="text-xl font-bold text-[#003580]">{NOT_AVAILABLE}</h1>
           <p className="mt-2 text-sm text-slate-600">
             This activity isn&apos;t published on the public calendar. It may have been
@@ -134,7 +134,7 @@ export default async function PublicEventPage({
               {longDate(event.startAt)}
             </p>
 
-            <h1 className="mt-3 text-balance text-4xl font-bold leading-tight text-white sm:text-5xl">
+            <h1 className="mt-3 text-balance text-3xl font-bold leading-tight text-white sm:text-5xl">
               {event.title}
             </h1>
 
@@ -154,7 +154,7 @@ export default async function PublicEventPage({
         {/* The practical facts, lifted out of the body and onto a strip
             directly under the hero: date and time on the left, the one action
             this page offers on the right. */}
-        <div className="flex flex-col gap-6 rounded-2xl border border-[#d3deef] bg-white px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-6 rounded-2xl border border-[#d3deef] bg-white px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <dl className="flex flex-wrap gap-x-10 gap-y-3">
             <div className="flex items-center gap-3">
               <CalendarDays
@@ -191,7 +191,7 @@ export default async function PublicEventPage({
               href={event.externalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#003580] px-8 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:bg-[#00296b] sm:flex-none"
+              className="flex items-center justify-center gap-2 rounded-xl bg-[#003580] px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:bg-[#00296b] sm:flex-none sm:px-8"
             >
               <ExternalLink aria-hidden className="h-4 w-4" /> More information
             </a>

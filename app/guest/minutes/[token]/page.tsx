@@ -38,7 +38,7 @@ export default async function GuestMinutesPage({
   if (!data) {
     return (
       <PublicShell>
-        <div className="mx-auto max-w-lg p-10 text-center">
+        <div className="mx-auto max-w-lg p-6 text-center sm:p-10">
           <h1 className="text-xl font-bold text-[#003580]">
             These minutes aren&apos;t available
           </h1>
@@ -61,7 +61,9 @@ export default async function GuestMinutesPage({
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#007236]">
             Meeting minutes
           </p>
-          <h1 className="text-3xl font-bold text-[#003580]">{event.title}</h1>
+          <h1 className="text-2xl font-bold text-[#003580] sm:text-3xl">
+            {event.title}
+          </h1>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
             <span className="flex items-center gap-2">
               <CalendarDays aria-hidden className="h-4 w-4" />
@@ -83,7 +85,7 @@ export default async function GuestMinutesPage({
         </header>
 
         {mine.length > 0 && (
-          <div className="rounded-2xl border border-[#fde8a6] bg-[#fff8e5] px-6 py-4 text-sm text-[#8d6400]">
+          <div className="rounded-2xl border border-[#fde8a6] bg-[#fff8e5] px-4 py-4 text-sm text-[#8d6400] sm:px-6">
             {mine.length === 1
               ? '1 action item below is assigned to you. You can update it here.'
               : `${mine.length} action items below are assigned to you. You can update them here.`}
@@ -91,7 +93,7 @@ export default async function GuestMinutesPage({
         )}
 
         {minutes.summary && (
-          <section className="rounded-2xl border border-[#d3deef] bg-white p-6">
+          <section className="rounded-2xl border border-[#d3deef] bg-white p-4 sm:p-6">
             <h2 className="text-sm font-semibold text-slate-900">Summary</h2>
             <p className="mt-2 text-sm leading-relaxed text-slate-600">
               {minutes.summary}
@@ -99,7 +101,7 @@ export default async function GuestMinutesPage({
           </section>
         )}
 
-        <section className="rounded-2xl border border-[#d3deef] bg-white p-6">
+        <section className="rounded-2xl border border-[#d3deef] bg-white p-4 sm:p-6">
           <h2 className="text-sm font-semibold text-slate-900">Minutes</h2>
           <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
             {minutes.body}
@@ -112,7 +114,7 @@ export default async function GuestMinutesPage({
           </h2>
 
           {actionItems.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-[#d3deef] p-8 text-center text-sm text-slate-500">
+            <p className="rounded-2xl border border-dashed border-[#d3deef] p-6 text-center text-sm text-slate-500 sm:p-8">
               No action items were raised at this meeting.
             </p>
           ) : (

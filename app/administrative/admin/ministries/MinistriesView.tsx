@@ -474,7 +474,7 @@ export function MinistriesView() {
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg space-y-4 rounded-[1.5rem] border border-border bg-card p-6">
+          <div className="max-h-[85dvh] w-full max-w-lg space-y-4 overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6">
             <h2 className="font-semibold text-primary">Edit {editing.name}</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -533,7 +533,7 @@ export function MinistriesView() {
           than done on a single click. */}
       {toggling && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-[1.5rem] border border-border bg-card p-6">
+          <div className="max-h-[85dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6">
             <h2 className="font-semibold text-primary">
               {toggling.active ? 'Deactivate' : 'Activate'} {toggling.name}?
             </h2>

@@ -139,43 +139,67 @@ describe('Dashboard', () => {
       cy.get('aside').should('be.visible');
       cy.get('#mobile-menu-button').should('not.be.visible');
     });
+
+    it('should close the drawer when the viewport grows past lg', () => {
+      cy.viewport('iphone-x');
+      cy.get('#mobile-menu-button').click();
+      cy.get('#mobile-nav-drawer').should('be.visible');
+
+      // Rotating into a tablet-width layout hides the drawer in CSS while
+      // React still thinks it is open, which would leave the focus trap
+      // herding focus into something nobody can see.
+      cy.viewport(1280, 800);
+      cy.get('#mobile-nav-drawer').should('not.exist');
+      cy.get('aside').should('be.visible');
+    });
   });
 
+  // assertNoClipping now lives in cypress/support/e2e.ts — every page in the
+  // responsive pass needs it, not just this one.
   describe('Layout integrity', () => {
-    // <main> is overflow-x-hidden, so overflowing content is clipped rather
-    // than producing a page-level scrollbar. Checking the document alone would
-    // report clean while content sits unreachable off-screen.
-    const assertNoClipping = () => {
-      cy.document().then((doc) => {
-        const offenders = Array.from(doc.querySelectorAll<HTMLElement>('*'))
-          .filter((el) => {
-            const style = doc.defaultView!.getComputedStyle(el);
-            if (style.overflowX !== 'visible' || style.display === 'none') {
-              return false;
-            }
-            return el.scrollWidth > el.clientWidth + 1;
-          })
-          .map((el) => `${el.tagName.toLowerCase()}.${el.className}`.slice(0, 120));
-
-        // have.length(0) rather than be.empty: the latter is a bare property
-        // access, which reads to eslint as an expression that does nothing.
-        expect(
-          offenders,
-          `clipped elements:\n${offenders.join('\n')}`,
-        ).to.have.length(0);
-      });
-    };
-
     it('should not clip content at 375px', () => {
       cy.viewport(375, 812);
       cy.contains('Welcome back').should('be.visible');
-      assertNoClipping();
+      cy.assertNoClipping();
     });
 
     it('should not clip content at 768px', () => {
       cy.viewport(768, 1024);
       cy.contains('Welcome back').should('be.visible');
-      assertNoClipping();
+      cy.assertNoClipping();
+    });
+
+    it('should not clip content on a landscape phone', () => {
+      // The short-viewport case: 375px of height is where anything relying on
+      // vertical room — the notification panel, a modal — runs out of it.
+      cy.viewport(667, 375);
+      cy.contains('Welcome back').should('be.visible');
+      cy.assertNoClipping();
+    });
+  });
+
+  describe('Notification panel', () => {
+    it('should stay on screen on a narrow phone', () => {
+      cy.viewport(375, 812);
+      // The bell is not the last thing in the header, so a panel clamped to
+      // the full viewport width runs off the left edge and gets swallowed by
+      // the column's overflow-hidden.
+      cy.get('button[aria-label^="Notifications"]').click();
+      cy.get('[role="menu"]').should('be.visible');
+      cy.get('[role="menu"]').then(($panel) => {
+        expect($panel[0].getBoundingClientRect().left).to.be.at.least(0);
+      });
+    });
+
+    it('should stay reachable on a landscape phone', () => {
+      cy.viewport(667, 375);
+      cy.get('button[aria-label^="Notifications"]').click();
+      cy.get('[role="menu"]').then(($panel) => {
+        const rect = $panel[0].getBoundingClientRect();
+        // The panel caps its own height and scrolls; what must not happen is
+        // it running past the bottom with the footer link unreachable.
+        expect(rect.bottom).to.be.at.most(375);
+      });
     });
   });
 });

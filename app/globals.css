@@ -103,22 +103,27 @@
     background-color: #fdfefe;
   }
 
-  /* Safari zooms the whole page when a control smaller than 16px takes focus,
-     and does not zoom back out. On the check-in flow that throws the layout
-     sideways mid-signature. Set here rather than on each field: nearly every
-     input in the app is text-sm, and this is about the device, not the design.
-     Above sm the intended sizes apply again. */
-  @media (max-width: 39.99rem) {
-    input,
-    textarea,
-    select {
-      font-size: 16px;
-    }
-  }
-
   ::selection {
     background: rgba(0, 114, 54, 0.18);
     color: #11243d;
+  }
+}
+
+/* Safari zooms the whole page when a control smaller than 16px takes focus, and
+   does not zoom back out. On the check-in flow that throws the layout sideways
+   mid-signature. Set here rather than on each field: nearly every input in the
+   app is text-sm, and this is about the device, not the design. Above sm the
+   intended sizes apply again.
+
+   Deliberately outside @layer base. Tailwind emits text-sm into @layer
+   utilities, which outranks base no matter how specific the base rule is, so
+   inside the layer this did nothing at all. Unlayered CSS beats every layer —
+   the same reason the compact-mode rules below are unlayered. */
+@media (max-width: 39.99rem) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

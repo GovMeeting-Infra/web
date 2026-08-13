@@ -12,7 +12,10 @@ export const metadata = {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-[#f6faff] p-4">
-      <div className="w-full max-w-sm rounded-[1.5rem] border border-border bg-card p-6 shadow-lg">
+      {/* p-4 below sm, not p-6: on a 320px handset the card is 288px wide and
+          the padding comes straight off the signature pad, which is the one
+          control here that needs the room. */}
+      <div className="w-full max-w-sm rounded-[1.5rem] border border-border bg-card p-4 shadow-lg sm:p-6">
         {children}
       </div>
     </main>

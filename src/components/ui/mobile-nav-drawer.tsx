@@ -33,6 +33,17 @@ export function MobileNavDrawer({
   const panelRef = useRef<HTMLDivElement>(null);
   const restoreTo = useRef<HTMLElement | null>(null);
 
+  // Read through a ref, so the effect below can depend on `open` alone. The
+  // caller passes a fresh arrow every render; with onClose in the dep array,
+  // any re-render of the layout while the drawer was open re-ran the whole
+  // effect — snatching focus back to the close button mid-interaction, and
+  // overwriting restoreTo with whatever happened to be focused, which is
+  // usually a drawer node that is about to unmount.
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
 
@@ -42,7 +53,7 @@ export function MobileNavDrawer({
 
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        onClose();
+        closeRef.current();
         return;
       }
       if (event.key !== 'Tab' || !panel) return;
@@ -73,7 +84,7 @@ export function MobileNavDrawer({
     // nobody can see. Matches the lg breakpoint the sidebar returns at.
     const desktop = window.matchMedia('(min-width: 64rem)');
     const onCrossBreakpoint = (event: MediaQueryListEvent) => {
-      if (event.matches) onClose();
+      if (event.matches) closeRef.current();
     };
 
     document.addEventListener('keydown', onKey);
@@ -85,7 +96,7 @@ export function MobileNavDrawer({
       const previous = restoreTo.current;
       if (previous && document.body.contains(previous)) previous.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

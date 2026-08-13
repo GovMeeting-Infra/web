@@ -739,7 +739,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           onClick={() => setEditing(null)}
         >
           <div
-            className="w-full max-w-md rounded-[1.5rem] border border-border bg-card p-6"
+            className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="font-semibold text-primary">Edit {editing.email}</h2>
@@ -801,7 +801,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           onClick={() => setErasing(null)}
         >
           <div
-            className="w-full max-w-md rounded-[1.5rem] border border-destructive/30 bg-card p-6"
+            className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-[1.5rem] border border-destructive/30 bg-card p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="flex items-center gap-2 font-semibold text-destructive">

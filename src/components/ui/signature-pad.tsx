@@ -110,12 +110,16 @@ export const SignaturePad = forwardRef<
         />
       </div>
 
-      <div className="mt-2 flex items-center gap-3">
+      <div className="mt-1 flex items-center gap-1">
+        {/* Padded out to a real tap target rather than left as bare text. This
+            is the only way back from a bad stroke, and it is reached with the
+            same finger that just drew one. The negative margin keeps the label
+            optically aligned with the pad's left edge. */}
         <button
           type="button"
           onClick={clear}
           disabled={disabled || !hasSignature}
-          className="text-xs text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
+          className="-ml-3 px-3 py-2.5 text-xs text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
         >
           Clear signature
         </button>

@@ -239,9 +239,15 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             </section>
           )}
 
+          {/* min-w-0 on both columns, not just the one with the chart. Grid
+              tracks are minmax(auto, 1fr), and `auto` floors a column at its
+              min-content width — so the bar chart's min-w-[28rem] made its
+              column refuse to shrink, the overflow-x-auto below never engaged,
+              and the grid grew wider than the page, carrying both cards out
+              with it. */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Check-in methods */}
-            <section className="rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+            <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
               <h2 className="font-semibold text-[#003580]">Check-in Methods</h2>
               <p className="mt-2 text-sm text-slate-600">
                 How attendees recorded their presence
@@ -256,7 +262,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             </section>
 
             {/* Events over time */}
-            <section className="rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+            <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
               <h2 className="font-semibold text-[#003580]">Events Created</h2>
               <p className="mt-2 text-sm text-slate-600">Last 12 months</p>
 
