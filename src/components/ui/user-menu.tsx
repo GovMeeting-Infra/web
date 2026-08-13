@@ -86,7 +86,12 @@ export function UserMenu({
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-[1.25rem] border border-border bg-card shadow-xl"
+          // The height cap, for the same reason the notification panel has
+          // one: identity block, three links and a footer come to ~262px
+          // starting below a 70px topbar, which runs past a landscape phone's
+          // ~331px of dvh and put Sign out under the fold. overflow-hidden
+          // meant there was nothing to scroll and no way to reach it.
+          className="absolute right-0 z-50 mt-2 max-h-[calc(100dvh-6rem)] w-64 overflow-y-auto overflow-x-hidden rounded-[1.25rem] border border-border bg-card shadow-xl"
         >
           {/* Who you are signed in as. On a shared machine this is the thing
               worth checking before doing anything. */}

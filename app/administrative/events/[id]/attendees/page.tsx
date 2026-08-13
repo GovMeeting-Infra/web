@@ -483,13 +483,19 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             {guests.length > 0 && (
               <div className="flex flex-wrap gap-2 pt-1">
                 {guests.map((g) => (
+                  // max-w-full and a truncating email: an address has no break
+                  // opportunity, so name + email came to ~350px in a 256px
+                  // card and pushed the X past main's overflow-x-hidden —
+                  // leaving no way to remove a guest on a phone.
                   <span
                     key={g.email || g.name}
-                    className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm text-foreground"
+                    className="flex max-w-full items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm text-foreground"
                   >
-                    {g.name}
+                    <span className="truncate">{g.name}</span>
                     {g.email && (
-                      <span className="text-muted-foreground">{g.email}</span>
+                      <span className="truncate text-muted-foreground">
+                        {g.email}
+                      </span>
                     )}
                     <button
                       type="button"
@@ -497,7 +503,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                         setGuests((prev) => prev.filter((x) => x !== g))
                       }
                       aria-label={`Remove ${g.name}`}
-                      className="text-muted-foreground hover:text-destructive"
+                      className="shrink-0 text-muted-foreground hover:text-destructive"
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
