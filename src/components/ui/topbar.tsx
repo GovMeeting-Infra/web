@@ -1,9 +1,10 @@
 'use client';
 
+import { useState } from 'react';
 import { Menu, Building2, Search } from 'lucide-react';
-import Link from 'next/link';
 import { SierraLeoneFlag } from '../SierraLeoneFlag';
 import { NotificationBell } from './notification-bell';
+import { SearchDialog } from './search-dialog';
 import { UserMenu } from './user-menu';
 
 interface TopbarProps {
@@ -22,6 +23,8 @@ export function Topbar({
   menuOpen = false,
   onMenuClick,
 }: TopbarProps) {
+  const [searchOpen, setSearchOpen] = useState(false);
+
   return (
     <header className="relative flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-[#f8fbff] px-4 sm:h-20 sm:px-6">
       {/* The only way to the sidebar below lg, where it is display:none. */}
@@ -72,14 +75,20 @@ export function Topbar({
 
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Stands in for the search form above, which hides at the same
-            breakpoint. Without it the Search page has no door on a phone. */}
-        <Link
-          href="/administrative/search"
+            breakpoint. Opens a dialog rather than linking straight to the
+            results page: that page takes its query from the URL and has no
+            input of its own, so the link landed on empty results with nowhere
+            to type. */}
+        <button
+          type="button"
+          onClick={() => setSearchOpen(true)}
           aria-label="Search"
+          aria-expanded={searchOpen}
+          aria-haspopup="dialog"
           className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-muted md:hidden"
         >
           <Search className="h-5 w-5" />
-        </Link>
+        </button>
 
         {/* Opens a panel of unread items rather than navigating; the full
             history lives on the Notifications page in the sidebar. */}
@@ -92,6 +101,8 @@ export function Topbar({
             the way out. */}
         <UserMenu userName={userName} userEmail={userEmail} />
       </div>
+
+      <SearchDialog open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   );
 }
