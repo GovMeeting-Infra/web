@@ -543,7 +543,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="rounded-xl border border-border bg-input px-3 py-2 text-sm"
+          aria-label="Filter by role"
+          className="min-w-0 max-w-full truncate rounded-xl border border-border bg-input px-3 py-2 text-sm sm:max-w-[14rem]"
         >
           <option value="">All roles</option>
           {assignableRoles.map((r) => (
@@ -556,7 +557,11 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           <select
             value={ministryFilter}
             onChange={(e) => setMinistryFilter(e.target.value)}
-            className="rounded-xl border border-border bg-input px-3 py-2 text-sm"
+            aria-label="Filter by ministry"
+            // A select sizes itself to its widest option, and ministry names
+            // run long. As a flex item with the default min-width:auto it then
+            // refused to shrink and pushed off the side of the screen.
+            className="min-w-0 max-w-full truncate rounded-xl border border-border bg-input px-3 py-2 text-sm sm:max-w-[14rem]"
           >
             <option value="">All ministries</option>
             {ministries.map((m) => (
