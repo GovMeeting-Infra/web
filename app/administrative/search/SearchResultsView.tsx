@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { CalendarDays, FileText, DoorOpen, Users, SearchX } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { initialsOf, type SearchResults } from '@/lib/types/account';
+import { PageContainer } from '@/components/ui/page-container';
 
 function Section({
   icon,
@@ -50,7 +51,7 @@ export function SearchResultsView() {
     : 0;
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
           Global search
@@ -167,6 +168,6 @@ export function SearchResultsView() {
           </Section>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

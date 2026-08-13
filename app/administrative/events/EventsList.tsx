@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   EVENT_TYPE_LABELS,
   EVENT_STATUS_LABELS,
@@ -207,8 +208,8 @@ export function EventsList() {
   };
 
   return (
-    <div className="space-y-8 p-8">
-      <div className="flex items-center justify-between">
+    <PageContainer className="space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-primary">Events</h1>
           <p className="mt-2 text-muted-foreground">
@@ -226,7 +227,7 @@ export function EventsList() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {(['all', 'internal', 'public'] as const).map((filter) => (
             <button
               key={filter}
@@ -313,6 +314,6 @@ export function EventsList() {
           </div>
         ))}
       </div>
-    </div>
+    </PageContainer>
   );
 }

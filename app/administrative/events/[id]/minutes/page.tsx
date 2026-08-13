@@ -8,6 +8,7 @@ import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PersonPicker } from '@/components/ui/person-picker';
 import { ACTION_ITEM_STATUS_LABELS, type EventDetail, type Minutes, type ActionItem } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 export default function MinutesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -230,7 +231,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   };
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <Link href={`/administrative/events/${id}`} className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> Back to Event
       </Link>
@@ -273,7 +274,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       <div className="space-y-8">
         <div className="space-y-8">
       {isReadOnlyView && minutes && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div className="flex items-center gap-2">
             {isArchived ? (
               <Archive className="h-4 w-4 text-muted-foreground" />
@@ -314,7 +315,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       )}
 
       {!canEdit && !isReadOnlyView && (
-        <div className="space-y-3 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-3 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <p className="text-sm text-muted-foreground">
             These minutes are read-only for you — the edit window has closed or you
             aren&apos;t an organizer.
@@ -326,7 +327,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       )}
 
       {canEdit && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Body</label>
             <textarea
@@ -349,7 +350,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={handleSaveMinutes}
               disabled={isSaving}
@@ -531,7 +532,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
           ) : (
             <div className="space-y-2">
               {actionItems.map((item) => (
-                <div key={item.id} className="rounded-xl border border-border bg-card p-4 flex items-center justify-between gap-4">
+                <div key={item.id} className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-border bg-card p-4">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground">{item.title}</p>
                     <p className="text-xs text-muted-foreground">Due: {new Date(item.dueDate).toLocaleDateString()}</p>
@@ -539,7 +540,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
                   <select
                     value={item.status}
                     onChange={(e) => handleUpdateActionStatus(item.id, e.target.value)}
-                    className="rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-w-max"
+                    className="rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:min-w-max"
                   >
                     {Object.entries(ACTION_ITEM_STATUS_LABELS).map(([status, label]) => (
                       <option key={status} value={status}>
@@ -555,6 +556,6 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

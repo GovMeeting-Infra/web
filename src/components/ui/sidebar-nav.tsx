@@ -17,6 +17,7 @@ import {
   Building2,
   Bell,
   ScrollText,
+  Search,
   SlidersHorizontal,
   LogOut,
 } from 'lucide-react';
@@ -54,6 +55,13 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/administrative/dashboard',
         label: 'Dashboard',
         icon: <LayoutDashboard className="h-4 w-4" />,
+      },
+      {
+        // The topbar's search form hides below md, so without an entry here
+        // the page had no door at all on a phone.
+        href: '/administrative/search',
+        label: 'Search',
+        icon: <Search className="h-4 w-4" />,
       },
     ],
   },
@@ -165,7 +173,25 @@ const NAV_GROUPS: NavGroup[] = [
   },
 ];
 
-export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
+export function SidebarNav({
+  collapsed = false,
+  onNavigate,
+  tourAnchors = true,
+}: {
+  collapsed?: boolean;
+  /**
+   * Called once a nav entry or Sign Out is activated, so the mobile drawer can
+   * close itself. Deliberately per-link rather than an effect on pathname:
+   * tapping the entry for the page you are already on changes no pathname, and
+   * would leave the drawer sitting open over the page just asked for.
+   */
+  onNavigate?: () => void;
+  /**
+   * Off for the drawer copy. The tour resolves its targets with a document-wide
+   * query, so only one copy of the nav may carry data-tour at a time.
+   */
+  tourAnchors?: boolean;
+}) {
   const pathname = usePathname();
   const currentUser = useCurrentUser();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -184,6 +210,7 @@ export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
   })).filter((group) => group.items.length > 0);
 
   const handleSignOut = () => {
+    onNavigate?.();
     setIsSigningOut(true);
     // Shared with the profile menu, so both routes out behave identically.
     signOut();
@@ -221,9 +248,14 @@ export function SidebarNav({ collapsed = false }: { collapsed?: boolean }) {
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={onNavigate}
                   // Anchor for the guided tour. Derived from the href so a new
                   // nav entry is reachable without remembering to label it.
-                  data-tour={`nav-${item.href.split('/').pop()}`}
+                  data-tour={
+                    tourAnchors
+                      ? `nav-${item.href.split('/').pop()}`
+                      : undefined
+                  }
                   className={cn(
                     'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
                     collapsed && 'justify-center',

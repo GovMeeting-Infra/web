@@ -20,7 +20,7 @@ export function PublicShell({
   hero?: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col bg-background text-slate-900">
+    <div className="flex min-h-dvh flex-col bg-background text-slate-900">
       <header className="border-b border-[#d3deef] bg-[#f8fbff]/95 shadow-[0_8px_30px_rgba(0,53,128,0.07)] backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-5 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-4">

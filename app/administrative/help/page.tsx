@@ -1,6 +1,7 @@
 import { Mail, LifeBuoy } from 'lucide-react';
 import { HelpBrowser } from './HelpBrowser';
 import { StartTourButton } from '@/components/tour/StartTourButton';
+import { PageContainer } from '@/components/ui/page-container';
 
 const SUPPORT_EMAIL = 'support@ministry.gov.sl';
 
@@ -8,9 +9,9 @@ const SUPPORT_EMAIL = 'support@ministry.gov.sl';
 // data fetching, so the page itself stays a server component.
 export default function HelpPage() {
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div className="overflow-hidden rounded-[1.75rem] border border-border bg-primary text-primary-foreground">
-        <div className="flex flex-wrap items-center gap-5 p-8">
+        <div className="flex flex-wrap items-center gap-5 p-8 max-sm:p-4">
           <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-4 border-white/20 bg-white/10">
             <LifeBuoy className="h-6 w-6" />
           </span>
@@ -58,6 +59,6 @@ export default function HelpPage() {
           Response times: Monday–Friday, 9am–5pm.
         </p>
       </section>
-    </div>
+    </PageContainer>
   );
 }

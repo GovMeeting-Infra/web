@@ -14,6 +14,7 @@ import { StatCardsSkeleton } from '@/components/ui/skeletons';
 import { CSV_EXPORTS, type AnalyticsDashboard } from '@/lib/types/reports';
 import { ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/session';
+import { PageContainer } from '@/components/ui/page-container';
 
 /** Keeps the existing card shape; only the numbers are real now. */
 function ReportCard({
@@ -41,7 +42,7 @@ function ReportCard({
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-4 border-t border-slate-200 pt-4">
+      <div className="mt-6 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 sm:grid-cols-3">
         {Object.entries(metrics).map(([key, value]) => (
           <div key={key}>
             <p className="text-xs uppercase tracking-wider text-slate-500">
@@ -125,7 +126,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
   const maxMonth = Math.max(1, ...(data?.eventsOverTime ?? []).map((m) => m.count));
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#007236]">
           Insight centre
@@ -238,9 +239,15 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             </section>
           )}
 
+          {/* min-w-0 on both columns, not just the one with the chart. Grid
+              tracks are minmax(auto, 1fr), and `auto` floors a column at its
+              min-content width — so the bar chart's min-w-[28rem] made its
+              column refuse to shrink, the overflow-x-auto below never engaged,
+              and the grid grew wider than the page, carrying both cards out
+              with it. */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Check-in methods */}
-            <section className="rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+            <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
               <h2 className="font-semibold text-[#003580]">Check-in Methods</h2>
               <p className="mt-2 text-sm text-slate-600">
                 How attendees recorded their presence
@@ -255,11 +262,12 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             </section>
 
             {/* Events over time */}
-            <section className="rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+            <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
               <h2 className="font-semibold text-[#003580]">Events Created</h2>
               <p className="mt-2 text-sm text-slate-600">Last 12 months</p>
 
-              <div className="mt-6 flex h-32 items-end gap-1">
+              <div className="mt-6 -mx-2 overflow-x-auto px-2">
+                <div className="flex h-32 min-w-[28rem] items-end gap-1">
                 {data.eventsOverTime.map((m) => (
                   <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
                     <div
@@ -270,16 +278,17 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                       }}
                       title={`${m.month}: ${m.count}`}
                     />
-                    <span className="text-[9px] text-slate-500">
+                    <span className="text-[10px] text-slate-500">
                       {m.month.slice(5)}
                     </span>
                   </div>
                 ))}
+                </div>
               </div>
             </section>
           </div>
 
-          <section className="rounded-[2rem] border border-[#d3deef] bg-[#fafdff] p-8 shadow-[0_24px_70px_rgba(0,53,128,0.08)]">
+          <section className="rounded-[2rem] border border-[#d3deef] bg-[#fafdff] p-8 shadow-[0_24px_70px_rgba(0,53,128,0.08)] max-sm:p-4">
             <h2 className="text-2xl font-bold text-[#003580]">Quick Export</h2>
             <p className="mt-2 text-slate-600">Download report data as CSV</p>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -299,6 +308,6 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
           </section>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

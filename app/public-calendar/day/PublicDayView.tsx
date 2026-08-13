@@ -107,13 +107,13 @@ export function PublicDayView() {
         )}
 
         {isLoading && (
-          <p className="rounded-2xl border border-[#d3deef] bg-white p-10 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-[#d3deef] bg-white p-6 text-center text-sm text-slate-500 sm:p-10">
             Loading activities…
           </p>
         )}
 
         {!isLoading && events.length === 0 && (
-          <p className="rounded-2xl border border-dashed border-[#d3deef] p-10 text-center text-sm text-slate-500">
+          <p className="rounded-2xl border border-dashed border-[#d3deef] p-6 text-center text-sm text-slate-500 sm:p-10">
             No public activities scheduled for this day.
           </p>
         )}
@@ -129,9 +129,13 @@ export function PublicDayView() {
                 <li key={event.id}>
                   <Link
                     href={`/public-calendar/event/${event.id}`}
-                    className="flex gap-4 rounded-2xl border border-[#d3deef] bg-white p-6 transition-shadow hover:shadow-[0_12px_32px_rgba(0,53,128,0.08)]"
+                    className="flex gap-4 rounded-2xl border border-[#d3deef] bg-white p-4 transition-shadow hover:shadow-[0_12px_32px_rgba(0,53,128,0.08)] sm:p-6"
                   >
-                    <div className="w-20 shrink-0 border-r border-[#d3deef] pr-4 text-right">
+                    {/* The rail costs 80px plus a border and its padding — a
+                        third of a 320px screen — and the meta row below already
+                        carries the same range against a clock icon. Dropped
+                        rather than restyled, so the title gets the width. */}
+                    <div className="hidden w-20 shrink-0 border-r border-[#d3deef] pr-4 text-right sm:block">
                       <p className="text-sm font-semibold text-slate-900">
                         {start.toLocaleTimeString(undefined, timeOpts)}
                       </p>

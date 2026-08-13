@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Search, X, ScrollText, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { TableSkeleton } from '@/components/ui/skeletons';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   AUDIT_STATUS_STYLES,
   auditTimestamp,
@@ -78,7 +79,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
   const hasFilters = !!(q.trim() || category || status || from || to || ministryId);
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div>
         <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
           Oversight
@@ -121,7 +122,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
             value={category}
             onChange={(e) => reset(() => setCategory(e.target.value))}
             aria-label="Filter by category"
-            className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none"
+            className="min-w-0 max-w-full truncate rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none sm:max-w-[14rem]"
           >
             <option value="">All categories</option>
             {categories.map((c) => (
@@ -136,7 +137,13 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
               value={ministryId}
               onChange={(e) => reset(() => setMinistryId(e.target.value))}
               aria-label="Filter by ministry"
-              className="rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none"
+              // A select sizes itself to its widest option, and ministry names
+              // run long ("Ministry of Health and Sanitation"). As a flex item
+              // with the default min-width:auto it then refused to shrink and
+              // pushed out of the filter card. min-w-0 lets it give way,
+              // max-w caps it before it crowds the search box, and truncate
+              // ellipsises the closed label rather than letting it overflow.
+              className="min-w-0 max-w-full truncate rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none sm:max-w-[14rem]"
             >
               <option value="">All ministries</option>
               {ministries.map((m) => (
@@ -226,7 +233,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
         </div>
       ) : (
         <>
-          <div className="overflow-hidden rounded-[1.5rem] border border-border bg-card">
+          <div className="hidden overflow-hidden rounded-[1.5rem] border border-border bg-card sm:block">
             <div className="overflow-x-auto">
               <table className="w-full min-w-[56rem] text-sm">
                 <thead className="border-b border-border bg-muted/40 text-left">
@@ -310,12 +317,68 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
             </div>
           </div>
 
+          {/* Same entries as cards below sm. An audit row is six columns of
+              mostly monospace identifiers — the widest content in the app. */}
+          <ul className="space-y-2 sm:hidden">
+            {entries.map((e) => (
+              <li
+                key={e.id}
+                className="space-y-2 rounded-[1.25rem] border border-border bg-card p-4"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <span className="font-medium text-foreground">
+                    {humanise(e.action)}
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${AUDIT_STATUS_STYLES[e.status]}`}
+                  >
+                    {humanise(e.status)}
+                  </span>
+                </div>
+
+                {e.description && (
+                  <p className="text-xs text-muted-foreground">
+                    {e.description}
+                  </p>
+                )}
+
+                <p className="break-words text-sm text-foreground">
+                  {e.entityName ?? e.entityType}
+                  <span className="ml-1.5 font-mono text-[11px] text-muted-foreground">
+                    {e.entityType}
+                  </span>
+                </p>
+
+                <div className="border-t border-border pt-2 text-xs text-muted-foreground">
+                  {e.actor ? (
+                    <p className="break-words">
+                      {e.actor.name} · {e.actor.email}
+                    </p>
+                  ) : (
+                    <p>System</p>
+                  )}
+                  <p className="mt-0.5 font-mono text-[11px]">
+                    {auditTimestamp(e.createdAt)}
+                    {e.ipAddress ? ` · ${e.ipAddress}` : ''}
+                  </p>
+                  {isPlatformWide && (
+                    <p className="mt-0.5">
+                      {e.ministry?.name ?? (
+                        <span className="italic">Platform</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+
           {lastPage > 0 && (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
                 Page {page + 1} of {lastPage + 1}
               </span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
@@ -335,6 +398,6 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
           )}
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

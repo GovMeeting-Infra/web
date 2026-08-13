@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { eventColor, eventCategoryLabel, toDayParam } from '@/lib/event-colors';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   EVENT_STATUS_LABELS,
   type EventListResponse,
@@ -75,7 +76,7 @@ export default function CalendarDayPage() {
   });
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <Link
         href={`/administrative/calendar?y=${selected.getFullYear()}&m=${selected.getMonth()}&view=${view}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -94,7 +95,7 @@ export default function CalendarDayPage() {
           </p>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Link
             href={shift(-1)}
             aria-label="Previous day"
@@ -209,6 +210,6 @@ export default function CalendarDayPage() {
           })}
         </ol>
       )}
-    </div>
+    </PageContainer>
   );
 }

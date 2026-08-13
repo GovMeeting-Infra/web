@@ -9,6 +9,7 @@ import { ListSkeleton } from '@/components/ui/skeletons';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { RoomForm } from '@/components/rooms/RoomForm';
 import type { Room, CreateRoomInput } from '@/lib/types/rooms';
+import { PageContainer } from '@/components/ui/page-container';
 
 /** Mirrors the roles on POST/PATCH/DELETE admin/rooms. */
 const ROOM_ADMIN_ROLES = ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'];
@@ -104,7 +105,7 @@ export default function RoomsPage() {
   const totalCapacity = (rooms ?? []).reduce((n, r) => n + r.capacity, 0);
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
@@ -282,6 +283,6 @@ export default function RoomsPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

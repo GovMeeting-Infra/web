@@ -9,6 +9,7 @@ import { apiFetch, ApiError } from '@/lib/api/client';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
 import type { EventDetail, RoomSummary } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 // Same styling constants as the create form.
 const field =
@@ -206,7 +207,7 @@ export default function EditEventPage({
   }
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <Link
         href={`/administrative/events/${id}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -274,7 +275,7 @@ export default function EditEventPage({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>Session Type</label>
             <select
@@ -347,7 +348,7 @@ export default function EditEventPage({
           </label>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>Contact Email (optional)</label>
             <input
@@ -432,7 +433,7 @@ export default function EditEventPage({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className={label}>Scope</label>
             <select
@@ -465,7 +466,7 @@ export default function EditEventPage({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="startAt" className={dateLabel}>
               Start Date &amp; Time *
@@ -501,6 +502,6 @@ export default function EditEventPage({
           {isSubmitting ? 'Saving…' : 'Save changes'}
         </button>
       </div>
-    </div>
+    </PageContainer>
   );
 }

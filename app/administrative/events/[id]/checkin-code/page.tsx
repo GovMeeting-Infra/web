@@ -8,6 +8,7 @@ import { ArrowLeft, RefreshCw, MapPin, QrCode, XCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { requestLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
 import type { CheckInCodeResponse } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 interface GeneratePayload {
   lat?: number;
@@ -153,7 +154,7 @@ export default function CheckInCodePage({
   }
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <Link
         href={`/administrative/events/${id}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -185,7 +186,7 @@ export default function CheckInCodePage({
       {!qrCode?.token ? (
         // The empty state is one call to action, so it stays a narrow centred
         // column rather than stretching a single button across the page.
-        <div className="mx-auto max-w-xl space-y-5 rounded-[1.75rem] border border-border bg-card p-12 text-center">
+        <div className="mx-auto max-w-xl space-y-5 rounded-[1.75rem] border border-border bg-card p-6 text-center sm:p-12">
           <QrCode className="mx-auto h-12 w-12 text-muted-foreground" />
           <div>
             <h2 className="font-semibold text-foreground">
@@ -210,14 +211,19 @@ export default function CheckInCodePage({
         // Two columns once there is room: the code itself on the left, and
         // everything you do to it on the right. Centring a 256px code in a
         // full-width card would leave it stranded in the middle of the page.
-        <div className="grid items-start gap-10 rounded-[1.75rem] border border-border bg-card p-12 lg:grid-cols-2">
+        <div className="grid items-start gap-6 rounded-[1.75rem] border border-border bg-card p-4 sm:gap-10 sm:p-8 lg:grid-cols-2 lg:p-12">
           <div className="flex flex-col items-center gap-4">
-            <div className="rounded-2xl border-4 border-border bg-white p-6">
+            {/* max-w rather than a second fixed size: an SVG QR scales without
+                loss, and at 256px plus this card's and the page's padding the
+                code was 472px wide on a 375px screen — a quarter of it cut
+                off, on the page whose whole job is being pointed at. */}
+            <div className="w-full max-w-[18rem] rounded-2xl border-4 border-border bg-white p-3 sm:p-6">
               <QRCodeSVG
                 value={qrCode.qrCodeUrl!}
                 size={256}
                 level="H"
                 includeMargin={true}
+                className="h-auto w-full"
               />
             </div>
             <div className="space-y-1 text-center">
@@ -319,6 +325,6 @@ export default function CheckInCodePage({
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

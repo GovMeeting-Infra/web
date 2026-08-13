@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
+import { PageContainer } from '@/components/ui/page-container';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
   PersonPicker,
@@ -284,9 +285,10 @@ export default function EventDetailPage({
 
   return (
     // flex-1 fills the viewport so Manage can sit at the bottom rather than
-    // leaving a gap under it. space-y lives on the inner wrapper, not here,
-    // because it would otherwise set a top margin on Manage and defeat mt-auto.
-    <div className="flex w-full flex-1 flex-col p-8">
+    // leaving a gap under it. space-y-0 cancels the container's default: the
+    // spacing lives on the inner wrapper, because out here it would set a top
+    // margin on Manage and defeat mt-auto.
+    <PageContainer className="flex flex-1 flex-col space-y-0">
       <div className="space-y-8">
         <Link
           href="/administrative/events"
@@ -303,7 +305,7 @@ export default function EventDetailPage({
 
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl font-bold text-primary">{event.title}</h1>
               {/* Draft/published is a public-calendar distinction. An internal
                   meeting is always published now, so the badge would say
@@ -495,7 +497,7 @@ export default function EventDetailPage({
               )}
               {canAdminister && (
                 <div className="mt-4 flex flex-wrap items-start gap-2">
-                  <div className="min-w-[16rem] flex-1">
+                  <div className="min-w-0 flex-1 sm:min-w-[16rem]">
                     {/* Was a free-text User ID box, which meant asking an
                         administrator for an internal identifier before you could
                         add a colleague. The candidates endpoint is open to every
@@ -609,6 +611,6 @@ export default function EventDetailPage({
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

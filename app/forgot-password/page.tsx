@@ -11,7 +11,7 @@ const field =
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#f8fbff] p-4">
+    <div className="flex min-h-dvh items-center justify-center bg-[#f8fbff] p-4">
       <div className="w-full max-w-md rounded-[1.75rem] border border-[#d3deef] bg-white p-8 shadow-[0_24px_70px_rgba(0,53,128,0.10)]">
         <div className="mb-6 flex items-center gap-3">
           <Image

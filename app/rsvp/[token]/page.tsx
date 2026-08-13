@@ -38,8 +38,8 @@ export default function RSVPPage({ params }: { params: Promise<{ token: string }
 
   if (status) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-        <Card className="w-96">
+      <div className="flex items-center justify-center min-h-dvh p-4 bg-gradient-to-br from-green-50 to-emerald-100">
+        <Card className="w-full max-w-sm">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl text-green-600">✓ RSVP Recorded</CardTitle>
             <CardDescription>
@@ -55,8 +55,8 @@ export default function RSVPPage({ params }: { params: Promise<{ token: string }
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <Card className="w-96">
+    <div className="flex items-center justify-center min-h-dvh p-4 bg-gradient-to-br from-blue-50 to-indigo-100">
+      <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>Event Invitation</CardTitle>
           <CardDescription>Will you be attending?</CardDescription>

@@ -30,6 +30,36 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius: 0.875rem;
+
+  /* Mobile navigation drawer. No exit animation — the drawer unmounts on
+     close, so there is nothing left to animate out. */
+  --animate-drawer-in: drawer-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-fade-in: fade-in 180ms ease-out;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-drawer-in,
+  .animate-fade-in {
+    animation: none;
+  }
 }
 
 @layer base {
@@ -49,7 +79,10 @@
   body {
     font-family: var(--font-geist-sans, system-ui, sans-serif);
     -webkit-font-smoothing: antialiased;
-    min-height: 100vh;
+    /* dvh, to match the h-dvh the root layout sets on this element. As vh this
+       silently won the cascade — min-height beats height — and held the body
+       to the taller, URL-bar-inclusive viewport regardless. */
+    min-height: 100dvh;
   }
 
   a {
@@ -73,6 +106,24 @@
   ::selection {
     background: rgba(0, 114, 54, 0.18);
     color: #11243d;
+  }
+}
+
+/* Safari zooms the whole page when a control smaller than 16px takes focus, and
+   does not zoom back out. On the check-in flow that throws the layout sideways
+   mid-signature. Set here rather than on each field: nearly every input in the
+   app is text-sm, and this is about the device, not the design. Above sm the
+   intended sizes apply again.
+
+   Deliberately outside @layer base. Tailwind emits text-sm into @layer
+   utilities, which outranks base no matter how specific the base rule is, so
+   inside the layer this did nothing at all. Unlayered CSS beats every layer —
+   the same reason the compact-mode rules below are unlayered. */
+@media (max-width: 39.99rem) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 
@@ -153,4 +204,27 @@
 [data-density='compact'] h1.text-3xl {
   font-size: 1.5rem;
   line-height: 2rem;
+}
+
+/* Page frames pad responsively (p-4 sm:p-6 lg:p-8), and those generate as
+   `.sm\:p-6` / `.lg\:p-8` — selectors the `.p-8` rule above cannot see. Keyed
+   to the attribute PageContainer sets instead, so the utilities stay free to
+   change without this block knowing. Breakpoints mirror Tailwind's sm and lg,
+   and the lg value matches the old compact `.p-8` exactly, so desktop compact
+   mode is unchanged. */
+
+[data-density='compact'] [data-page-container] {
+  padding: 0.875rem;
+}
+
+@media (min-width: 40rem) {
+  [data-density='compact'] [data-page-container] {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 64rem) {
+  [data-density='compact'] [data-page-container] {
+    padding: 1.25rem;
+  }
 }

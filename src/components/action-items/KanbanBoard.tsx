@@ -4,6 +4,7 @@ import { useState } from 'react';
 import {
   DndContext,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   useDroppable,
@@ -66,11 +67,16 @@ function Card({
   return (
     <div
       ref={setNodeRef}
-      style={
-        transform
+      style={{
+        // dnd-kit's pointer and touch sensors need the browser to stop
+        // claiming the gesture for scrolling, and only while the card is
+        // actually draggable — otherwise a read-only board cannot be scrolled
+        // with a finger at all.
+        touchAction: canDrag ? 'none' : undefined,
+        ...(transform
           ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
-          : undefined
-      }
+          : {}),
+      }}
       className={`rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm ${
         isDragging ? 'opacity-50 shadow-lg' : ''
       } ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
@@ -212,8 +218,16 @@ export function KanbanBoard({
 
   // A small distance constraint keeps a click from registering as a drag, so
   // cards stay clickable for the detail modal.
+  //
+  // Touch gets its own sensor with a hold delay instead of a distance: on a
+  // phone a short drag is how you scroll, so distance alone would have the
+  // board stealing every swipe. Press and hold to pick a card up; the
+  // tolerance lets a finger wobble during that hold without cancelling it.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
+    }),
   );
 
   const handleDragEnd = (e: DragEndEvent) => {

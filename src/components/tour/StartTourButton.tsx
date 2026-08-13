@@ -38,7 +38,12 @@ export function StartTourButton() {
     <button
       onClick={start}
       disabled={starting}
-      className="flex items-center gap-2 rounded-[1.25rem] border border-border px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-60"
+      // Styled for the dark header it sits on — the only place it is used.
+      // text-foreground is near-black, which on the navy bg-primary card read
+      // as an unlabelled box until you hovered it and the light hover fill
+      // arrived. White text with a white-tinted border reads at rest, and the
+      // hover just deepens the existing white/10 chip behind it.
+      className="flex items-center gap-2 rounded-[1.25rem] border border-white/30 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/20 disabled:opacity-60"
     >
       <Compass className="h-4 w-4" />
       {starting ? 'Starting…' : 'Take the tour'}

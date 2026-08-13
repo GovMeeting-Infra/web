@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Plus, Power, Pencil, Copy, Check } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { TableSkeleton } from '@/components/ui/skeletons';
+import { PageContainer } from '@/components/ui/page-container';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
@@ -135,7 +136,7 @@ export function MinistriesView() {
   };
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
@@ -308,7 +309,7 @@ export function MinistriesView() {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={handleCreate}
               disabled={isSaving}
@@ -347,69 +348,133 @@ export function MinistriesView() {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-[1.5rem] border border-border bg-card">
-          <table className="w-full text-sm">
-            <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-              <tr>
-                <th className="px-6 py-3 font-medium">Ministry</th>
-                <th className="px-6 py-3 font-medium">Email domain</th>
-                <th className="px-6 py-3 font-medium">Users</th>
-                <th className="px-6 py-3 font-medium">Status</th>
-                <th className="px-6 py-3 text-right font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {ministries.map((m) => (
-                <tr key={m.id} className={m.active ? '' : 'opacity-60'}>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-foreground">{m.name}</div>
-                    <div className="text-xs text-muted-foreground">{m.code}</div>
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {m.emailDomain}
-                  </td>
-                  <td className="px-6 py-4 text-muted-foreground">
-                    {m._count?.users ?? '—'}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={
-                        m.active
-                          ? 'rounded-full bg-[#edf8f1] px-2.5 py-1 text-xs font-medium text-[#007236]'
-                          : 'rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground'
-                      }
-                    >
-                      {m.active ? 'Active' : 'Deactivated'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setEditing(m)}
-                        title="Edit"
-                        className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setToggling(m)}
-                        title={m.active ? 'Deactivate' : 'Activate'}
-                        className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
-                      >
-                        <Power className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+        <div className="hidden overflow-hidden rounded-[1.5rem] border border-border bg-card sm:block">
+          {/* The inner scroller is what makes the Actions column reachable on a
+              narrow screen. Without it the card's overflow-hidden simply cut
+              the table off, and min-w keeps w-full from squashing five columns
+              into 375px instead of scrolling. Matches the activity log. */}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[56rem] text-sm">
+              <thead className="border-b border-border bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="px-6 py-3 font-medium">Ministry</th>
+                  <th className="px-6 py-3 font-medium">Email domain</th>
+                  <th className="px-6 py-3 font-medium">Users</th>
+                  <th className="px-6 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3 text-right font-medium">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {ministries.map((m) => (
+                  <tr key={m.id} className={m.active ? '' : 'opacity-60'}>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-foreground">{m.name}</div>
+                      <div className="text-xs text-muted-foreground">{m.code}</div>
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {m.emailDomain}
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      {m._count?.users ?? '—'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={
+                          m.active
+                            ? 'rounded-full bg-[#edf8f1] px-2.5 py-1 text-xs font-medium text-[#007236]'
+                            : 'rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground'
+                        }
+                      >
+                        {m.active ? 'Active' : 'Deactivated'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setEditing(m)}
+                          title="Edit"
+                          className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setToggling(m)}
+                          title={m.active ? 'Deactivate' : 'Activate'}
+                          className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
+                        >
+                          <Power className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+      )}
+
+      {!isLoading && ministries.length > 0 && (
+        <ul className="space-y-3 sm:hidden">
+          {ministries.map((m) => (
+            <li
+              key={m.id}
+              className={`space-y-3 rounded-[1.25rem] border border-border bg-card p-4 ${
+                m.active ? '' : 'opacity-60'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-medium text-foreground">{m.name}</p>
+                  <p className="text-xs text-muted-foreground">{m.code}</p>
+                </div>
+                <span
+                  className={
+                    m.active
+                      ? 'shrink-0 rounded-full bg-[#edf8f1] px-2.5 py-1 text-xs font-medium text-[#007236]'
+                      : 'shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground'
+                  }
+                >
+                  {m.active ? 'Active' : 'Deactivated'}
+                </span>
+              </div>
+
+              <dl className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                <div className="flex gap-1.5">
+                  <dt>Domain</dt>
+                  <dd className="break-all text-foreground">{m.emailDomain}</dd>
+                </div>
+                <div className="flex gap-1.5">
+                  <dt>Users</dt>
+                  <dd className="text-foreground">{m._count?.users ?? '—'}</dd>
+                </div>
+              </dl>
+
+              {/* Full-width buttons rather than the table's icon pair: these
+                  were the controls a phone could not reach at all. */}
+              <div className="flex gap-2 border-t border-border pt-3">
+                <button
+                  onClick={() => setEditing(m)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Pencil className="h-4 w-4" /> Edit
+                </button>
+                <button
+                  onClick={() => setToggling(m)}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <Power className="h-4 w-4" />
+                  {m.active ? 'Deactivate' : 'Activate'}
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-lg space-y-4 rounded-[1.5rem] border border-border bg-card p-6">
+          <div className="max-h-[85dvh] w-full max-w-lg space-y-4 overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6">
             <h2 className="font-semibold text-primary">Edit {editing.name}</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -439,7 +504,7 @@ export function MinistriesView() {
                 />
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={async () => {
                   await handleUpdate(editing.id, {
@@ -468,7 +533,7 @@ export function MinistriesView() {
           than done on a single click. */}
       {toggling && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md space-y-4 rounded-[1.5rem] border border-border bg-card p-6">
+          <div className="max-h-[85dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6">
             <h2 className="font-semibold text-primary">
               {toggling.active ? 'Deactivate' : 'Activate'} {toggling.name}?
             </h2>
@@ -477,7 +542,7 @@ export function MinistriesView() {
                 ? `Its ${toggling._count?.users ?? 0} user${toggling._count?.users === 1 ? '' : 's'} will not be able to sign in. Events, minutes and audit records are kept, and reactivating restores access.`
                 : 'Its users will be able to sign in again.'}
             </p>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={async () => {
                   await handleUpdate(toggling.id, { active: !toggling.active });
@@ -501,6 +566,6 @@ export function MinistriesView() {
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }

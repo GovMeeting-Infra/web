@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
+import { PageContainer } from '@/components/ui/page-container';
 import {
   PersonPicker,
   type DirectoryPerson,
@@ -352,7 +353,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   };
 
   return (
-    <div className="w-full space-y-8 p-8">
+    <PageContainer className="space-y-8">
       <Link
         href={`/administrative/events/${id}`}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -385,7 +386,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         }`}
       >
         {canInvite && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Invite Attendees</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -518,7 +519,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         )}
 
         {canDoWalkIn && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8">
+        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -756,6 +757,6 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           )}
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }

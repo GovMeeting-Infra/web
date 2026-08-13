@@ -97,7 +97,7 @@ export function ActionItemModal({
       role="presentation"
     >
       <div
-        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6 shadow-xl"
+        className="max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

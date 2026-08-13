@@ -92,17 +92,56 @@ describe('Events Management', () => {
     });
   });
 
+  // These previously asserted `should('have.class')` with no argument, which
+  // cannot fail — it passed against any element with any class at all. Assert
+  // the layout that actually has to hold instead.
   describe('Responsive Behavior', () => {
-    it('should stack cards on mobile', () => {
-      cy.viewport('iphone-x');
-      cy.get('[class*="grid"]').should('have.class');
+    it('should stack cards in one column on mobile', () => {
+      cy.viewport(375, 812);
       cy.contains('Events').should('be.visible');
+      cy.contains('Create Event').should('be.visible');
+      cy.assertNoClipping();
+    });
+
+    it('should show the drawer trigger rather than the sidebar on mobile', () => {
+      cy.viewport(375, 812);
+      cy.get('aside').should('not.be.visible');
+      cy.get('#mobile-menu-button').should('be.visible');
     });
 
     it('should display properly on tablet', () => {
-      cy.viewport('ipad-2');
-      cy.get('[class*="grid"]').should('exist');
+      cy.viewport(768, 1024);
       cy.contains('Create Event').should('be.visible');
+      cy.assertNoClipping();
+    });
+  });
+
+  // The pages the responsive pass touched most heavily. Each carries a table
+  // or a dense grid, which is where clipping shows up first.
+  describe('Layout integrity across the admin pages', () => {
+    const PAGES = [
+      { path: '/administrative/action-items', wait: 'Action Items' },
+      { path: '/administrative/minutes', wait: 'Minutes' },
+      { path: '/administrative/reports', wait: 'Reports' },
+      { path: '/administrative/calendar', wait: 'Calendar' },
+      { path: '/administrative/rooms', wait: 'Rooms' },
+      { path: '/administrative/activity-log', wait: 'Activity' },
+    ];
+
+    PAGES.forEach(({ path, wait }) => {
+      it(`should not clip ${path} at 375px`, () => {
+        cy.viewport(375, 812);
+        cy.visit(path);
+        cy.contains(wait).should('be.visible');
+        cy.assertNoClipping();
+      });
+
+      it(`should not clip ${path} at 768px`, () => {
+        cy.viewport(768, 1024);
+        cy.visit(path);
+        cy.contains(wait).should('be.visible');
+        cy.assertNoClipping();
+      });
     });
   });
 });

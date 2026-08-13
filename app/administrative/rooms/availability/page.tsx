@@ -14,6 +14,7 @@ import {
   type RoomBooking,
 } from '@/lib/types/rooms';
 import type { EventListResponse } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 const SLOT_START_HOUR = 8;
 const SLOT_END_HOUR = 20;
@@ -125,7 +126,7 @@ function AvailabilityView() {
   const timeOpts = { hour: '2-digit', minute: '2-digit' } as const;
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <Link
         href="/administrative/rooms"
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
@@ -287,7 +288,7 @@ function AvailabilityView() {
           </Link>
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

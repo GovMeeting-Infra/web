@@ -7,6 +7,7 @@ import { Plus, Building2, Globe } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { MonthGrid, monthRange, type CalendarEvent } from '@/components/calendar/MonthGrid';
 import type { EventListResponse } from '@/lib/types/events';
+import { PageContainer } from '@/components/ui/page-container';
 
 export default function CalendarPage() {
   const params = useSearchParams();
@@ -61,7 +62,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="w-full space-y-6 p-8">
+    <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
@@ -129,6 +130,6 @@ export default function CalendarPage() {
             : buildHref({ y: target.year, m: target.month })
         }
       />
-    </div>
+    </PageContainer>
   );
 }

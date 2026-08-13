@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -23,6 +23,24 @@ export const metadata: Metadata = {
   description: "Official government meeting management, attendance tracking, and documentation system for the Government of Sierra Leone.",
 };
 
+/**
+ * Next already emits width=device-width, initial-scale=1 on its own, so the
+ * first two lines only make the default explicit. viewport-fit=cover is the
+ * reason this export exists: without it env(safe-area-inset-*) resolves to 0 on
+ * a notched phone, so any safe-area padding added later would silently do
+ * nothing.
+ *
+ * No maximumScale or userScalable — pinch-zoom stays available. Fixing the
+ * font-size that triggers iOS focus-zoom is the right fix; disabling zoom
+ * outright would take it away from people who need it.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#003580",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -31,9 +49,14 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-screen antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-dvh antialiased`}
     >
-      <body className="h-screen bg-background text-foreground">
+      {/* dvh rather than vh: on iOS Safari 100vh is taller than the visible
+          area while the URL bar is expanded, which would push the bottom of
+          the app under the browser chrome. The shell scrolls an inner pane,
+          not the document, so there is nothing to scroll that strip back into
+          view. */}
+      <body className="h-dvh bg-background text-foreground">
         <Providers>{children}</Providers>
       </body>
     </html>
