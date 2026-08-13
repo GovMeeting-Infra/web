@@ -12,7 +12,7 @@ const field =
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-[#f8fbff] p-4">
-      <div className="w-full max-w-md rounded-[1.75rem] border border-[#d3deef] bg-white p-8 shadow-[0_24px_70px_rgba(0,53,128,0.10)]">
+      <div className="w-full max-w-md rounded-[1.75rem] border border-[#d3deef] bg-white p-6 shadow-[0_24px_70px_rgba(0,53,128,0.10)] sm:p-8">
         <div className="mb-6 flex items-center gap-3">
           <Image
             src="/coat_of_arms.jpeg"
@@ -68,7 +68,8 @@ export default function ForgotPasswordPage() {
           <MailCheck className="mx-auto h-10 w-10 text-[#007236]" />
           <h1 className="mt-3 text-lg font-bold text-[#003580]">Check your email</h1>
           <p className="mt-2 text-sm text-slate-600">
-            If <span className="font-medium">{email.trim()}</span> belongs to an
+            If <span className="break-all font-medium">{email.trim()}</span>{' '}
+            belongs to an
             account, a reset link is on its way. It expires in one hour and can
             only be used once.
           </p>

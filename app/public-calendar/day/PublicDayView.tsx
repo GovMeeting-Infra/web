@@ -80,20 +80,20 @@ export function PublicDayView() {
             <Link
               href={shift(-1)}
               aria-label="Previous day"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#d3deef] bg-white text-slate-600 hover:bg-[#edf4fd]"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#d3deef] bg-white text-slate-600 hover:bg-[#edf4fd]"
             >
               <ChevronLeft className="h-4 w-4" />
             </Link>
             <Link
               href="/public-calendar/day"
-              className="rounded-lg border border-[#d3deef] bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:bg-[#edf4fd]"
+              className="flex h-10 items-center rounded-lg border border-[#d3deef] bg-white px-3 text-sm font-medium text-slate-600 hover:bg-[#edf4fd]"
             >
               Today
             </Link>
             <Link
               href={shift(1)}
               aria-label="Next day"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[#d3deef] bg-white text-slate-600 hover:bg-[#edf4fd]"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#d3deef] bg-white text-slate-600 hover:bg-[#edf4fd]"
             >
               <ChevronRight className="h-4 w-4" />
             </Link>

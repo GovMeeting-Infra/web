@@ -81,8 +81,8 @@ function EventCard({ event }: { event: EventListItem }) {
   return (
     <div className="group rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)] transition-all hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(0,53,128,0.12)]">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <h3 className="font-semibold text-primary">{event.title}</h3>
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words font-semibold text-primary">{event.title}</h3>
           <div className="mt-4 space-y-2">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CalendarDays className="h-4 w-4" />

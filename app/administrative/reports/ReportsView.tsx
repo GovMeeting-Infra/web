@@ -32,8 +32,8 @@ function ReportCard({
 }) {
   return (
     <div className="group rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)] transition-all hover:shadow-[0_16px_40px_rgba(0,53,128,0.12)]">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h3 className="font-semibold text-[#003580]">{title}</h3>
           <p className="mt-2 text-sm text-slate-600">{description}</p>
         </div>

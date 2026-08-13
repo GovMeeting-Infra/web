@@ -30,8 +30,8 @@ export function PageHeaderSkeleton() {
   return (
     <div className="space-y-2">
       <Skeleton className="h-3 w-24" />
-      <Skeleton className="h-8 w-64" />
-      <Skeleton className="h-4 w-80" />
+      <Skeleton className="h-8 w-full max-w-[16rem]" />
+      <Skeleton className="h-4 w-full max-w-[20rem]" />
     </div>
   );
 }

@@ -178,8 +178,8 @@ export function MinistriesView() {
           <h2
             className={
               invite.emailSent
-                ? 'font-semibold text-[#007236]'
-                : 'font-semibold text-[#8d6400]'
+                ? 'break-words font-semibold text-[#007236]'
+                : 'break-words font-semibold text-[#8d6400]'
             }
           >
             {invite.emailSent

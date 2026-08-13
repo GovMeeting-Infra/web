@@ -295,7 +295,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
           {minutes.summary && (
             <p className="text-sm font-medium text-foreground">{minutes.summary}</p>
           )}
-          <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+          <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
             {minutes.body}
           </p>
 
@@ -321,7 +321,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
             aren&apos;t an organizer.
           </p>
           {minutes?.body && (
-            <p className="whitespace-pre-wrap text-sm text-foreground">{minutes.body}</p>
+            <p className="whitespace-pre-wrap break-words text-sm text-foreground">{minutes.body}</p>
           )}
         </div>
       )}

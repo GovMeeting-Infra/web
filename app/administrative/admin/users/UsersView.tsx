@@ -366,11 +366,14 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               : 'rounded-[1.5rem] border border-[#fde8a6] bg-[#fff8e5] p-6'
           }
         >
+          {/* break-words: the heading interpolates an email, which has no
+              break opportunity and runs past a 240px card. The invite URL
+              below already gets the same treatment. */}
           <h2
             className={
               invite.emailSent
-                ? 'font-semibold text-[#007236]'
-                : 'font-semibold text-[#8d6400]'
+                ? 'break-words font-semibold text-[#007236]'
+                : 'break-words font-semibold text-[#8d6400]'
             }
           >
             {invite.emailSent
@@ -747,7 +750,9 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-semibold text-primary">Edit {editing.email}</h2>
+            <h2 className="break-all font-semibold text-primary">
+              Edit {editing.email}
+            </h2>
             <div className="mt-4 space-y-4">
               <div>
                 <label className={label}>Full name</label>
@@ -821,7 +826,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               </span>
             </p>
             <p className="mt-4 text-sm text-muted-foreground">
-              Type <span className="font-mono text-foreground">{erasing.email}</span>{' '}
+              Type <span className="break-all font-mono text-foreground">{erasing.email}</span>{' '}
               to confirm:
             </p>
             <input
