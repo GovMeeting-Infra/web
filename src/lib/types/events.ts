@@ -164,8 +164,18 @@ export interface EventAttendee {
   externalEmail: string | null;
   status: AttendeeStatus;
   respondedAt: string | null;
+  /** Null means no invitation email has ever reached this person. */
+  lastInvitedAt: string | null;
   createdAt: string;
   user?: { id: string; name: string; email: string } | null;
+}
+
+/** What POST /events/:id/attendees/:attendeeId/invite answers with. */
+export interface ResendInviteResult {
+  attendeeId: string;
+  email: string;
+  emailSent: boolean;
+  emailError: string | null;
 }
 
 /** Display name for an attendee row (registered user or external invitee). */

@@ -12,6 +12,7 @@ import {
   BadgeCheck,
   Plus,
   Users,
+  Mail,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
@@ -29,6 +30,7 @@ import {
   type EventDetail,
   type EventAttendee,
   type AttendanceRecord,
+  type ResendInviteResult,
 } from '@/lib/types/events';
 
 const STATUS_PILL: Record<AttendeeStatus, string> = {
@@ -66,16 +68,32 @@ type AllRow =
     }
   | { kind: 'walkIn'; id: string; name: string; email: string | null };
 
+/** "Invited 3 days ago", or the plain truth that nothing was ever sent. */
+function invitedLabel(lastInvitedAt: string | null): string {
+  if (!lastInvitedAt) return 'Not yet invited';
+
+  const days = Math.floor(
+    (Date.now() - new Date(lastInvitedAt).getTime()) / 86_400_000,
+  );
+  if (days <= 0) return 'Invited today';
+  if (days === 1) return 'Invited yesterday';
+  return `Invited ${days} days ago`;
+}
+
 function AttendeeSection({
   rows,
   emptyLabel,
   showRespondedAt = false,
   onRemove,
+  onResend,
+  resendingId,
 }: {
   rows: EventAttendee[];
   emptyLabel: string;
   showRespondedAt?: boolean;
   onRemove?: (attendeeId: string) => void;
+  onResend?: (attendeeId: string) => void;
+  resendingId?: string | null;
 }) {
   // No heading or icon of its own any more — the tab above supplies both, and
   // repeating them inside the panel just said the same thing twice.
@@ -100,6 +118,11 @@ function AttendeeSection({
               {email && (
                 <p className="truncate text-xs text-muted-foreground">{email}</p>
               )}
+              {/* Whether an invitation actually reached them, which is the
+                  thing you need to know before deciding to chase. */}
+              <p className="truncate text-xs text-muted-foreground/80">
+                {invitedLabel(a.lastInvitedAt)}
+              </p>
             </div>
             <div className="flex shrink-0 items-center gap-3">
               {showRespondedAt && a.respondedAt && (
@@ -108,6 +131,17 @@ function AttendeeSection({
                     dateStyle: 'medium',
                   })}
                 </span>
+              )}
+              {onResend && email && (
+                <button
+                  onClick={() => onResend(a.id)}
+                  disabled={resendingId === a.id}
+                  aria-label={`Re-send invitation to ${attendeeName(a)}`}
+                  title={`Re-send invitation to ${attendeeName(a)}`}
+                  className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                >
+                  <Mail className="h-4 w-4" />
+                </button>
               )}
               {onRemove && (
                 <button
@@ -143,6 +177,10 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const [notice, setNotice] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
+  // Per-row rather than a single boolean, so only the button that was pressed
+  // shows a pending state.
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const [isResendingAll, setIsResendingAll] = useState(false);
   // Not the first tab, deliberately: this page is mostly open while a meeting
   // is running, and who has actually turned up is the live question. The full
   // invite list stays first because that is the set the others are drawn from.
@@ -214,7 +252,18 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const isOrganizer = !!currentUser && currentUser.id === event?.organizerId;
   const isCoOrganizer =
     !!currentUser && !!event?.coOrganizers.some((c) => c.userId === currentUser.id);
-  const canInvite = isOrganizer || isCoOrganizer;
+  // Mirrors assertCanAdminister on the server: organizer, co-organizer, or an
+  // admin role when the event has no organizer at all. That last case was
+  // missing, so on a public activity the API accepted an invitation while the
+  // page hid every control for making one. canDoWalkIn below already does this.
+  const canInvite =
+    isOrganizer ||
+    isCoOrganizer ||
+    (!event?.organizerId &&
+      !!currentUser &&
+      ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'].includes(
+        currentUser.systemRole,
+      ));
 
   // POST /checkin/:eventId/manual is behind CanManageEventGuard now, so a role
   // check alone would offer the desk to people the API refuses. The server is
@@ -283,6 +332,59 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
       setError(err instanceof Error ? err.message : 'Failed to invite attendees.');
     } finally {
       setIsInviting(false);
+    }
+  };
+
+  /**
+   * Re-send one invitation. The API sends this one inline rather than queueing
+   * it, so the response says whether the mail actually went — report that
+   * rather than a cheerful "sent" that only means "accepted for delivery".
+   */
+  const handleResend = async (attendeeId: string) => {
+    setError(null);
+    setNotice(null);
+    setResendingId(attendeeId);
+    try {
+      const result = await apiFetch<ResendInviteResult>(
+        `/api/v1/events/${id}/attendees/${attendeeId}/invite`,
+        { method: 'POST' },
+      );
+
+      if (result.emailSent) {
+        setNotice(`Invitation re-sent to ${result.email}.`);
+      } else {
+        setError(
+          `Could not email ${result.email}: ${result.emailError ?? 'unknown error'}`,
+        );
+      }
+      queryClient.invalidateQueries({ queryKey: ['event', id] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to re-send.');
+    } finally {
+      setResendingId(null);
+    }
+  };
+
+  /** Chase everyone who has not replied. Queued server-side, so no per-address outcome. */
+  const handleResendAll = async () => {
+    setError(null);
+    setNotice(null);
+    setIsResendingAll(true);
+    try {
+      const { queued } = await apiFetch<{ queued: number }>(
+        `/api/v1/events/${id}/attendees/invite-all`,
+        { method: 'POST' },
+      );
+      setNotice(
+        queued === 0
+          ? 'Nobody is awaiting a reply.'
+          : `Re-sending to ${queued} attendee(s) awaiting a reply.`,
+      );
+      queryClient.invalidateQueries({ queryKey: ['event', id] });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to re-send.');
+    } finally {
+      setIsResendingAll(false);
     }
   };
 
@@ -651,6 +753,19 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                           Walk-in
                         </span>
                       )}
+                      {/* Only invitees have an invitation to re-send. A walk-in
+                          is an attendance record with nothing behind it. */}
+                      {r.kind === 'invitee' && canInvite && r.email && (
+                        <button
+                          onClick={() => handleResend(r.id)}
+                          disabled={resendingId === r.id}
+                          aria-label={`Re-send invitation to ${r.name}`}
+                          title={`Re-send invitation to ${r.name}`}
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                        >
+                          <Mail className="h-4 w-4" />
+                        </button>
+                      )}
                       {/* An invitation can be withdrawn; a walk-in has none, so
                           the equivalent is removing the check-in itself. */}
                       {r.kind === 'invitee' && canInvite && (
@@ -744,6 +859,8 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               emptyLabel="No one has confirmed yet."
               showRespondedAt
               onRemove={canInvite ? handleRemoveAttendee : undefined}
+              onResend={canInvite ? handleResend : undefined}
+              resendingId={resendingId}
             />
           )}
           {activeTab === 'declined' && (
@@ -752,14 +869,36 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               emptyLabel="No one has declined."
               showRespondedAt
               onRemove={canInvite ? handleRemoveAttendee : undefined}
+              onResend={canInvite ? handleResend : undefined}
+              resendingId={resendingId}
             />
           )}
           {activeTab === 'awaiting' && (
-            <AttendeeSection
-              rows={awaiting}
-              emptyLabel="Everyone invited has responded."
-              onRemove={canInvite ? handleRemoveAttendee : undefined}
-            />
+            <div className="space-y-3">
+              {/* The one place a bulk chase-up makes sense: everyone here is,
+                  by definition, someone who has not replied. */}
+              {canInvite && awaiting.length > 0 && (
+                <div className="flex justify-end">
+                  <button
+                    onClick={handleResendAll}
+                    disabled={isResendingAll}
+                    className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    <Mail className="h-4 w-4" />
+                    {isResendingAll
+                      ? 'Re-sending…'
+                      : `Re-send to all ${awaiting.length} awaiting`}
+                  </button>
+                </div>
+              )}
+              <AttendeeSection
+                rows={awaiting}
+                emptyLabel="Everyone invited has responded."
+                onRemove={canInvite ? handleRemoveAttendee : undefined}
+                onResend={canInvite ? handleResend : undefined}
+                resendingId={resendingId}
+              />
+            </div>
           )}
         </div>
       </div>
