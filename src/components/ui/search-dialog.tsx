@@ -65,10 +65,14 @@ export function SearchDialog({
       const last = items[items.length - 1];
       const active = document.activeElement;
 
+      // The !panel.contains(active) guard belongs on both branches. With it
+      // only on the shift branch, focus sitting outside the panel — which is
+      // what a click on the backdrop leaves behind — let a plain Tab escape
+      // into the page behind the overlay, which is not inert.
       if (event.shiftKey && (active === first || !panel.contains(active))) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && active === last) {
+      } else if (!event.shiftKey && (active === last || !panel.contains(active))) {
         event.preventDefault();
         first.focus();
       }
@@ -87,8 +91,19 @@ export function SearchDialog({
     return () => {
       document.removeEventListener('keydown', onKey);
       desktop.removeEventListener('change', onCrossBreakpoint);
+      // getClientRects() as well as contains(): when the dialog closes because
+      // the viewport crossed to md, the button we came from is md:hidden by
+      // then, and focus() on a display:none element is a silent no-op that
+      // drops focus to <body>. Fall back to the search form that just became
+      // visible, so a keyboard user stays where they were.
       const previous = restoreTo.current;
-      if (previous && document.body.contains(previous)) previous.focus();
+      if (previous && previous.getClientRects().length > 0) {
+        previous.focus();
+      } else {
+        document
+          .querySelector<HTMLElement>('header form[role="search"] input')
+          ?.focus();
+      }
     };
   }, [open]);
 
@@ -106,14 +121,22 @@ export function SearchDialog({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/40 md:hidden"
-      onClick={onClose}
-      role="presentation"
-    >
+    <div className="fixed inset-0 z-50 md:hidden">
+      {/* Tint only. The scroller below covers the same area and would swallow
+          any click aimed here, so dismissal lives there instead. */}
+      <div className="animate-fade-in pointer-events-none absolute inset-0 bg-black/40" />
+
       {/* Anchored near the top rather than centred: the keyboard takes the
-          bottom half of the screen the moment the input takes focus. */}
-      <div className="flex justify-center p-4">
+          bottom half of the screen the moment the input takes focus. This
+          scrolls so the submit button stays reachable on a landscape phone,
+          where the keyboard leaves about 175px of visible viewport and the
+          button would otherwise sit under it with nothing to scroll.
+          overscroll-contain keeps that scroll from chaining to the page. */}
+      <div
+        onClick={onClose}
+        role="presentation"
+        className="absolute inset-0 flex justify-center overflow-y-auto overscroll-contain p-4"
+      >
         <div
           ref={panelRef}
           id="search-dialog"
@@ -121,7 +144,7 @@ export function SearchDialog({
           aria-modal="true"
           aria-label="Search"
           onClick={(e) => e.stopPropagation()}
-          className="w-full max-w-lg rounded-[1.25rem] border border-border bg-card p-4 shadow-xl"
+          className="h-fit w-full max-w-lg rounded-[1.25rem] border border-border bg-card p-4 shadow-xl"
         >
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-primary">Search</h2>

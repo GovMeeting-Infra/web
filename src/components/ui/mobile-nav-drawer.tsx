@@ -70,10 +70,14 @@ export function MobileNavDrawer({
       const last = items[items.length - 1];
       const active = document.activeElement;
 
+      // The !panel.contains(active) guard belongs on both branches. With it
+      // only on the shift branch, focus sitting outside the panel — what a tap
+      // on the backdrop leaves behind — let a plain Tab escape into the page
+      // behind the overlay, which is not inert.
       if (event.shiftKey && (active === first || !panel.contains(active))) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && active === last) {
+      } else if (!event.shiftKey && (active === last || !panel.contains(active))) {
         event.preventDefault();
         first.focus();
       }
