@@ -201,6 +201,13 @@ export default function NewEventPage() {
       setError('Start time must be before end time.');
       return;
     }
+    // The only way to say where a meeting is, since room booking was
+    // withdrawn. Checked here as well as on the server so it reads as a
+    // message next to the form rather than a rejected request.
+    if (!venueName.trim()) {
+      setError('A location is required.');
+      return;
+    }
     // Mirrors the server. Public activities are exempt — they have no organizer
     // to deputise for.
     if (!isPublic && coOrganizers.length === 0) {
@@ -224,7 +231,7 @@ export default function NewEventPage() {
       };
 
       if (isPublic) {
-        payload.venueName = venueName.trim() || undefined;
+        payload.venueName = venueName.trim();
         payload.colorCategory = selectedCategory || undefined;
         payload.bannerImage = bannerImage.trim() || undefined;
         payload.externalUrl = externalUrl.trim() || undefined;
@@ -235,7 +242,7 @@ export default function NewEventPage() {
         payload.invitedMinistryIds = invited.length ? invited : undefined;
       } else {
         payload.type = type;
-        payload.venueName = venueName.trim() || undefined;
+        payload.venueName = venueName.trim();
         if (invites.length) {
           payload.inviteeExternals = invites;
         }
@@ -359,9 +366,10 @@ export default function NewEventPage() {
 
         {isPublic ? (
           <div>
-            <label className={label}>Location</label>
+            <label className={label}>Location *</label>
             <input
               type="text"
+              required
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
               placeholder="e.g., Main Conference Hall, National Stadium"
@@ -371,11 +379,13 @@ export default function NewEventPage() {
         ) : (
           <>
             <div>
-              <label className={label}>Location</label>
+              <label className={label}>Location *</label>
               <input
                 type="text"
+                required
                 value={venueName}
                 onChange={(e) => setVenueName(e.target.value)}
+                placeholder="e.g., Committee Room 2, Ministry HQ"
                 className={field}
               />
             </div>
