@@ -102,16 +102,23 @@ export function NotificationBell() {
       {open && (
         <div
           role="menu"
-          // Width clamps so the panel cannot reach past the left edge on a
-          // narrow phone. 5rem, not 2rem: the bell is not the last thing in the
-          // header — the flag chip and user menu sit to its right — so the
-          // panel's right edge starts about 4rem in, and a 2rem allowance put
-          // its left edge off-screen at 375px, where the column's
-          // overflow-hidden quietly clipped it. The height cap matters more:
-          // header, six items and the footer run past a landscape phone's
-          // ~390px, and the list's own max-h does not cover that chrome, so
-          // "See all" became unreachable.
-          className="absolute right-0 z-50 mt-2 max-h-[calc(100dvh-6rem)] w-[min(20rem,calc(100vw-5rem))] overflow-y-auto overflow-x-hidden rounded-[1.25rem] border border-border bg-card shadow-xl"
+          // Below sm the panel is pinned to the viewport rather than hung off
+          // the bell. Anchoring it to the trigger meant its left edge was
+          // whatever was left after the header padding, the user menu and the
+          // gaps — about 74px in — so the width had to be clamped to
+          // 100vw-5rem just to stay on screen, and that left ~6px of clearance
+          // at 375px. Any change to the header's right-hand group ate it. Now
+          // it simply spans the screen with an even 1rem margin, and the
+          // arithmetic cannot drift.
+          //
+          // top-[4.5rem] clears the h-16 header plus the gap the mt-2 used to
+          // provide. From sm it goes back to hanging off the bell, where there
+          // is room for it.
+          //
+          // The height cap stays: header, six items and the footer run past a
+          // landscape phone's ~390px, and the list's own max-h does not cover
+          // that chrome, so "See all" became unreachable without it.
+          className="fixed inset-x-4 top-[4.5rem] z-50 max-h-[calc(100dvh-6rem)] overflow-y-auto overflow-x-hidden rounded-[1.25rem] border border-border bg-card shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-80"
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold text-primary">Unread</h2>
