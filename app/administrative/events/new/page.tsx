@@ -30,6 +30,7 @@ const dateLabel = 'block text-sm font-medium text-foreground mb-2';
 const SESSION_TYPES = [
   { value: 'MEETING', label: 'Meeting' },
   { value: 'CONFERENCE', label: 'Conference' },
+  { value: 'WORKSHOP', label: 'Workshop' },
   { value: 'APPOINTMENT', label: 'External Appointment' },
 ] as const;
 
@@ -79,7 +80,11 @@ export default function NewEventPage() {
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
 
-  const [contactEmail, setContactEmail] = useState('');
+  // Prepopulated with whoever is creating the activity — they are the contact
+  // in almost every case, and the field is no longer optional. Seeded from the
+  // session rather than left blank, but still editable: an activity is
+  // sometimes organised on someone else's behalf.
+  const [contactEmail, setContactEmail] = useState(currentUser?.email ?? '');
   const [contactPhone, setContactPhone] = useState('');
   const [externalUrl, setExternalUrl] = useState('');
   const [bannerImage, setBannerImage] = useState('');
@@ -395,7 +400,7 @@ export default function NewEventPage() {
             </div>
 
             <div>
-              <label className={label}>Venue name (if off-site)</label>
+              <label className={label}>Location</label>
               <input
                 type="text"
                 value={venueName}
@@ -428,7 +433,7 @@ export default function NewEventPage() {
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Contact Email (optional)</label>
+            <label className={label}>Organizer&apos;s email</label>
             <input
               type="email"
               value={contactEmail}

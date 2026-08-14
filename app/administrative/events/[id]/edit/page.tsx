@@ -328,7 +328,7 @@ export default function EditEventPage({
         </div>
 
         <div>
-          <label className={label}>Venue name</label>
+          <label className={label}>Location</label>
           <input
             type="text"
             value={venueName}
@@ -370,7 +370,7 @@ export default function EditEventPage({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Contact Email (optional)</label>
+            <label className={label}>Organizer&apos;s email</label>
             <input
               type="email"
               value={contactEmail}
