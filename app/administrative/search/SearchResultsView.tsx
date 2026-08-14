@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
-import { CalendarDays, FileText, DoorOpen, Users, SearchX } from 'lucide-react';
+import { CalendarDays, FileText, Users, SearchX } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { initialsOf, type SearchResults } from '@/lib/types/account';
 import { PageContainer } from '@/components/ui/page-container';
@@ -48,7 +48,7 @@ export function SearchResultsView() {
   });
 
   const total = data
-    ? data.events.length + data.minutes.length + data.rooms.length + data.people.length
+    ? data.events.length + data.minutes.length + data.people.length
     : 0;
 
   return (
@@ -129,20 +129,6 @@ export function SearchResultsView() {
             ))}
           </Section>
 
-          <Section
-            icon={<DoorOpen className="h-4 w-4" />}
-            title="Rooms"
-            count={data.rooms.length}
-          >
-            {data.rooms.map((r) => (
-              <Link key={r.id} href={`/administrative/rooms/${r.id}`} className={card}>
-                <p className="font-medium text-primary">{r.name}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {r.location} · {r.capacity} people
-                </p>
-              </Link>
-            ))}
-          </Section>
 
           {/* Only populated for admin roles; the API returns an empty list otherwise. */}
           <Section

@@ -118,15 +118,6 @@ export interface CoOrganizerCandidate {
   jobTitle: string | null;
 }
 
-export interface RoomSummary {
-  id: string;
-  name: string;
-  location: string;
-  capacity: number;
-  amenities: string[];
-  _count?: { bookings: number; events: number };
-}
-
 export interface EventListItem {
   id: string;
   title: string;
@@ -139,7 +130,6 @@ export interface EventListItem {
   status: EventStatus;
   colorCategory: string | null;
   organizer: { id: string; name: string } | null;
-  room: { id: string; name: string } | null;
   _count: { attendees: number };
 }
 
@@ -212,12 +202,10 @@ export interface EventDetail {
   publishedAt: string | null;
   ministryId: string;
   organizerId: string | null;
-  roomId: string | null;
   organizer: { id: string; name: string; email: string } | null;
   coOrganizers: EventCoOrganizer[];
   attendees: EventAttendee[];
   minutes: { id: string; status: MinutesStatus } | null;
-  room: RoomSummary | null;
   seriesId: string | null;
   series: EventSeries | null;
   invitedMinistries: { id: string; name: string; code: string }[];
@@ -234,7 +222,6 @@ export interface CreateEventInput {
   endAt: string;
   venueName?: string;
   allowGuestCheckIn?: boolean;
-  roomId?: string;
   colorCategory?: string;
   coOrganizerIds?: string[];
   ministryId?: string;

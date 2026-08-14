@@ -70,11 +70,6 @@ const NAV_GROUPS: NavGroup[] = [
         label: 'Calendar',
         icon: <CalendarRange className="h-4 w-4" />,
       },
-      {
-        href: '/administrative/rooms',
-        label: 'Rooms',
-        icon: <Building2 className="h-4 w-4" />,
-      },
     ],
   },
   {

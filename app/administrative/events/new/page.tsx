@@ -5,14 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, X, Building2, Globe, Upload } from 'lucide-react';
-import { apiFetch, ApiError } from '@/lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
 import type {
   EventDetail,
-  RoomSummary,
   CoOrganizerCandidate,
   Frequency,
   EndType,
@@ -74,7 +73,6 @@ export default function NewEventPage() {
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
   const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
-  const [roomId, setRoomId] = useState('');
   const [ministryId, setMinistryId] = useState('');
   const [type, setType] = useState<string>('MEETING');
   const [startAt, setStartAt] = useState('');
@@ -106,11 +104,6 @@ export default function NewEventPage() {
   const [recurrenceEndType, setRecurrenceEndType] = useState<EndType>('COUNT');
   const [recurrenceCount, setRecurrenceCount] = useState('4');
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
-
-  const { data: rooms } = useQuery({
-    queryKey: ['rooms'],
-    queryFn: () => apiFetch<RoomSummary[]>('/api/v1/rooms'),
-  });
 
   const { data: candidates = [] } = useQuery({
     queryKey: ['co-organizer-candidates'],
@@ -242,7 +235,6 @@ export default function NewEventPage() {
         payload.invitedMinistryIds = invited.length ? invited : undefined;
       } else {
         payload.type = type;
-        payload.roomId = roomId || undefined;
         payload.venueName = venueName.trim() || undefined;
         if (invites.length) {
           payload.inviteeExternals = invites;
@@ -286,11 +278,7 @@ export default function NewEventPage() {
 
       router.push(`/administrative/events/${event.id}`);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setError('Room is already booked for this time period.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to create event');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to create event');
     } finally {
       setIsSubmitting(false);
     }
@@ -369,7 +357,6 @@ export default function NewEventPage() {
           />
         </div>
 
-        {/* Location: free text for public, room picker for internal */}
         {isPublic ? (
           <div>
             <label className={label}>Location</label>
@@ -383,22 +370,6 @@ export default function NewEventPage() {
           </div>
         ) : (
           <>
-            <div>
-              <label className={label}>Room</label>
-              <select
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
-                className={field}
-              >
-                <option value="">Select a room</option>
-                {rooms?.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} ({r.capacity} people) &mdash; {r.location}
-                  </option>
-                ))}
-              </select>
-            </div>
-
             <div>
               <label className={label}>Location</label>
               <input

@@ -60,7 +60,6 @@ export interface SearchResults {
     snippet: string;
     event: { id: string; title: string };
   }[];
-  rooms: { id: string; name: string; location: string; capacity: number }[];
   people: { id: string; name: string; email: string; jobTitle: string | null }[];
 }
 

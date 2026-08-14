@@ -8,7 +8,7 @@ import { ArrowLeft, Building2, Globe, Upload } from 'lucide-react';
 import { apiFetch, ApiError } from '@/lib/api/client';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
-import type { EventDetail, RoomSummary } from '@/lib/types/events';
+import type { EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { FormSkeleton } from '@/components/ui/skeletons';
 
@@ -80,7 +80,6 @@ export default function EditEventPage({
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
   const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
-  const [roomId, setRoomId] = useState('');
   const [type, setType] = useState<string>('MEETING');
   const [scope, setScope] = useState('');
   const [classification, setClassification] = useState('');
@@ -101,11 +100,6 @@ export default function EditEventPage({
     queryFn: () => apiFetch<EventDetail>(`/api/v1/events/${id}`),
   });
 
-  const { data: rooms } = useQuery({
-    queryKey: ['rooms'],
-    queryFn: () => apiFetch<RoomSummary[]>('/api/v1/rooms'),
-  });
-
   // Seed once, so typing isn't overwritten by a background refetch.
   useEffect(() => {
     if (!event || seeded) return;
@@ -113,7 +107,6 @@ export default function EditEventPage({
     setTitle(event.title);
     setDescription(event.description ?? '');
     setVenueName(event.venueName ?? '');
-    setRoomId(event.roomId ?? '');
     setType(event.type);
     setScope(event.scope ?? '');
     setClassification(event.classification ?? '');
@@ -161,7 +154,6 @@ export default function EditEventPage({
           startAt: new Date(startAt).toISOString(),
           endAt: new Date(endAt).toISOString(),
           venueName: venueName.trim() || undefined,
-          roomId: roomId || undefined,
           contactEmail: contactEmail.trim() || undefined,
           contactPhone: contactPhone.trim() || undefined,
           externalUrl: externalUrl.trim() || undefined,
@@ -172,11 +164,7 @@ export default function EditEventPage({
 
       router.push(`/administrative/events/${id}`);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setError('Room conflict with the new time slot.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to update event');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to update event');
     } finally {
       setIsSubmitting(false);
     }
@@ -306,21 +294,6 @@ export default function EditEventPage({
               {EVENT_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {titleCase(t)}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className={label}>Room</label>
-            <select
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-              className={field}
-            >
-              <option value="">No room</option>
-              {rooms?.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name} ({r.capacity} people) &mdash; {r.location}
                 </option>
               ))}
             </select>

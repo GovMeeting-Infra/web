@@ -57,7 +57,7 @@ export function StatCardsSkeleton({ count = 4 }: { count?: number }) {
 }
 
 /**
- * A grid of cards, as on the events and rooms lists.
+ * A grid of cards, as on the events list.
  *
  * Mirrors the real card: title, three meta rows against icons, a status pill
  * in the corner, and a divided footer of actions — so the layout does not jump

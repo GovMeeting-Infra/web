@@ -184,19 +184,6 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               }}
             />
 
-            <ReportCard
-              title="Rooms & Facilities"
-              description="Room inventory and booking activity"
-              period={period}
-              icon={<Calendar className="h-6 w-6 text-[#003580]" />}
-              // activeRooms, not totalRooms: the latter counts soft-deleted
-              // rooms too, so it would disagree with the rooms page.
-              metrics={{
-                rooms: data.roomStats.activeRooms,
-                bookings: data.roomStats.bookingsThisMonth,
-                utilisation: `${Math.round(data.roomStats.averageUtilization)}%`,
-              }}
-            />
 
             {/* userStats was fetched but never rendered, so the People figures
                 appeared on the dashboard and nowhere on this page. */}

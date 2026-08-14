@@ -47,7 +47,6 @@ export default function CalendarPage() {
     colorCategory: e.colorCategory,
     type: e.type,
     venueName: e.venueName,
-    room: e.room,
   }));
 
   const buildHref = (
