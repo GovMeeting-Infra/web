@@ -7,6 +7,10 @@ import { Bell, Monitor, Lock, Database, Download } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import type { UserPreferences } from '@/lib/types/account';
 import { PageContainer } from '@/components/ui/page-container';
+import {
+  PageHeaderSkeleton,
+  CardSkeleton,
+} from '@/components/ui/skeletons';
 
 function Toggle({
   checked,
@@ -24,12 +28,19 @@ function Toggle({
       aria-checked={checked}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
+      // inline-flex rather than a positioned knob. The knob was `absolute`
+      // with no `left`, so it fell back to its static position — and a button
+      // is text-align:center by default, which Tailwind's preflight does not
+      // reset. The 20px knob therefore started 12px in rather than at the
+      // edge, sitting too far right when off and hanging 10px past the end of
+      // the 44px track when on. As a flex item it starts at the left edge and
+      // the transform means what it says.
+      className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
         checked ? 'bg-primary' : 'bg-border'
       }`}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+        className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
           checked ? 'translate-x-[1.375rem]' : 'translate-x-0.5'
         }`}
       />
@@ -160,11 +171,27 @@ export default function SettingsPage() {
     }
   };
 
+  // Loading and failure were the same branch, so a failed request rendered as
+  // "Loading settings…" forever.
+  if (error) {
+    return (
+      <PageContainer>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+          {error instanceof Error
+            ? error.message
+            : 'Could not load your settings.'}
+        </div>
+      </PageContainer>
+    );
+  }
+
   if (isLoading || !prefs) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        {error instanceof Error ? error.message : 'Loading settings…'}
-      </div>
+      <PageContainer>
+        <PageHeaderSkeleton />
+        <CardSkeleton lines={4} label="Loading settings" />
+        <CardSkeleton lines={3} />
+      </PageContainer>
     );
   }
 
