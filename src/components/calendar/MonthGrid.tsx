@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { eventColor, toDayParam } from '@/lib/event-colors';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { EventType } from '@/lib/types/events';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -117,8 +118,19 @@ export function MonthGrid({
         </div>
       </div>
 
+      {/* The grid below keeps rendering while this shows: the dates are real
+          information, not a placeholder, and blanking them would make the
+          month jump about as it loads. Only the events are pending, so only
+          they get a skeleton. */}
       {isLoading && (
-        <p className="pb-4 text-sm text-muted-foreground">Loading events…</p>
+        <div role="status" aria-live="polite" className="pb-4">
+          <span className="sr-only">Loading events</span>
+          <div className="flex flex-wrap gap-2" aria-hidden>
+            <Skeleton className="h-5 w-24 rounded" />
+            <Skeleton className="h-5 w-32 rounded" />
+            <Skeleton className="h-5 w-20 rounded" />
+          </div>
+        </div>
       )}
 
       <div className="grid grid-cols-7 gap-1">

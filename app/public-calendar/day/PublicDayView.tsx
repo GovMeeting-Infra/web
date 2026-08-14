@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, Clock, MapPin } from 'lucide-react';
 import { PublicShell } from '@/components/PublicShell';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import { apiFetch } from '@/lib/api/client';
 import { eventColor, eventCategoryLabel, toDayParam } from '@/lib/event-colors';
 import type { PublicEventListItem } from '@/lib/types/events';
@@ -107,9 +108,7 @@ export function PublicDayView() {
         )}
 
         {isLoading && (
-          <p className="rounded-2xl border border-[#d3deef] bg-white p-6 text-center text-sm text-slate-500 sm:p-10">
-            Loading activities…
-          </p>
+          <ListSkeleton rows={4} label="Loading activities" />
         )}
 
         {!isLoading && events.length === 0 && (

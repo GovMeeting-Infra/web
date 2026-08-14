@@ -56,6 +56,170 @@ export function StatCardsSkeleton({ count = 4 }: { count?: number }) {
   );
 }
 
+/**
+ * A grid of cards, as on the events and rooms lists.
+ *
+ * Mirrors the real card: title, three meta rows against icons, a status pill
+ * in the corner, and a divided footer of actions — so the layout does not jump
+ * when the data lands.
+ */
+export function CardGridSkeleton({
+  cards = 6,
+  label = 'Loading',
+}: {
+  cards?: number;
+  label?: string;
+}) {
+  return (
+    <Status label={label}>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {Array.from({ length: cards }).map((_, i) => (
+          <div
+            key={i}
+            className="rounded-[1.75rem] border border-border bg-card p-6"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <Skeleton className="h-5 w-3/4" />
+                <div className="mt-4 space-y-2">
+                  <Skeleton className="h-4 w-2/3" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-3/5" />
+                </div>
+              </div>
+              <Skeleton className="h-6 w-20 shrink-0 rounded-full" />
+            </div>
+            <div className="mt-6 flex gap-3 border-t border-border pt-4">
+              <Skeleton className="h-9 flex-1 rounded-lg" />
+              <Skeleton className="h-9 flex-1 rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </Status>
+  );
+}
+
+/**
+ * A detail page: back link, header block, a row of facts, then panels. Used
+ * where a whole page is waiting rather than one list inside it.
+ */
+export function DetailSkeleton({ label = 'Loading' }: { label?: string }) {
+  return (
+    <Status label={label}>
+      <div className="space-y-8">
+        <Skeleton className="h-4 w-32" />
+        <div className="space-y-3">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-8 w-full max-w-[24rem]" />
+          <Skeleton className="h-4 w-full max-w-[18rem]" />
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="space-y-2 rounded-[1.5rem] border border-border bg-card p-5"
+            >
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-5 w-32" />
+            </div>
+          ))}
+        </div>
+        <div className="space-y-3 rounded-[1.5rem] border border-border bg-card p-6">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+        </div>
+      </div>
+    </Status>
+  );
+}
+
+/**
+ * A month grid, for the Suspense fallback on the calendar pages — where the
+ * component that computes the real dates has not loaded yet, so unlike
+ * MonthGrid's own loading state there is nothing real to show.
+ */
+export function CalendarSkeleton({ label = 'Loading calendar' }: { label?: string }) {
+  return (
+    <Status label={label}>
+      <div className="rounded-[1.5rem] border border-border bg-card p-3 sm:p-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <Skeleton className="h-6 w-40" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+            <Skeleton className="h-10 w-16 rounded-lg" />
+            <Skeleton className="h-10 w-10 rounded-lg" />
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={`h-${i}`} className="mx-auto h-3 w-8" />
+          ))}
+          {Array.from({ length: 35 }).map((_, i) => (
+            <Skeleton key={i} className="min-h-16 rounded-lg sm:min-h-32" />
+          ))}
+        </div>
+      </div>
+    </Status>
+  );
+}
+
+/**
+ * The single centred card the password pages are built from. Sized to the real
+ * card so the page does not resize under the reader mid-load.
+ */
+export function AuthCardSkeleton({ label = 'Loading' }: { label?: string }) {
+  return (
+    <Status label={label}>
+      <div className="w-full max-w-md space-y-5 rounded-[1.75rem] border border-[#d3deef] bg-white p-6 sm:p-8">
+        <Skeleton className="mx-auto h-12 w-12 rounded-2xl" />
+        <div className="space-y-2">
+          <Skeleton className="mx-auto h-6 w-48" />
+          <Skeleton className="mx-auto h-4 w-64" />
+        </div>
+        <div className="space-y-4 pt-2">
+          <Skeleton className="h-10 w-full rounded-md" />
+          <Skeleton className="h-10 w-full rounded-md" />
+          <Skeleton className="h-11 w-full rounded-xl" />
+        </div>
+      </div>
+    </Status>
+  );
+}
+
+/** A form: a heading and a run of labelled fields, then the actions. */
+export function FormSkeleton({
+  fields = 6,
+  label = 'Loading',
+}: {
+  fields?: number;
+  label?: string;
+}) {
+  return (
+    <Status label={label}>
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-24" />
+          <Skeleton className="h-8 w-full max-w-[20rem]" />
+        </div>
+        <div className="space-y-5 rounded-[1.5rem] border border-border bg-card p-6">
+          {Array.from({ length: fields }).map((_, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="h-10 w-full rounded-md" />
+            </div>
+          ))}
+          <div className="flex gap-3 pt-2">
+            <Skeleton className="h-10 w-28 rounded-xl" />
+            <Skeleton className="h-10 w-24 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </Status>
+  );
+}
+
 /** A bordered card containing a list of rows — the commonest shape here. */
 export function ListSkeleton({
   rows = 5,

@@ -10,6 +10,7 @@ import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
 import type { EventDetail, RoomSummary } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
+import { FormSkeleton } from '@/components/ui/skeletons';
 
 // Same styling constants as the create form.
 const field =
@@ -182,7 +183,11 @@ export default function EditEventPage({
   };
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
+    return (
+      <PageContainer>
+        <FormSkeleton fields={7} label="Loading event" />
+      </PageContainer>
+    );
   }
 
   // Only a 404 means the event is gone; anything else is a failure to load it,

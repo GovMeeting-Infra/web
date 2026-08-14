@@ -24,6 +24,7 @@ import {
 import { apiFetch, ApiError } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
 import { PageContainer } from '@/components/ui/page-container';
+import { DetailSkeleton } from '@/components/ui/skeletons';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
   PersonPicker,
@@ -268,9 +269,9 @@ export default function EventDetailPage({
 
   if (isLoading) {
     return (
-      <div className="p-8 text-center text-muted-foreground">
-        Loading event...
-      </div>
+      <PageContainer>
+        <DetailSkeleton label="Loading event" />
+      </PageContainer>
     );
   }
 

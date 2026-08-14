@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { PublicShell } from '@/components/PublicShell';
+import { CalendarSkeleton } from '@/components/ui/skeletons';
 import { PublicCalendarView } from './PublicCalendarView';
 
 const TITLE = 'Public Events Calendar';
@@ -23,9 +24,7 @@ export default function Home() {
     <Suspense
       fallback={
         <PublicShell>
-          <p className="p-10 text-center text-sm text-slate-500">
-            Loading calendar…
-          </p>
+          <CalendarSkeleton />
         </PublicShell>
       }
     >

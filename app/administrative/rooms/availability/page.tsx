@@ -15,6 +15,7 @@ import {
 } from '@/lib/types/rooms';
 import type { EventListResponse } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
+import { ListSkeleton } from '@/components/ui/skeletons';
 
 const SLOT_START_HOUR = 8;
 const SLOT_END_HOUR = 20;
@@ -296,7 +297,7 @@ export default function RoomAvailabilityPage() {
   return (
     <Suspense
       fallback={
-        <div className="p-8 text-center text-muted-foreground">Loading…</div>
+        <ListSkeleton rows={6} label="Loading availability" />
       }
     >
       <AvailabilityView />
