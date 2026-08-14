@@ -233,6 +233,14 @@ export default function CheckInCodePage({
                   Your current location becomes the check-in area. Attendees
                   must be within {geofence?.radiusMeters ?? 100} m of where you
                   stand now. Generate this at the venue.
+                  {geofence?.required && (
+                    <>
+                      {' '}
+                      This meeting requires location verification, so a code
+                      cannot be generated until your signal is accurate enough
+                      to fix the area.
+                    </>
+                  )}
                 </>
               )}
             </p>

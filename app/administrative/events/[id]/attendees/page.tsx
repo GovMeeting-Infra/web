@@ -823,9 +823,17 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                       </p>
                       {/* Guests have no linked account, so fall back to the email
                           they signed in with. */}
+                      {(c.guestTitle || c.guestOrganisation) && (
+                        <p className="truncate text-xs text-muted-foreground">
+                          {[c.guestTitle, c.guestOrganisation]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </p>
+                      )}
                       {(c.user?.email || c.guestEmail) && (
                         <p className="truncate text-xs text-muted-foreground">
                           {c.user?.email ?? c.guestEmail}
+                          {c.guestPhone ? ` · ${c.guestPhone}` : ''}
                           {!c.userId && ' · guest'}
                         </p>
                       )}

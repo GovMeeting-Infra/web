@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/signature-pad';
 import { useCheckInSubmit, submitLabel } from './useCheckInSubmit';
 import { CheckInSuccess, AlreadyCheckedIn } from './CheckInResultView';
+import { LocationNotice } from './LocationNotice';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
@@ -98,6 +99,8 @@ export function StaffCheckInForm({
         </div>
       </div>
 
+      <LocationNotice required={geofenceRequired} />
+
       <button
         type="submit"
         disabled={!canSubmit}
@@ -106,11 +109,6 @@ export function StaffCheckInForm({
         {submitLabel(phase, geofenceRequired)}
       </button>
 
-      {geofenceRequired && (
-        <p className="mt-3 text-center text-xs text-muted-foreground">
-          This meeting requires you to be physically at the venue.
-        </p>
-      )}
     </form>
   );
 }

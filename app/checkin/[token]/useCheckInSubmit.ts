@@ -10,9 +10,14 @@ export type SubmitPhase = 'idle' | 'locating' | 'submitting';
 /**
  * Shared submit path for the staff and guest forms.
  *
- * Location is fetched here, at submit time, and only when the meeting actually
- * has a check-in area — asking for the permission otherwise trains people to
- * dismiss it.
+ * Location is always requested, but what a refusal costs depends on the
+ * meeting. Where a check-in area exists the fix gates entry, so a refusal stops
+ * the submission — the server would reject it anyway, and failing here gives a
+ * clearer reason. Where none exists it is recorded and nothing more, so a
+ * refusal must not stand between someone and their attendance being counted.
+ *
+ * It previously asked only when a fence existed, which meant the check-ins
+ * nothing verified were also the ones with no location on record.
  */
 export function useCheckInSubmit(geofenceRequired: boolean) {
   const [phase, setPhase] = useState<SubmitPhase>('idle');
@@ -26,26 +31,28 @@ export function useCheckInSubmit(geofenceRequired: boolean) {
 
     let coords: Record<string, number> = {};
 
-    if (geofenceRequired) {
-      setPhase('locating');
-      try {
-        const fix = await requestLocation();
-        coords = {
-          lat: fix.latitude,
-          lng: fix.longitude,
-          gpsAccuracy: fix.accuracy,
-        };
-      } catch (err) {
+    setPhase('locating');
+    try {
+      const fix = await requestLocation();
+      coords = {
+        lat: fix.latitude,
+        lng: fix.longitude,
+        gpsAccuracy: fix.accuracy,
+      };
+    } catch (err) {
+      if (geofenceRequired) {
         setPhase('idle');
+        // err.message already names the specific problem and its remedy —
+        // blocked permission, timed out, or services switched off.
         setError(
           err instanceof GeolocationError
-            ? `${err.message} Location is required for this meeting. Enable GPS and try again.`
-            : 'Location is required for this meeting. Enable GPS and try again.',
+            ? `${err.message} This meeting can only be checked into at the venue.`
+            : 'Your location is required to check in to this meeting.',
         );
-        // Abort rather than submit: the server would reject it anyway, and
-        // failing here gives a clearer reason.
         return;
       }
+      // No fence: carry on without coordinates rather than refuse a check-in
+      // over a reading nothing was going to be measured against.
     }
 
     setPhase('submitting');

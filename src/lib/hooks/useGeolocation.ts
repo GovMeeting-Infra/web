@@ -4,7 +4,30 @@ export interface GeolocationFix {
   accuracy: number;
 }
 
-export class GeolocationError extends Error {}
+/** Which way the request failed, so callers can offer the right way out. */
+export type GeolocationFailure =
+  | 'UNSUPPORTED'
+  | 'DENIED'
+  | 'TIMEOUT'
+  | 'UNAVAILABLE';
+
+/**
+ * Carries the reason as well as the message.
+ *
+ * The reason used to be discarded, leaving only prose — so nothing could tell
+ * a permission the user had blocked (which another tap will never fix; it
+ * needs browser settings) from a fix that simply timed out (which retrying
+ * often does fix).
+ */
+export class GeolocationError extends Error {
+  reason: GeolocationFailure;
+
+  constructor(reason: GeolocationFailure, message: string) {
+    super(message);
+    this.name = 'GeolocationError';
+    this.reason = reason;
+  }
+}
 
 const DEFAULT_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
@@ -29,7 +52,10 @@ export function requestLocation(
   return new Promise((resolve, reject) => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
       reject(
-        new GeolocationError('Geolocation is not supported by your browser.'),
+        new GeolocationError(
+          'UNSUPPORTED',
+          'This browser cannot share your location.',
+        ),
       );
       return;
     }
@@ -43,13 +69,20 @@ export function requestLocation(
         }),
       (error) =>
         reject(
-          new GeolocationError(
-            error.code === error.PERMISSION_DENIED
-              ? 'Location permission was denied.'
-              : error.code === error.TIMEOUT
-                ? 'Timed out waiting for your location.'
-                : 'Could not determine your location.',
-          ),
+          error.code === error.PERMISSION_DENIED
+            ? new GeolocationError(
+                'DENIED',
+                'Location access is blocked. Allow location for this site in your browser settings, then try again.',
+              )
+            : error.code === error.TIMEOUT
+              ? new GeolocationError(
+                  'TIMEOUT',
+                  'Timed out finding your location. Move somewhere with a clearer view of the sky and try again.',
+                )
+              : new GeolocationError(
+                  'UNAVAILABLE',
+                  'Your location could not be determined. Check that location services are switched on.',
+                ),
         ),
       { ...DEFAULT_OPTIONS, ...options },
     );

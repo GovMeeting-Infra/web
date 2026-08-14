@@ -194,6 +194,8 @@ export interface EventDetail {
   venueLng: number | null;
   geofenceRadius: number;
   allowGuestCheckIn: boolean;
+  /** Refuse to mint a check-in code unless a geofence can be anchored. */
+  requireGeofence?: boolean;
   bannerImage: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -222,6 +224,7 @@ export interface CreateEventInput {
   endAt: string;
   venueName?: string;
   allowGuestCheckIn?: boolean;
+  requireGeofence?: boolean;
   colorCategory?: string;
   coOrganizerIds?: string[];
   ministryId?: string;
@@ -248,6 +251,8 @@ export interface CheckInGeofence {
   anchorLng: number | null;
   anchorAccuracy: number | null;
   anchorSetAt: string | null;
+  /** Whether the event insists on a fence, so a refusal can be explained. */
+  required?: boolean;
 }
 
 export interface CheckInCodeResponse {
@@ -402,6 +407,14 @@ export interface AttendanceRecord {
   userId: string | null;
   guestName?: string | null;
   guestEmail?: string | null;
+  /**
+   * Collected from a guest checking themselves in. Null for staff, whose
+   * account carries a job title and ministry, and for a walk-in an organizer
+   * recorded at the desk.
+   */
+  guestTitle?: string | null;
+  guestOrganisation?: string | null;
+  guestPhone?: string | null;
   /** A guest with no matching invite for this event. */
   isWalkIn?: boolean;
   signedName: string;

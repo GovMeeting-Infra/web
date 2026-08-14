@@ -73,6 +73,7 @@ export default function NewEventPage() {
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
   const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
+  const [requireGeofence, setRequireGeofence] = useState(false);
   const [ministryId, setMinistryId] = useState('');
   const [type, setType] = useState<string>('MEETING');
   const [startAt, setStartAt] = useState('');
@@ -228,6 +229,7 @@ export default function NewEventPage() {
         coOrganizerIds: coOrganizers.length ? coOrganizers : undefined,
         ministryId: isSuperAdmin ? ministryId || undefined : undefined,
         allowGuestCheckIn,
+        requireGeofence,
       };
 
       if (isPublic) {
@@ -407,6 +409,27 @@ export default function NewEventPage() {
               <span className="mt-1 block text-xs text-muted-foreground">
                 People without an account can check in with their name, email
                 and signature.
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={requireGeofence}
+              onChange={(e) => setRequireGeofence(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span>
+              <span className="text-sm font-medium text-foreground">
+                Require location verification
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Attendees must be within 100m of where you stand when you
+                generate the QR code. Without this, a poor GPS signal at that
+                moment produces a code anyone can use from anywhere.
               </span>
             </span>
           </label>
