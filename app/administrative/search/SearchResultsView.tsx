@@ -7,6 +7,7 @@ import { CalendarDays, FileText, DoorOpen, Users, SearchX } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { initialsOf, type SearchResults } from '@/lib/types/account';
 import { PageContainer } from '@/components/ui/page-container';
+import { ListSkeleton } from '@/components/ui/skeletons';
 
 function Section({
   icon,
@@ -79,9 +80,7 @@ export function SearchResultsView() {
       )}
 
       {isLoading && q.trim().length >= 2 && (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Searching…
-        </div>
+        <ListSkeleton rows={5} label="Searching" />
       )}
 
       {data && !data.tooShort && total === 0 && !isLoading && (

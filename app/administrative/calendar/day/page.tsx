@@ -15,6 +15,7 @@ import {
 import { apiFetch } from '@/lib/api/client';
 import { eventColor, eventCategoryLabel, toDayParam } from '@/lib/event-colors';
 import { PageContainer } from '@/components/ui/page-container';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import {
   EVENT_STATUS_LABELS,
   type EventListResponse,
@@ -125,11 +126,7 @@ export default function CalendarDayPage() {
         </div>
       )}
 
-      {isLoading && (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          Loading agenda…
-        </div>
-      )}
+      {isLoading && <ListSkeleton rows={5} label="Loading agenda" />}
 
       {!isLoading && events.length === 0 && (
         <div className="rounded-[1.5rem] border border-dashed border-border p-12 text-center">

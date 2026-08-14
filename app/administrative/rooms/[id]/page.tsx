@@ -19,6 +19,7 @@ import {
 } from '@/lib/types/rooms';
 import type { EventListResponse } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
+import { DetailSkeleton } from '@/components/ui/skeletons';
 
 const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
 
@@ -80,7 +81,11 @@ export default function RoomDetailPage({
   const events = eventsResponse?.data ?? [];
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading room…</div>;
+    return (
+      <PageContainer>
+        <DetailSkeleton label="Loading room" />
+      </PageContainer>
+    );
   }
 
   if (error || !room) {

@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { AuthCardSkeleton } from '@/components/ui/skeletons';
 import { SetPasswordView } from './SetPasswordView';
 
 // Public: the recipient has no session yet — the invitation token is the
@@ -7,8 +8,8 @@ export default function SetPasswordPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-dvh items-center justify-center text-sm text-slate-500">
-          Loading…
+        <div className="flex min-h-dvh items-center justify-center p-4">
+          <AuthCardSkeleton label="Loading the form" />
         </div>
       }
     >

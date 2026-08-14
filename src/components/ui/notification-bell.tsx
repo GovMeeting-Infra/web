@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Bell, BellOff, ArrowUpRight } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { Skeleton } from './skeleton';
 import type { Notification } from '@/lib/types/account';
 
 const PREVIEW_LIMIT = 6;
@@ -125,9 +126,15 @@ export function NotificationBell() {
           </div>
 
           {isLoading ? (
-            <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-              Loading…
-            </p>
+            <div role="status" aria-live="polite" className="divide-y divide-border">
+              <span className="sr-only">Loading notifications</span>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="space-y-2 px-4 py-3">
+                  <Skeleton className="h-4 w-3/5" />
+                  <Skeleton className="h-3 w-4/5" />
+                </div>
+              ))}
+            </div>
           ) : unread.length === 0 ? (
             <div className="px-4 py-8 text-center">
               <BellOff className="mx-auto h-6 w-6 text-muted-foreground" />

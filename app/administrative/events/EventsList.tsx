@@ -14,6 +14,7 @@ import {
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 import { PageContainer } from '@/components/ui/page-container';
+import { CardGridSkeleton } from '@/components/ui/skeletons';
 import {
   EVENT_TYPE_LABELS,
   EVENT_STATUS_LABELS,
@@ -170,11 +171,7 @@ function EventPanel({
         </div>
       )}
 
-      {isLoading && (
-        <div className="rounded-[1.75rem] border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-          Loading…
-        </div>
-      )}
+      {isLoading && <CardGridSkeleton cards={6} label="Loading events" />}
 
       {!isLoading && data && data.data.length === 0 && (
         <p className="rounded-[1.75rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">

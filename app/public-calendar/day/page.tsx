@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { PublicShell } from '@/components/PublicShell';
+import { ListSkeleton } from '@/components/ui/skeletons';
 import { PublicDayView } from './PublicDayView';
 
 // The day itself is a query parameter read client-side, so this cannot name a
@@ -16,9 +17,7 @@ export default function PublicDayPage() {
     <Suspense
       fallback={
         <PublicShell>
-          <p className="p-10 text-center text-sm text-slate-500">
-            Loading activities…
-          </p>
+          <ListSkeleton rows={4} label="Loading activities" />
         </PublicShell>
       }
     >

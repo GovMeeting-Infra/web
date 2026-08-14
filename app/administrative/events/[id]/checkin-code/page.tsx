@@ -9,6 +9,7 @@ import { apiFetch } from '@/lib/api/client';
 import { requestLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
 import type { CheckInCodeResponse } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
+import { CardSkeleton } from '@/components/ui/skeletons';
 
 interface GeneratePayload {
   lat?: number;
@@ -128,7 +129,11 @@ export default function CheckInCodePage({
   const geofence = qrCode?.geofence;
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading…</div>;
+    return (
+      <PageContainer>
+        <CardSkeleton lines={4} label="Loading check-in code" />
+      </PageContainer>
+    );
   }
 
   // The server is the authority on who may manage this event (organizer,
