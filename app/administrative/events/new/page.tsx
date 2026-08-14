@@ -9,6 +9,7 @@ import { apiFetch, ApiError } from '@/lib/api/client';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
+import { Skeleton } from '@/components/ui/skeleton';
 import type {
   EventDetail,
   RoomSummary,
@@ -699,32 +700,44 @@ export default function NewEventPage() {
                 </div>
               )}
 
-              <select
-                value=""
-                onChange={(e) => {
-                  const mid = e.target.value;
-                  if (mid && !invitedMinistries.includes(mid)) {
-                    setInvitedMinistries([...invitedMinistries, mid]);
-                  }
-                  e.target.value = '';
-                }}
-                className={field}
-              >
-                <option value="">+ Add ministry</option>
-                {invitableMinistries
-                  .filter((m) => !invitedMinistries.includes(m.id))
-                  .map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                      {m.code ? ` (${m.code})` : ''}
-                    </option>
-                  ))}
-              </select>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                {ministries
-                  ? 'Ministries invited to this activity.'
-                  : 'Loading ministries…'}
-              </p>
+              {/* A picker with nothing in it is not worth showing, and saying
+                  "Loading ministries…" underneath it just puts the word
+                  loading on screen. The field's own shape stands in until the
+                  options exist. */}
+              {!ministries ? (
+                <div role="status" aria-live="polite">
+                  <span className="sr-only">Loading ministries</span>
+                  <Skeleton className="mt-1 h-10 w-full rounded-md" />
+                  <Skeleton className="mt-2 h-3 w-56" />
+                </div>
+              ) : (
+                <>
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const mid = e.target.value;
+                      if (mid && !invitedMinistries.includes(mid)) {
+                        setInvitedMinistries([...invitedMinistries, mid]);
+                      }
+                      e.target.value = '';
+                    }}
+                    className={field}
+                  >
+                    <option value="">+ Add ministry</option>
+                    {invitableMinistries
+                      .filter((m) => !invitedMinistries.includes(m.id))
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                          {m.code ? ` (${m.code})` : ''}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Ministries invited to this activity.
+                  </p>
+                </>
+              )}
             </div>
 
             <div>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X, UserCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { Skeleton } from './skeleton';
 
 export interface DirectoryPerson {
   id: string;
@@ -122,8 +123,21 @@ export function PersonPicker({
       {open && (
         <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-border bg-card shadow-lg">
           {isLoading ? (
-            <li className="px-3 py-2 text-sm text-muted-foreground">
-              Searching…
+            // Rows the shape of the results that replace them, so the dropdown
+            // does not resize under the pointer as matches arrive.
+            <li role="status" aria-live="polite" className="px-3 py-2">
+              <span className="sr-only">Searching</span>
+              <div className="space-y-3" aria-hidden>
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Skeleton className="h-7 w-7 shrink-0 rounded-full" />
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <Skeleton className="h-3.5 w-2/5" />
+                      <Skeleton className="h-3 w-3/5" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </li>
           ) : people.length === 0 ? (
             <li className="px-3 py-2 text-sm text-muted-foreground">
