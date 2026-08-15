@@ -304,11 +304,6 @@ export default function DashboardPage() {
                 value={analytics.userStats.activeUsers}
                 hint={`of ${analytics.userStats.totalUsers}`}
               />
-              <MiniStat
-                label="Rooms"
-                value={analytics.roomStats.activeRooms}
-                hint={`${analytics.roomStats.bookingsThisMonth} bookings`}
-              />
             </dl>
           )}
         </section>
@@ -353,7 +348,6 @@ export default function DashboardPage() {
                       <p className="mt-1 text-sm text-muted-foreground">
                         {whenLabel(e.startAt)}
                         {e.venueName ? ` · ${e.venueName}` : ''}
-                        {e.room ? ` · ${e.room.name}` : ''}
                       </p>
                     </div>
                     <span className="shrink-0 text-xs text-muted-foreground">

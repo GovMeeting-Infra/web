@@ -9,7 +9,6 @@ import {
   CalendarDays,
   QrCode,
   ClipboardList,
-  Building2,
   UserCircle,
   Mail,
 } from 'lucide-react';
@@ -53,7 +52,7 @@ const GROUPS: Group[] = [
     faqs: [
       {
         q: 'How do I schedule a meeting?',
-        a: 'Open Events and choose to schedule a new one. Give it a title, a start and end time, and a room or venue. A new event is saved as a draft, which means only you and your co-organizers can see it. It becomes visible to attendees when you publish it, so nothing is sent out by accident while you are still arranging details.',
+        a: 'Open Events and choose to schedule a new one. Give it a title, a start and end time, and where it is being held. A new event is saved as a draft, which means only you and your co-organizers can see it. It becomes visible to attendees when you publish it, so nothing is sent out by accident while you are still arranging details.',
       },
       {
         q: 'What is the difference between an internal meeting and a public activity?',
@@ -120,25 +119,6 @@ const GROUPS: Group[] = [
     ],
   },
   {
-    title: 'Rooms',
-    icon: <Building2 className="h-5 w-5" />,
-    tint: 'border-[#c9d9f2] bg-[#edf3fd] text-[#003580]',
-    faqs: [
-      {
-        q: 'How do I book a room?',
-        a: 'Choose the room while scheduling your meeting — the booking is made with the event, so the two never drift apart. The Rooms section shows every room, its capacity and what is already scheduled there, which is the quickest way to find a free slot before you start filling in the form.',
-      },
-      {
-        q: 'Why was my room booking refused?',
-        a: 'Somebody else already has that room for an overlapping time, and you will see "Room is already booked for this time period". Check the room availability view and pick another time or another room. If two people submit at the very same moment, only one booking is accepted — the other is told the slot was just taken.',
-      },
-      {
-        q: 'Who can add or remove rooms?',
-        a: 'Ministry administrators and ministers manage the list of rooms. Once a room is added it becomes selectable for everyone scheduling a meeting in that ministry. Removing a room hides it from new bookings but leaves the history of meetings already held there intact.',
-      },
-    ],
-  },
-  {
     title: 'Your account',
     icon: <UserCircle className="h-5 w-5" />,
     tint: 'border-[#cfe5d7] bg-[#edf8f1] text-[#007236]',
@@ -194,7 +174,7 @@ export function HelpBrowser({ supportEmail }: { supportEmail: string }) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search help — try “check in”, “minutes” or “room”"
+            placeholder="Search help — try “check in”, “minutes” or “RSVP”"
             className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
           />
           {query && (

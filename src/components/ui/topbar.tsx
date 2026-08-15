@@ -66,7 +66,7 @@ export function Topbar({
           <input
             type="search"
             name="q"
-            placeholder="Search events, minutes, rooms…"
+            placeholder="Search events, minutes, people…"
             aria-label="Search"
             className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />

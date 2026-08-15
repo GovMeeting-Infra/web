@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/signature-pad';
 import { useCheckInSubmit, submitLabel } from './useCheckInSubmit';
 import { CheckInSuccess, AlreadyCheckedIn } from './CheckInResultView';
+import { LocationNotice } from './LocationNotice';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
@@ -27,6 +28,9 @@ export function GuestCheckInForm({
 }) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [title, setTitle] = useState('');
+  const [organisation, setOrganisation] = useState('');
+  const [phone, setPhone] = useState('');
   const [hasSignature, setHasSignature] = useState(false);
   const pad = useRef<SignaturePadHandle>(null);
 
@@ -50,7 +54,13 @@ export function GuestCheckInForm({
 
   const busy = phase !== 'idle';
   const canSubmit =
-    name.trim().length >= 2 && email.trim().length > 3 && hasSignature && !busy;
+    name.trim().length >= 2 &&
+    email.trim().length > 3 &&
+    title.trim().length >= 2 &&
+    organisation.trim().length >= 2 &&
+    phone.trim().length >= 4 &&
+    hasSignature &&
+    !busy;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +70,9 @@ export function GuestCheckInForm({
     await submit(`/api/v1/checkin/${encodeURIComponent(token)}/guest`, {
       guestName: name.trim(),
       guestEmail: email.trim(),
+      guestTitle: title.trim(),
+      guestOrganisation: organisation.trim(),
+      guestPhone: phone.trim(),
       signature,
     });
   };
@@ -123,6 +136,55 @@ export function GuestCheckInForm({
       </div>
 
       <div className="mt-4">
+        <label htmlFor="guestTitle" className="block text-sm font-medium text-foreground/80">
+          Your title
+        </label>
+        <input
+          id="guestTitle"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          minLength={2}
+          required
+          disabled={busy}
+          placeholder="e.g. Director of Planning"
+          className={field}
+        />
+      </div>
+
+      <div className="mt-4">
+        <label htmlFor="guestOrg" className="block text-sm font-medium text-foreground/80">
+          Organisation
+        </label>
+        <input
+          id="guestOrg"
+          value={organisation}
+          onChange={(e) => setOrganisation(e.target.value)}
+          minLength={2}
+          required
+          disabled={busy}
+          placeholder="Who you are attending on behalf of"
+          className={field}
+        />
+      </div>
+
+      <div className="mt-4">
+        <label htmlFor="guestPhone" className="block text-sm font-medium text-foreground/80">
+          Phone number
+        </label>
+        <input
+          id="guestPhone"
+          type="tel"
+          inputMode="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+          disabled={busy}
+          placeholder="+232 …"
+          className={field}
+        />
+      </div>
+
+      <div className="mt-4">
         <span className="block text-sm font-medium text-foreground/80">
           Your signature
         </span>
@@ -130,6 +192,8 @@ export function GuestCheckInForm({
           <SignaturePad ref={pad} onChange={setHasSignature} disabled={busy} />
         </div>
       </div>
+
+      <LocationNotice required={geofenceRequired} />
 
       <button
         type="submit"
@@ -139,11 +203,6 @@ export function GuestCheckInForm({
         {submitLabel(phase, geofenceRequired)}
       </button>
 
-      {geofenceRequired && (
-        <p className="mt-3 text-center text-xs text-muted-foreground">
-          This meeting requires you to be physically at the venue.
-        </p>
-      )}
 
       <p className="mt-4 text-center text-xs text-muted-foreground">
         Have a staff account?{' '}

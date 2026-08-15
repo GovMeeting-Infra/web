@@ -8,7 +8,7 @@ import { ArrowLeft, Building2, Globe, Upload } from 'lucide-react';
 import { apiFetch, ApiError } from '@/lib/api/client';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
-import type { EventDetail, RoomSummary } from '@/lib/types/events';
+import type { EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { FormSkeleton } from '@/components/ui/skeletons';
 
@@ -80,7 +80,7 @@ export default function EditEventPage({
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
   const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
-  const [roomId, setRoomId] = useState('');
+  const [requireGeofence, setRequireGeofence] = useState(false);
   const [type, setType] = useState<string>('MEETING');
   const [scope, setScope] = useState('');
   const [classification, setClassification] = useState('');
@@ -101,11 +101,6 @@ export default function EditEventPage({
     queryFn: () => apiFetch<EventDetail>(`/api/v1/events/${id}`),
   });
 
-  const { data: rooms } = useQuery({
-    queryKey: ['rooms'],
-    queryFn: () => apiFetch<RoomSummary[]>('/api/v1/rooms'),
-  });
-
   // Seed once, so typing isn't overwritten by a background refetch.
   useEffect(() => {
     if (!event || seeded) return;
@@ -113,7 +108,6 @@ export default function EditEventPage({
     setTitle(event.title);
     setDescription(event.description ?? '');
     setVenueName(event.venueName ?? '');
-    setRoomId(event.roomId ?? '');
     setType(event.type);
     setScope(event.scope ?? '');
     setClassification(event.classification ?? '');
@@ -125,6 +119,7 @@ export default function EditEventPage({
     setExternalUrl(event.externalUrl ?? '');
     setBannerImage(event.bannerImage ?? '');
     setAllowGuestCheckIn(event.allowGuestCheckIn ?? true);
+    setRequireGeofence(event.requireGeofence ?? false);
     setSeeded(true);
   }, [event, seeded]);
 
@@ -161,22 +156,18 @@ export default function EditEventPage({
           startAt: new Date(startAt).toISOString(),
           endAt: new Date(endAt).toISOString(),
           venueName: venueName.trim() || undefined,
-          roomId: roomId || undefined,
           contactEmail: contactEmail.trim() || undefined,
           contactPhone: contactPhone.trim() || undefined,
           externalUrl: externalUrl.trim() || undefined,
           bannerImage: bannerImage.trim() || undefined,
           allowGuestCheckIn,
+          requireGeofence,
         }),
       });
 
       router.push(`/administrative/events/${id}`);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setError('Room conflict with the new time slot.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to update event');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to update event');
     } finally {
       setIsSubmitting(false);
     }
@@ -310,25 +301,10 @@ export default function EditEventPage({
               ))}
             </select>
           </div>
-          <div>
-            <label className={label}>Room</label>
-            <select
-              value={roomId}
-              onChange={(e) => setRoomId(e.target.value)}
-              className={field}
-            >
-              <option value="">No room</option>
-              {rooms?.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name} ({r.capacity} people) &mdash; {r.location}
-                </option>
-              ))}
-            </select>
-          </div>
         </div>
 
         <div>
-          <label className={label}>Venue name</label>
+          <label className={label}>Location</label>
           <input
             type="text"
             value={venueName}
@@ -368,9 +344,30 @@ export default function EditEventPage({
           </label>
         </div>
 
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={requireGeofence}
+              onChange={(e) => setRequireGeofence(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span>
+              <span className="text-sm font-medium text-foreground">
+                Require location verification
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Attendees must be within 100m of where you stand when you
+                generate the QR code. Without this, a poor GPS signal at that
+                moment produces a code anyone can use from anywhere.
+              </span>
+            </span>
+          </label>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Contact Email (optional)</label>
+            <label className={label}>Organizer&apos;s email</label>
             <input
               type="email"
               value={contactEmail}

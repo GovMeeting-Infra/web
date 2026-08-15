@@ -475,8 +475,8 @@ export default function EventDetailPage({
           />
           <InfoCard
             icon={<MapPin className="h-4 w-4" />}
-            label="Venue"
-            value={event.room?.name ?? event.venueName ?? 'Not set'}
+            label="Location"
+            value={event.venueName ?? 'Not set'}
           />
           <InfoCard
             icon={<Users className="h-4 w-4" />}

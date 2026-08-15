@@ -7,7 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { ArrowLeft, RefreshCw, MapPin, QrCode, XCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { requestLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
-import type { CheckInCodeResponse } from '@/lib/types/events';
+import type { CheckInCodeResponse, EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { CardSkeleton } from '@/components/ui/skeletons';
 
@@ -41,6 +41,31 @@ export default function CheckInCodePage({
     // act, and an idle tab must not mint tokens.
     refetchInterval: false,
   });
+
+  // Same query key as the event page, so arriving from there is a cache hit
+  // rather than a second round trip. Needed here only to decide whether a code
+  // can be generated at all.
+  const { data: event } = useQuery({
+    queryKey: ['event', id],
+    queryFn: () => apiFetch<EventDetail>(`/api/v1/events/${id}`),
+  });
+
+  // Mirrors issueCheckInCode on the server, which refuses both of these. The
+  // button used to stay live and the refusal arrived as an error after the
+  // click — worth knowing before pressing, not after.
+  const hasEnded = !!event && new Date(event.endAt) < new Date();
+  const notPublished =
+    !!event && (event.status === 'DRAFT' || event.status === 'CANCELLED');
+  const cannotGenerate = hasEnded || notPublished;
+
+  /** Why generating is unavailable, or null when it is. */
+  const blockedReason = hasEnded
+    ? 'This meeting has ended, so a check-in code can no longer be generated.'
+    : event?.status === 'CANCELLED'
+      ? 'This meeting was cancelled, so a check-in code cannot be generated.'
+      : event?.status === 'DRAFT'
+        ? 'Publish this event before generating a check-in code.'
+        : null;
 
   const generate = useMutation({
     mutationFn: (body: GeneratePayload) =>
@@ -83,7 +108,9 @@ export default function CheckInCodePage({
     const tick = () => {
       const remaining = expiresAt - Date.now();
       if (remaining <= 0) {
-        setCountdown('Expired — generate a new code');
+        // Telling someone to generate a new code next to a button that
+        // refuses to is worse than saying nothing.
+        setCountdown(cannotGenerate ? 'Expired' : 'Expired — generate a new code');
         return;
       }
       const total = Math.ceil(remaining / 1000);
@@ -95,7 +122,7 @@ export default function CheckInCodePage({
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [qrCode]);
+  }, [qrCode, cannotGenerate]);
 
   /**
    * Capture the organizer's location and generate. When no fix is available we
@@ -195,18 +222,35 @@ export default function CheckInCodePage({
           <QrCode className="mx-auto h-12 w-12 text-muted-foreground" />
           <div>
             <h2 className="font-semibold text-foreground">
-              No check-in code yet
+              {hasEnded ? 'No code was generated' : 'No check-in code yet'}
             </h2>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-              Your current location becomes the check-in area. Attendees must be
-              within {geofence?.radiusMeters ?? 100} m of where you stand now.
-              Generate this at the venue.
+              {/* The reason takes the place of the instructions when there is
+                  nothing to instruct — a disabled button with the usual "do
+                  this at the venue" copy above it reads as a fault. */}
+              {blockedReason ?? (
+                <>
+                  Your current location becomes the check-in area. Attendees
+                  must be within {geofence?.radiusMeters ?? 100} m of where you
+                  stand now. Generate this at the venue.
+                  {geofence?.required && (
+                    <>
+                      {' '}
+                      This meeting requires location verification, so a code
+                      cannot be generated until your signal is accurate enough
+                      to fix the area.
+                    </>
+                  )}
+                </>
+              )}
             </p>
           </div>
           <button
             onClick={() => generateWithLocation()}
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-[1.25rem] bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            disabled={busy || cannotGenerate}
+            // disabled:cursor-not-allowed as well as the dimming: the pointer
+            // is what tells you a control is unavailable before you click it.
+            className="inline-flex items-center gap-2 rounded-[1.25rem] bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:opacity-50"
           >
             <QrCode className="h-4 w-4" />
             {generate.isPending ? 'Generating…' : 'Generate QR code'}
@@ -249,8 +293,12 @@ export default function CheckInCodePage({
                 // code refreshed from the corridor can't drag the fence along.
                 generate.mutate({ rotate: true });
               }}
-              disabled={busy}
-              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-muted px-4 py-3 font-medium text-foreground hover:bg-border disabled:opacity-50"
+              // Rotating goes through the same endpoint, so it meets the same
+              // refusal once the meeting is over. Closing check-in below stays
+              // available — tidying up after the fact is still legitimate.
+              disabled={busy || cannotGenerate}
+              title={blockedReason ?? undefined}
+              className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-muted px-4 py-3 font-medium text-foreground hover:bg-border disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-muted"
             >
               <RefreshCw className="h-4 w-4" />
               {generate.isPending ? 'Working…' : 'New code'}
@@ -273,6 +321,12 @@ export default function CheckInCodePage({
               <XCircle className="h-4 w-4" /> Close check-in
             </button>
           </div>
+
+          {/* Says why "New code" is dead, and explains a countdown that has
+              run out and cannot be refreshed. */}
+          {blockedReason && (
+            <p className="text-sm text-muted-foreground">{blockedReason}</p>
+          )}
 
           <div className="rounded-2xl border border-border bg-muted/40 p-5">
             <div className="flex items-center gap-2">

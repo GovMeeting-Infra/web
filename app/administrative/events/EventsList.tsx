@@ -89,10 +89,10 @@ function EventCard({ event }: { event: EventListItem }) {
               <CalendarDays className="h-4 w-4" />
               {date} &middot; {time}
             </div>
-            {(event.venueName || event.room) && (
+            {event.venueName && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4" />
-                {event.room?.name ?? event.venueName}
+                {event.venueName}
               </div>
             )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

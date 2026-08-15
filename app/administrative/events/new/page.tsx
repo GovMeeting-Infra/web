@@ -5,14 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, X, Building2, Globe, Upload } from 'lucide-react';
-import { apiFetch, ApiError } from '@/lib/api/client';
+import { apiFetch } from '@/lib/api/client';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
 import type {
   EventDetail,
-  RoomSummary,
   CoOrganizerCandidate,
   Frequency,
   EndType,
@@ -30,6 +29,7 @@ const dateLabel = 'block text-sm font-medium text-foreground mb-2';
 const SESSION_TYPES = [
   { value: 'MEETING', label: 'Meeting' },
   { value: 'CONFERENCE', label: 'Conference' },
+  { value: 'WORKSHOP', label: 'Workshop' },
   { value: 'APPOINTMENT', label: 'External Appointment' },
 ] as const;
 
@@ -73,13 +73,17 @@ export default function NewEventPage() {
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
   const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
-  const [roomId, setRoomId] = useState('');
+  const [requireGeofence, setRequireGeofence] = useState(false);
   const [ministryId, setMinistryId] = useState('');
   const [type, setType] = useState<string>('MEETING');
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
 
-  const [contactEmail, setContactEmail] = useState('');
+  // Prepopulated with whoever is creating the activity — they are the contact
+  // in almost every case, and the field is no longer optional. Seeded from the
+  // session rather than left blank, but still editable: an activity is
+  // sometimes organised on someone else's behalf.
+  const [contactEmail, setContactEmail] = useState(currentUser?.email ?? '');
   const [contactPhone, setContactPhone] = useState('');
   const [externalUrl, setExternalUrl] = useState('');
   const [bannerImage, setBannerImage] = useState('');
@@ -101,11 +105,6 @@ export default function NewEventPage() {
   const [recurrenceEndType, setRecurrenceEndType] = useState<EndType>('COUNT');
   const [recurrenceCount, setRecurrenceCount] = useState('4');
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
-
-  const { data: rooms } = useQuery({
-    queryKey: ['rooms'],
-    queryFn: () => apiFetch<RoomSummary[]>('/api/v1/rooms'),
-  });
 
   const { data: candidates = [] } = useQuery({
     queryKey: ['co-organizer-candidates'],
@@ -203,6 +202,13 @@ export default function NewEventPage() {
       setError('Start time must be before end time.');
       return;
     }
+    // The only way to say where a meeting is, since room booking was
+    // withdrawn. Checked here as well as on the server so it reads as a
+    // message next to the form rather than a rejected request.
+    if (!venueName.trim()) {
+      setError('A location is required.');
+      return;
+    }
     // Mirrors the server. Public activities are exempt — they have no organizer
     // to deputise for.
     if (!isPublic && coOrganizers.length === 0) {
@@ -223,10 +229,11 @@ export default function NewEventPage() {
         coOrganizerIds: coOrganizers.length ? coOrganizers : undefined,
         ministryId: isSuperAdmin ? ministryId || undefined : undefined,
         allowGuestCheckIn,
+        requireGeofence,
       };
 
       if (isPublic) {
-        payload.venueName = venueName.trim() || undefined;
+        payload.venueName = venueName.trim();
         payload.colorCategory = selectedCategory || undefined;
         payload.bannerImage = bannerImage.trim() || undefined;
         payload.externalUrl = externalUrl.trim() || undefined;
@@ -237,8 +244,7 @@ export default function NewEventPage() {
         payload.invitedMinistryIds = invited.length ? invited : undefined;
       } else {
         payload.type = type;
-        payload.roomId = roomId || undefined;
-        payload.venueName = venueName.trim() || undefined;
+        payload.venueName = venueName.trim();
         if (invites.length) {
           payload.inviteeExternals = invites;
         }
@@ -281,11 +287,7 @@ export default function NewEventPage() {
 
       router.push(`/administrative/events/${event.id}`);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 409) {
-        setError('Room is already booked for this time period.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Failed to create event');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to create event');
     } finally {
       setIsSubmitting(false);
     }
@@ -364,12 +366,12 @@ export default function NewEventPage() {
           />
         </div>
 
-        {/* Location: free text for public, room picker for internal */}
         {isPublic ? (
           <div>
-            <label className={label}>Location</label>
+            <label className={label}>Location *</label>
             <input
               type="text"
+              required
               value={venueName}
               onChange={(e) => setVenueName(e.target.value)}
               placeholder="e.g., Main Conference Hall, National Stadium"
@@ -379,27 +381,13 @@ export default function NewEventPage() {
         ) : (
           <>
             <div>
-              <label className={label}>Room</label>
-              <select
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
-                className={field}
-              >
-                <option value="">Select a room</option>
-                {rooms?.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.name} ({r.capacity} people) &mdash; {r.location}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className={label}>Venue name (if off-site)</label>
+              <label className={label}>Location *</label>
               <input
                 type="text"
+                required
                 value={venueName}
                 onChange={(e) => setVenueName(e.target.value)}
+                placeholder="e.g., Committee Room 2, Ministry HQ"
                 className={field}
               />
             </div>
@@ -426,9 +414,30 @@ export default function NewEventPage() {
           </label>
         </div>
 
+        <div className="rounded-xl border border-border bg-muted/30 p-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={requireGeofence}
+              onChange={(e) => setRequireGeofence(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border"
+            />
+            <span>
+              <span className="text-sm font-medium text-foreground">
+                Require location verification
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground">
+                Attendees must be within 100m of where you stand when you
+                generate the QR code. Without this, a poor GPS signal at that
+                moment produces a code anyone can use from anywhere.
+              </span>
+            </span>
+          </label>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Contact Email (optional)</label>
+            <label className={label}>Organizer&apos;s email</label>
             <input
               type="email"
               value={contactEmail}

@@ -118,15 +118,6 @@ export interface CoOrganizerCandidate {
   jobTitle: string | null;
 }
 
-export interface RoomSummary {
-  id: string;
-  name: string;
-  location: string;
-  capacity: number;
-  amenities: string[];
-  _count?: { bookings: number; events: number };
-}
-
 export interface EventListItem {
   id: string;
   title: string;
@@ -139,7 +130,6 @@ export interface EventListItem {
   status: EventStatus;
   colorCategory: string | null;
   organizer: { id: string; name: string } | null;
-  room: { id: string; name: string } | null;
   _count: { attendees: number };
 }
 
@@ -204,6 +194,8 @@ export interface EventDetail {
   venueLng: number | null;
   geofenceRadius: number;
   allowGuestCheckIn: boolean;
+  /** Refuse to mint a check-in code unless a geofence can be anchored. */
+  requireGeofence?: boolean;
   bannerImage: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -212,12 +204,10 @@ export interface EventDetail {
   publishedAt: string | null;
   ministryId: string;
   organizerId: string | null;
-  roomId: string | null;
   organizer: { id: string; name: string; email: string } | null;
   coOrganizers: EventCoOrganizer[];
   attendees: EventAttendee[];
   minutes: { id: string; status: MinutesStatus } | null;
-  room: RoomSummary | null;
   seriesId: string | null;
   series: EventSeries | null;
   invitedMinistries: { id: string; name: string; code: string }[];
@@ -234,7 +224,7 @@ export interface CreateEventInput {
   endAt: string;
   venueName?: string;
   allowGuestCheckIn?: boolean;
-  roomId?: string;
+  requireGeofence?: boolean;
   colorCategory?: string;
   coOrganizerIds?: string[];
   ministryId?: string;
@@ -261,6 +251,8 @@ export interface CheckInGeofence {
   anchorLng: number | null;
   anchorAccuracy: number | null;
   anchorSetAt: string | null;
+  /** Whether the event insists on a fence, so a refusal can be explained. */
+  required?: boolean;
 }
 
 export interface CheckInCodeResponse {
@@ -415,6 +407,14 @@ export interface AttendanceRecord {
   userId: string | null;
   guestName?: string | null;
   guestEmail?: string | null;
+  /**
+   * Collected from a guest checking themselves in. Null for staff, whose
+   * account carries a job title and ministry, and for a walk-in an organizer
+   * recorded at the desk.
+   */
+  guestTitle?: string | null;
+  guestOrganisation?: string | null;
+  guestPhone?: string | null;
   /** A guest with no matching invite for this event. */
   isWalkIn?: boolean;
   signedName: string;

@@ -188,10 +188,10 @@ export default function CalendarDayPage() {
                         {start.toLocaleTimeString(undefined, timeOpts)} –{' '}
                         {end.toLocaleTimeString(undefined, timeOpts)}
                       </span>
-                      {(event.room || event.venueName) && (
+                      {event.venueName && (
                         <span className="flex items-center gap-1.5">
                           <MapPin className="h-4 w-4" />
-                          {event.room?.name ?? event.venueName}
+                          {event.venueName}
                         </span>
                       )}
                       <span className="flex items-center gap-1.5">
