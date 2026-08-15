@@ -1,10 +1,17 @@
 export class ApiError extends Error {
   status: number;
+  /**
+   * A machine-readable reason, where the endpoint supplies one. Lets a caller
+   * branch on why a request failed without matching on the message, which
+   * breaks silently the moment the wording is improved.
+   */
+  code?: string;
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, code?: string) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -29,13 +36,15 @@ export async function apiFetch<T = unknown>(
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
+    let code: string | undefined;
     try {
       const body = await response.json();
       message = normalizeMessage(body.message, message);
+      code = typeof body.code === 'string' ? body.code : undefined;
     } catch {
       // response had no JSON body
     }
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, code);
   }
 
   if (response.status === 204) {

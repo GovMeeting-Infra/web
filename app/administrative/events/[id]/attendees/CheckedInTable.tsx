@@ -46,7 +46,13 @@ function LocationCell({ record }: { record: AttendanceRecord }) {
       ? { label: 'Verified', className: 'bg-[#edf8f1] text-ring' }
       : withinGeofence === false
         ? { label: 'Outside area', className: 'bg-destructive/10 text-destructive' }
-        : { label: 'Not verified', className: 'bg-muted text-muted-foreground' };
+        : // Null covers two different situations now. A reading that arrived
+          // but was too vague to settle the question is not the same as no
+          // check having taken place at all, and the ± figure beside this
+          // explains which one the reader is looking at.
+          typeof gpsAccuracy === 'number'
+          ? { label: 'Unconfirmed', className: 'bg-[#fff8e5] text-[#8d6400]' }
+          : { label: 'Not verified', className: 'bg-muted text-muted-foreground' };
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
