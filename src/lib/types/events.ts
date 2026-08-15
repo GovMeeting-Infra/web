@@ -428,9 +428,26 @@ export interface AttendanceRecord {
   checkInMethod: CheckInMethod;
   /** null means no check-in area was set, not that the check failed. */
   withinGeofence?: boolean | null;
+  /** Metres. Only present when the browser gave a position. */
+  gpsAccuracy?: number | null;
   mockLocationFlag?: boolean;
-  user?: { id: string; name: string; email: string };
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    /** A staff member's title and ministry stand in for the guest fields. */
+    jobTitle?: string | null;
+    ministry?: { name: string } | null;
+  };
 }
+
+/** Which of the attendees page's five lists an export covers. */
+export type AttendanceExportSet =
+  | 'checked-in'
+  | 'invited'
+  | 'confirmed'
+  | 'declined'
+  | 'awaiting';
 
 export interface AddAttendeesInput {
   userIds?: string[];
