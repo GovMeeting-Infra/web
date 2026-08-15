@@ -92,21 +92,29 @@ export default async function GuestMinutesPage({
           </div>
         )}
 
-        {minutes.summary && (
+        {/* Three lists rather than the old wall of text. Empty ones are left
+            out: a heading over nothing reads as something missing, when a
+            meeting that decided nothing is perfectly ordinary. */}
+        {minutes.decisions.length > 0 && (
           <section className="rounded-2xl border border-[#d3deef] bg-white p-4 sm:p-6">
-            <h2 className="text-sm font-semibold text-slate-900">Summary</h2>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
-              {minutes.summary}
-            </p>
+            <h2 className="text-sm font-semibold text-slate-900">
+              Decisions ({minutes.decisions.length})
+            </h2>
+            <ul className="mt-3 space-y-2">
+              {minutes.decisions.map((text, i) => (
+                <li
+                  key={i}
+                  className="flex gap-2 text-sm leading-relaxed text-slate-700"
+                >
+                  <span aria-hidden className="text-slate-400">
+                    &bull;
+                  </span>
+                  <span className="break-words">{text}</span>
+                </li>
+              ))}
+            </ul>
           </section>
         )}
-
-        <section className="rounded-2xl border border-[#d3deef] bg-white p-4 sm:p-6">
-          <h2 className="text-sm font-semibold text-slate-900">Minutes</h2>
-          <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-7 text-slate-700">
-            {minutes.body}
-          </p>
-        </section>
 
         <section className="space-y-3">
           <h2 className="text-lg font-bold text-slate-900">
@@ -129,6 +137,30 @@ export default async function GuestMinutesPage({
             </div>
           )}
         </section>
+
+        {minutes.nextSteps.length > 0 && (
+          <section className="rounded-2xl border border-[#d3deef] bg-white p-4 sm:p-6">
+            <h2 className="text-sm font-semibold text-slate-900">
+              Next steps ({minutes.nextSteps.length})
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Agreed directions with nobody assigned.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {minutes.nextSteps.map((text, i) => (
+                <li
+                  key={i}
+                  className="flex gap-2 text-sm leading-relaxed text-slate-700"
+                >
+                  <span aria-hidden className="text-slate-400">
+                    &bull;
+                  </span>
+                  <span className="break-words">{text}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <p className="text-xs text-slate-500">
           This link was sent to <span className="break-all">{viewerEmail}</span> and is personal to you. It stops

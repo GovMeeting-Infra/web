@@ -105,8 +105,16 @@ const GROUPS: Group[] = [
     tint: 'border-[#d9cff2] bg-[#f3effd] text-[#4c1d95]',
     faqs: [
       {
+        q: 'What goes into the minutes?',
+        a: 'Three things, and nothing else: the decisions the meeting reached, the action items it produced, and the next steps it agreed. Each decision and next step is a single line, which is deliberate — the record is meant to be read in under a minute, not to reproduce the discussion.',
+      },
+      {
+        q: 'What is the difference between an action item and a next step?',
+        a: 'An action item has someone\u2019s name on it and a date by which it is due, and it is tracked on the Action Items board until it is done. A next step is what happens next with nobody to chase — "reconvene once the budget review lands" — so it is recorded but never assigned.',
+      },
+      {
         q: 'Who writes and publishes the minutes?',
-        a: 'The organizer or a co-organizer drafts the minutes on the event and publishes them when they are ready. Publishing needs the minutes to actually contain something and the meeting to have at least one attendee. Drafts are private to the organizing team, so you can work on them across several sittings before anyone else sees them.',
+        a: 'The organizer or a co-organizer drafts the minutes on the event and publishes them when they are ready. Publishing needs at least one decision, action item or next step recorded, and the meeting to have at least one attendee. Drafts are private to the organizing team, so you can work on them across several sittings before anyone else sees them.',
       },
       {
         q: 'How long can minutes be edited after a meeting?',

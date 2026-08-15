@@ -52,18 +52,29 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
 export type CheckInMethod = 'QR' | 'MANUAL' | 'GEO';
 export type MinutesStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
+/** A decision, or something happening next. One line either way. */
+export type MinutePointType = 'DECISION' | 'NEXT_STEP';
+
+export interface MinutePoint {
+  id: string;
+  type: MinutePointType;
+  text: string;
+  order: number;
+}
+
 /** One row in the cross-event minutes list. */
 export interface MinutesSummary {
   id: string;
   status: MinutesStatus;
-  summary: string | null;
+  /** The first couple of decisions, standing in for the old summary line. */
+  points: { id: string; text: string }[];
   draftedAt: string | null;
   publishedAt: string | null;
   updatedAt: string;
   event: { id: string; title: string; startAt: string; ministryId: string };
   draftedBy: { id: string; name: string } | null;
   publishedBy: { id: string; name: string } | null;
-  _count: { actionItems: number };
+  _count: { actionItems: number; points: number };
 }
 
 export interface MinutesListResponse {
@@ -303,8 +314,8 @@ export interface CheckInResult {
 export interface Minutes {
   id: string;
   eventId: string;
-  body: string;
-  summary: string | null;
+  /** Decisions and next steps together, ordered within each kind. */
+  points: MinutePoint[];
   status: MinutesStatus;
   draftedById: string | null;
   draftedAt: string | null;
