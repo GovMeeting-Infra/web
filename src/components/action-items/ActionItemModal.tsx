@@ -21,8 +21,6 @@ import {
   ACTION_ITEM_STATUS_LABELS,
   ACTION_ITEM_STATUS_STYLES,
   ACTION_ITEM_PRIORITY_LABELS,
-  POINT_LABELS,
-  POINT_STYLES,
   isActionItemOverdue,
   type ActionItemStatus,
   type BoardActionItem,
@@ -158,11 +156,6 @@ export function ActionItemModal({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-primary">{item.title}</h2>
-            <span
-              className={`mt-2 inline-block rounded border px-2 py-0.5 text-xs font-medium ${POINT_STYLES[item.point]}`}
-            >
-              {POINT_LABELS[item.point]}
-            </span>
           </div>
           <button
             onClick={onClose}

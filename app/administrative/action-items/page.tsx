@@ -10,7 +10,6 @@ import {
   CalendarDays,
   CircleDot,
   User,
-  Tag,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { ListSkeleton } from '@/components/ui/skeletons';
@@ -22,8 +21,6 @@ import {
   ACTION_ITEM_STATUS_LABELS,
   ACTION_ITEM_STATUS_STYLES,
   ACTION_ITEM_STATUS_DOT,
-  POINT_LABELS,
-  POINT_STYLES,
   isActionItemOverdue,
   type ActionItemStatus,
   type BoardActionItem,
@@ -243,11 +240,11 @@ export default function ActionItemsPage() {
            hairline under the header, thin separators between columns, and rows
            that only shade on hover. The chrome recedes so the data reads. */
         <div>
-          {/* Six columns need 896px. Below sm the same rows render as cards
+          {/* Five columns need 768px. Below sm the same rows render as cards
               instead — a phone can scroll a table sideways but cannot tell you
               which row it has ended up in. */}
           <div className="-mx-1 hidden overflow-x-auto sm:block">
-            <table className="w-full min-w-[56rem] border-collapse text-sm">
+            <table className="w-full min-w-[48rem] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border">
                   {[
@@ -255,7 +252,6 @@ export default function ActionItemsPage() {
                     { icon: ClipboardList, label: 'Event' },
                     { icon: User, label: 'Assignee' },
                     { icon: CalendarDays, label: 'Due' },
-                    { icon: Tag, label: 'Type' },
                     { icon: CircleDot, label: 'Status' },
                   ].map(({ icon: Icon, label }, i) => (
                     <th
@@ -325,14 +321,6 @@ export default function ActionItemsPage() {
                             year: 'numeric',
                           })}
                           {overdue ? ' · Overdue' : ''}
-                        </span>
-                      </td>
-
-                      <td className="border-l border-border px-3 py-2">
-                        <span
-                          className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${POINT_STYLES[item.point]}`}
-                        >
-                          {POINT_LABELS[item.point]}
                         </span>
                       </td>
 
@@ -425,12 +413,6 @@ export default function ActionItemsPage() {
                     className="flex flex-wrap items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <span
-                      className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${POINT_STYLES[item.point]}`}
-                    >
-                      {POINT_LABELS[item.point]}
-                    </span>
-
                     {canChange(item) ? (
                       // text-base, unlike the table's 11px: Safari zooms the
                       // whole page when a control under 16px takes focus.

@@ -20,8 +20,6 @@ import {
   ACTION_ITEM_STATUS_STYLES,
   ACTION_ITEM_STATUS_DOT,
   ACTION_ITEM_STATUS_EDGE,
-  POINT_LABELS,
-  POINT_STYLES,
   type ActionItemStatus,
   type BoardActionItem,
 } from '@/lib/types/events';
@@ -89,18 +87,12 @@ function Card({
         </div>
 
         <div className="mt-3 space-y-1.5">
-          <span
-            className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${POINT_STYLES[item.point]}`}
-          >
-            {POINT_LABELS[item.point]}
-          </span>
-
           {/* Every card says its status now, not only the two that sit in a
               column other than their own. Blocked and Cancelled used to share
               one red tint, which read as though a cancelled item needed
               attention; they have their own colours here. */}
           <span
-            className={`ml-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
+            className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
           >
             {ACTION_ITEM_STATUS_LABELS[item.status]}
           </span>
