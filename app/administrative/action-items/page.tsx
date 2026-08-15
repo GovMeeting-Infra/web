@@ -94,6 +94,24 @@ export default function ActionItemsPage() {
       (item.ownerId === currentUser.id ||
         item.assignedBy?.id === currentUser.id));
 
+  /** Helping with it, which allows status and progress and nothing else. */
+  const isAssistant = (item: BoardActionItem) =>
+    !!currentUser &&
+    !!item.assistants?.some((a) => a.userId === currentUser.id);
+
+  /**
+   * One PATCH, returning the updated item so the open modal reflects the
+   * change without waiting for the list query to come back.
+   */
+  const patchItem = async (id: string, patch: Record<string, unknown>) => {
+    const updated = await apiFetch<BoardActionItem>(
+      `/api/v1/action-items/${id}`,
+      { method: 'PATCH', body: JSON.stringify(patch) },
+    );
+    await queryClient.invalidateQueries({ queryKey: ['action-items'] });
+    return updated;
+  };
+
   const changeStatus = async (item: BoardActionItem, status: ActionItemStatus) => {
     setError(null);
     try {
@@ -490,6 +508,56 @@ export default function ActionItemsPage() {
                     queryKey: ['action-items'],
                   });
                   setSelected(null);
+                }
+              : undefined
+          }
+          // Separate from onEdit deliberately: an assistant may move the
+          // status and report progress but not redefine the task, and the
+          // server enforces exactly that split.
+          onStatusChange={
+            canChange(selected) || isAssistant(selected)
+              ? async (status) => {
+                  const updated = await patchItem(selected.id, { status });
+                  setSelected(updated);
+                }
+              : undefined
+          }
+          onEdit={
+            canChange(selected)
+              ? async (patch) => {
+                  const updated = await patchItem(selected.id, patch);
+                  setSelected(updated);
+                }
+              : undefined
+          }
+          onAddAssistant={
+            canChange(selected)
+              ? async (person) => {
+                  const updated = await apiFetch<BoardActionItem>(
+                    `/api/v1/action-items/${selected.id}/assistants`,
+                    {
+                      method: 'POST',
+                      body: JSON.stringify({ userId: person.id }),
+                    },
+                  );
+                  await queryClient.invalidateQueries({
+                    queryKey: ['action-items'],
+                  });
+                  setSelected(updated);
+                }
+              : undefined
+          }
+          onRemoveAssistant={
+            canChange(selected)
+              ? async (userId) => {
+                  const updated = await apiFetch<BoardActionItem>(
+                    `/api/v1/action-items/${selected.id}/assistants/${userId}`,
+                    { method: 'DELETE' },
+                  );
+                  await queryClient.invalidateQueries({
+                    queryKey: ['action-items'],
+                  });
+                  setSelected(updated);
                 }
               : undefined
           }
