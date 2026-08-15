@@ -12,6 +12,7 @@ import {
 import { apiFetch } from '@/lib/api/client';
 import { StatCardsSkeleton } from '@/components/ui/skeletons';
 import { CSV_EXPORTS, type AnalyticsDashboard } from '@/lib/types/reports';
+import { ACTION_ITEM_STATUS_DOT } from '@/lib/types/events';
 import { ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/session';
 import { PageContainer } from '@/components/ui/page-container';
@@ -172,17 +173,67 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               }}
             />
 
-            <ReportCard
-              title="Action Items Progress"
-              description="Status of action items from meetings"
-              period={period}
-              icon={<CheckCircle2 className="h-6 w-6 text-[#003580]" />}
-              metrics={{
-                completed: data.actionItemStats.completed,
-                inProgress: data.actionItemStats.inProgress,
-                overdue: data.actionItemStats.overdue,
-              }}
-            />
+            {/* Not a ReportCard: three numbers side by side implied that
+                completed, in progress and overdue were peers, and overdue is
+                not — an overdue item is also a to-do, so it belongs beside the
+                bar rather than inside it. */}
+            <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-[#003580]">
+                    Action Items Progress
+                  </h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Where the work from meetings has got to
+                  </p>
+                </div>
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#e2ecfa]">
+                  <CheckCircle2 className="h-6 w-6 text-[#003580]" />
+                </div>
+              </div>
+
+              <ProportionBar
+                segments={[
+                  {
+                    label: 'To do',
+                    value: data.actionItemStats.todo,
+                    color: ACTION_ITEM_STATUS_DOT.TODO,
+                  },
+                  {
+                    label: 'In progress',
+                    value: data.actionItemStats.inProgress,
+                    color: ACTION_ITEM_STATUS_DOT.IN_PROGRESS,
+                  },
+                  {
+                    label: 'Done',
+                    value: data.actionItemStats.completed,
+                    color: ACTION_ITEM_STATUS_DOT.COMPLETED,
+                  },
+                ]}
+              />
+
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-slate-200 pt-4 text-sm">
+                {/* Cuts across the bar rather than sitting in it: an overdue
+                    item is counted again in To do or In progress. */}
+                <span className="text-slate-600">
+                  <span className="font-semibold text-destructive">
+                    {data.actionItemStats.overdue}
+                  </span>{' '}
+                  overdue
+                </span>
+                {data.actionItemStats.cancelled > 0 && (
+                  <span className="text-slate-500">
+                    {data.actionItemStats.cancelled} cancelled, not counted
+                    above
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-4 flex items-center gap-2 border-t border-slate-200 pt-4 text-sm text-slate-600">
+                <Calendar className="h-4 w-4" />
+                {period}
+              </div>
+            </section>
 
 
             {/* userStats was fetched but never rendered, so the People figures
@@ -237,15 +288,37 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
               <h2 className="font-semibold text-[#003580]">Check-in Methods</h2>
               <p className="mt-2 text-sm text-slate-600">
-                How attendees recorded their presence
+                Whether people signed themselves in, or someone did it for them
               </p>
+              {/* QR and Geofence were two bars for the same act — scanning the
+                  code and signing — differing only in whether the organizer had
+                  anchored a check-in area. The distinction worth drawing is who
+                  did the signing. */}
               <ProportionBar
                 segments={[
-                  { label: 'QR scan', value: data.checkInMethods.qr, color: 'bg-[#003580]' },
-                  { label: 'Manual', value: data.checkInMethods.manual, color: 'bg-[#007236]' },
-                  { label: 'Geofence', value: data.checkInMethods.geo, color: 'bg-[#fab700]' },
+                  {
+                    label: 'Checked in themselves',
+                    value: data.checkInMethods.qr + data.checkInMethods.geo,
+                    color: 'bg-[#003580]',
+                  },
+                  {
+                    label: 'Recorded by an organizer',
+                    value: data.checkInMethods.manual,
+                    color: 'bg-[#007236]',
+                  },
                 ]}
               />
+              {data.checkInMethods.geo > 0 && (
+                // "Checked", not "verified": a measured position may still have
+                // been too vague to prove, and only the attendance record
+                // separates those two.
+                <p className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-600">
+                  <span className="font-semibold text-[#003580]">
+                    {data.checkInMethods.geo}
+                  </span>{' '}
+                  of those had their location checked against the venue.
+                </p>
+              )}
             </section>
 
             {/* Events over time */}

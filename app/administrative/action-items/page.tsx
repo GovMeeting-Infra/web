@@ -20,6 +20,8 @@ import { ActionItemModal } from '@/components/action-items/ActionItemModal';
 import { PageContainer } from '@/components/ui/page-container';
 import {
   ACTION_ITEM_STATUS_LABELS,
+  ACTION_ITEM_STATUS_STYLES,
+  ACTION_ITEM_STATUS_DOT,
   POINT_LABELS,
   POINT_STYLES,
   isActionItemOverdue,
@@ -30,19 +32,6 @@ import {
 
 /** Roles that may move any item; everyone else only their own. */
 const ADMIN_ROLES = ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'];
-
-/**
- * Notion's select-property palette: a soft tint with dark text of the same hue,
- * rather than the saturated badge colours used elsewhere in the app. Muted
- * enough that a column of them reads as data, not as a row of warnings.
- */
-const STATUS_PILL: Record<ActionItemStatus, string> = {
-  TODO: 'bg-[#f1f1ef] text-[#32302c]',
-  IN_PROGRESS: 'bg-[#e7f3f8] text-[#183347]',
-  BLOCKED: 'bg-[#fdebec] text-[#5d1715]',
-  COMPLETED: 'bg-[#edf3ec] text-[#1c3829]',
-  CANCELLED: 'bg-[#f1f1ef] text-[#787774]',
-};
 
 const STATUS_OPTIONS: ActionItemStatus[] = [
   'TODO',
@@ -126,8 +115,29 @@ export default function ActionItemsPage() {
             Task board
           </p>
           <h1 className="text-3xl font-bold text-primary">Action Items</h1>
-          <p className="mt-2 text-muted-foreground">
-            {counts.todo} to do · {counts.inProgress} in progress · {counts.done} done
+          {/* Coloured to match the board, so the same number means the same
+              thing whichever view you came from. Blocked counts as to-do and
+              cancelled as done, matching boardColumnFor — three figures for
+              three columns, not five for five states. */}
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.TODO}`}
+              />
+              {counts.todo} to do
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.IN_PROGRESS}`}
+              />
+              {counts.inProgress} in progress
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.COMPLETED}`}
+              />
+              {counts.done} done
+            </span>
           </p>
         </div>
 
@@ -323,7 +333,7 @@ export default function ActionItemsPage() {
                               changeStatus(item, e.target.value as ActionItemStatus)
                             }
                             className={`cursor-pointer appearance-none rounded px-2 py-0.5 text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                              STATUS_PILL[item.status]
+                              ACTION_ITEM_STATUS_STYLES[item.status]
                             }`}
                           >
                             {STATUS_OPTIONS.map((st) => (
@@ -334,7 +344,7 @@ export default function ActionItemsPage() {
                           </select>
                         ) : (
                           <span
-                            className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[item.status]}`}
+                            className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
                           >
                             {ACTION_ITEM_STATUS_LABELS[item.status]}
                           </span>
@@ -413,7 +423,7 @@ export default function ActionItemsPage() {
                         }
                         aria-label="Status"
                         className={`cursor-pointer appearance-none rounded px-2 py-1 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                          STATUS_PILL[item.status]
+                          ACTION_ITEM_STATUS_STYLES[item.status]
                         }`}
                       >
                         {STATUS_OPTIONS.map((st) => (
@@ -424,7 +434,7 @@ export default function ActionItemsPage() {
                       </select>
                     ) : (
                       <span
-                        className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[item.status]}`}
+                        className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
                       >
                         {ACTION_ITEM_STATUS_LABELS[item.status]}
                       </span>

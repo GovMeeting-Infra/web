@@ -29,8 +29,11 @@ export interface ActionItemStats {
   total: number;
   completed: number;
   inProgress: number;
+  /** Includes blocked items, matching how the board groups them. */
   todo: number;
+  /** Cuts across todo and inProgress rather than being a bucket of its own. */
   overdue: number;
+  cancelled: number;
 }
 
 export interface CheckInMethods {

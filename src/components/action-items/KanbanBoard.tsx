@@ -17,23 +17,14 @@ import {
   boardColumnFor,
   isActionItemOverdue,
   ACTION_ITEM_STATUS_LABELS,
+  ACTION_ITEM_STATUS_STYLES,
+  ACTION_ITEM_STATUS_DOT,
+  ACTION_ITEM_STATUS_EDGE,
   POINT_LABELS,
   POINT_STYLES,
   type ActionItemStatus,
   type BoardActionItem,
 } from '@/lib/types/events';
-
-/**
- * Column headers are a dotted pill rather than a heading, and the columns
- * themselves have no background — cards sit directly on the page. The colour
- * lives on the header, so the board reads as three groups without three large
- * tinted panels competing with the cards inside them.
- */
-const COLUMN_STYLE: Record<string, { pill: string; dot: string }> = {
-  TODO: { pill: 'bg-[#f1f1ef] text-[#32302c]', dot: 'bg-[#91918e]' },
-  IN_PROGRESS: { pill: 'bg-[#fbf3db] text-[#402c1b]', dot: 'bg-[#cb912f]' },
-  COMPLETED: { pill: 'bg-[#edf3ec] text-[#1c3829]', dot: 'bg-[#448361]' },
-};
 
 function initials(name?: string | null) {
   if (!name) return '—';
@@ -60,9 +51,6 @@ function Card({
 
   const overdue = isActionItemOverdue(item);
   const owner = item.owner?.name ?? item.ownerName;
-  // BLOCKED/CANCELLED sit in a column that isn't literally their status, so
-  // label them explicitly rather than letting the column imply it.
-  const offColumn = item.status === 'BLOCKED' || item.status === 'CANCELLED';
 
   return (
     <div
@@ -77,9 +65,13 @@ function Card({
           ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
           : {}),
       }}
-      className={`rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm ${
-        isDragging ? 'opacity-50 shadow-lg' : ''
-      } ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      // The left edge carries the status, so a column can be scanned for the
+      // odd one out without reading a badge on every card.
+      className={`rounded-xl border border-l-4 border-border bg-card p-4 transition-shadow hover:shadow-sm ${
+        ACTION_ITEM_STATUS_EDGE[item.status]
+      } ${isDragging ? 'opacity-50 shadow-lg' : ''} ${
+        canDrag ? 'cursor-grab active:cursor-grabbing' : ''
+      }`}
       {...listeners}
       {...attributes}
     >
@@ -103,13 +95,15 @@ function Card({
             {POINT_LABELS[item.point]}
           </span>
 
-          {/* BLOCKED and CANCELLED live in a column that is not literally their
-              status, so they say so rather than letting the column imply it. */}
-          {offColumn && (
-            <span className="ml-1.5 inline-block rounded bg-[#fdebec] px-2 py-0.5 text-[11px] font-medium text-[#5d1715]">
-              {ACTION_ITEM_STATUS_LABELS[item.status]}
-            </span>
-          )}
+          {/* Every card says its status now, not only the two that sit in a
+              column other than their own. Blocked and Cancelled used to share
+              one red tint, which read as though a cancelled item needed
+              attention; they have their own colours here. */}
+          <span
+            className={`ml-1.5 inline-block rounded px-2 py-0.5 text-[11px] font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
+          >
+            {ACTION_ITEM_STATUS_LABELS[item.status]}
+          </span>
 
           <span className="block">
             <span className="inline-block max-w-full truncate rounded bg-[#f1f1ef] px-2 py-0.5 text-[11px] font-medium text-[#32302c]">
@@ -164,7 +158,6 @@ function Column({
   onOpen: (item: BoardActionItem) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
-  const style = COLUMN_STYLE[status] ?? COLUMN_STYLE.TODO;
 
   return (
     <div
@@ -177,12 +170,18 @@ function Column({
     >
       <div className="mb-3 flex items-center gap-2 px-1">
         <span
-          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-medium ${style.pill}`}
+          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-medium ${ACTION_ITEM_STATUS_STYLES[status]}`}
         >
-          <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${ACTION_ITEM_STATUS_DOT[status]}`}
+          />
           {label}
         </span>
-        <span className="text-[13px] text-muted-foreground">{items.length}</span>
+        <span
+          className={`rounded-full px-2 text-[13px] font-medium ${ACTION_ITEM_STATUS_STYLES[status]}`}
+        >
+          {items.length}
+        </span>
       </div>
 
       <div className="flex-1 space-y-3">

@@ -326,6 +326,12 @@ export interface Minutes {
   actionItems?: ActionItem[];
 }
 
+export interface ActionItemAssistant {
+  id: string;
+  userId: string;
+  user: { id: string; name: string; email: string };
+}
+
 export interface ActionItem {
   id: string;
   minutesId: string;
@@ -343,6 +349,12 @@ export interface ActionItem {
   /** What has been done, and a link to it. */
   progressNotes: string | null;
   progressLink: string | null;
+  priority?: string;
+  /**
+   * Who else is working on this. They may report progress and move the
+   * status; the owner stays the one person answerable for it.
+   */
+  assistants?: ActionItemAssistant[];
   owner?: { id: string; name: string; email: string } | null;
   /**
    * Who raised it. Named assignedBy to match what the API actually returns —
@@ -487,4 +499,53 @@ export const ACTION_ITEM_STATUS_LABELS: Record<ActionItemStatus, string> = {
   BLOCKED: 'Blocked',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
+};
+
+/**
+ * Status colour, in one place.
+ *
+ * There were two maps before this — one on the board and one on the table —
+ * and they disagreed: the same In Progress item was amber in a column header
+ * and blue in a row. Colour that changes depending on where you are looking
+ * teaches nothing, so it lives here now, keyed by the enum so a new status
+ * cannot be added without one.
+ *
+ * The palette is the app's own: the amber, green and neutral are the same
+ * tints as the attendee and event pills. To Do and Blocked are both reds by
+ * request — distinguishable side by side, not across a room — which is why
+ * every pill keeps its text label and the cards carry an icon too. Hue is
+ * never the only thing saying what state something is in.
+ */
+export const ACTION_ITEM_STATUS_STYLES: Record<ActionItemStatus, string> = {
+  TODO: 'bg-destructive/10 text-destructive',
+  IN_PROGRESS: 'bg-[#fff8e5] text-[#8d6400]',
+  COMPLETED: 'bg-[#edf8f1] text-ring',
+  BLOCKED: 'bg-[#fdebec] text-[#5d1715]',
+  CANCELLED: 'bg-muted text-muted-foreground',
+};
+
+/** The same five as solid fills, for dots, card edges and bar segments. */
+export const ACTION_ITEM_STATUS_DOT: Record<ActionItemStatus, string> = {
+  TODO: 'bg-destructive',
+  IN_PROGRESS: 'bg-[#fab700]',
+  COMPLETED: 'bg-[#007236]',
+  BLOCKED: 'bg-[#5d1715]',
+  CANCELLED: 'bg-muted-foreground',
+};
+
+/** As a left edge on a card, where the fill classes do not apply. */
+export const ACTION_ITEM_STATUS_EDGE: Record<ActionItemStatus, string> = {
+  TODO: 'border-l-destructive',
+  IN_PROGRESS: 'border-l-[#fab700]',
+  COMPLETED: 'border-l-[#007236]',
+  BLOCKED: 'border-l-[#5d1715]',
+  CANCELLED: 'border-l-muted-foreground',
+};
+
+export type ActionItemPriority = 'low' | 'medium' | 'high';
+
+export const ACTION_ITEM_PRIORITY_LABELS: Record<ActionItemPriority, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
 };
