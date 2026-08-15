@@ -220,50 +220,20 @@ export default function SettingsPage() {
       )}
 
       <Section icon={<Bell className="h-5 w-5" />} title="Notifications">
-        <Row
-          title="Email notifications"
-          description="Receive notifications about events and invitations"
-          control={
-            <Toggle
-              checked={prefs.emailNotifications}
-              onChange={(v) => set('emailNotifications', v)}
-              disabled={isSaving}
-            />
-          }
-        />
-        <Row
-          title="Meeting reminders"
-          description="Get reminders before upcoming meetings"
-          control={
-            <Toggle
-              checked={prefs.meetingReminders}
-              onChange={(v) => set('meetingReminders', v)}
-              disabled={isSaving}
-            />
-          }
-        />
-        <Row
-          title="Minutes published"
-          description="Be notified when minutes are published for your events"
-          control={
-            <Toggle
-              checked={prefs.minutesNotifications}
-              onChange={(v) => set('minutesNotifications', v)}
-              disabled={isSaving}
-            />
-          }
-        />
-        <Row
-          title="Action item updates"
-          description="Be notified when action items are assigned or updated"
-          control={
-            <Toggle
-              checked={prefs.actionItemNotifications}
-              onChange={(v) => set('actionItemNotifications', v)}
-              disabled={isSaving}
-            />
-          }
-        />
+        {/* Four toggles used to sit here. They were removed rather than left
+            in place once notifications stopped being optional — a switch that
+            saves and changes nothing is worse than no switch. */}
+        <div className="rounded-xl border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+          <p>
+            Meeting invitations, reminders, published minutes and anything
+            assigned to you are part of the service and are always sent. They
+            tell you about things you are expected at or answerable for.
+          </p>
+          <p className="mt-3">
+            The one exception is the Monday summary of your open action items.
+            Every one of those emails carries a link to stop receiving it.
+          </p>
+        </div>
       </Section>
 
       <Section icon={<Monitor className="h-5 w-5" />} title="Display">
