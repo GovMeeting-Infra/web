@@ -510,17 +510,21 @@ export const ACTION_ITEM_STATUS_LABELS: Record<ActionItemStatus, string> = {
  * teaches nothing, so it lives here now, keyed by the enum so a new status
  * cannot be added without one.
  *
- * The palette is the app's own: the amber, green and neutral are the same
- * tints as the attendee and event pills. To Do and Blocked are both reds by
- * request — distinguishable side by side, not across a room — which is why
- * every pill keeps its text label and the cards carry an icon too. Hue is
- * never the only thing saying what state something is in.
+ * Red, amber and green carry the three columns, and are the same tints the
+ * attendee and event pills already use. The two states without a column of
+ * their own get hues from outside that progression, because they are outside
+ * it: blocked is not a stage between started and finished, it is an exception,
+ * and cancelled is closed without being done.
+ *
+ * Blocked is indigo rather than the obvious purple: every card already carries
+ * a purple "Action Point" badge, and two purples on one card would say less
+ * than one does.
  */
 export const ACTION_ITEM_STATUS_STYLES: Record<ActionItemStatus, string> = {
   TODO: 'bg-destructive/10 text-destructive',
   IN_PROGRESS: 'bg-[#fff8e5] text-[#8d6400]',
   COMPLETED: 'bg-[#edf8f1] text-ring',
-  BLOCKED: 'bg-[#fdebec] text-[#5d1715]',
+  BLOCKED: 'bg-[#eef2ff] text-[#3730a3]',
   CANCELLED: 'bg-muted text-muted-foreground',
 };
 
@@ -529,7 +533,7 @@ export const ACTION_ITEM_STATUS_DOT: Record<ActionItemStatus, string> = {
   TODO: 'bg-destructive',
   IN_PROGRESS: 'bg-[#fab700]',
   COMPLETED: 'bg-[#007236]',
-  BLOCKED: 'bg-[#5d1715]',
+  BLOCKED: 'bg-[#3730a3]',
   CANCELLED: 'bg-muted-foreground',
 };
 
@@ -538,7 +542,7 @@ export const ACTION_ITEM_STATUS_EDGE: Record<ActionItemStatus, string> = {
   TODO: 'border-l-destructive',
   IN_PROGRESS: 'border-l-[#fab700]',
   COMPLETED: 'border-l-[#007236]',
-  BLOCKED: 'border-l-[#5d1715]',
+  BLOCKED: 'border-l-[#3730a3]',
   CANCELLED: 'border-l-muted-foreground',
 };
 
