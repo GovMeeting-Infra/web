@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X, UserCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
@@ -48,7 +48,11 @@ export function PersonPicker({
 }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
+  // Which result the arrow keys are on. -1 means the input itself, so a plain
+  // Enter does not silently pick whatever happened to be first.
+  const [activeIndex, setActiveIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listId = useId();
 
   const { data: candidates = [], isLoading } = useQuery({
     queryKey: ['person-picker', endpoint, query],
@@ -104,24 +108,95 @@ export function PersonPicker({
     );
   }
 
+  const choose = (p: DirectoryPerson) => {
+    onChange(p);
+    setQuery('');
+    setOpen(false);
+    setActiveIndex(-1);
+  };
+
+  /**
+   * Keyboard model for the listbox.
+   *
+   * The results were reachable only by Tab, one candidate at a time, through a
+   * list that reorders as you type — so on a ministry directory a keyboard user
+   * tabbed through every colleague to reach the one they wanted, and a screen
+   * reader was never told the list had appeared at all.
+   */
+  const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!open) {
+        setOpen(true);
+        return;
+      }
+      if (people.length === 0) return;
+      setActiveIndex((i) => {
+        const next = e.key === 'ArrowDown' ? i + 1 : i - 1;
+        // Wraps, so holding one arrow key cannot strand focus at an end.
+        if (next < 0) return people.length - 1;
+        if (next >= people.length) return 0;
+        return next;
+      });
+      return;
+    }
+    if (e.key === 'Enter' && open && activeIndex >= 0 && people[activeIndex]) {
+      e.preventDefault();
+      choose(people[activeIndex]);
+      return;
+    }
+    if (e.key === 'Escape' && open) {
+      e.preventDefault();
+      setOpen(false);
+      setActiveIndex(-1);
+    }
+  };
+
   return (
     <div ref={containerRef} className="relative mt-1">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <input
         type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        aria-activedescendant={
+          activeIndex >= 0 && people[activeIndex]
+            ? `${listId}-${people[activeIndex].id}`
+            : undefined
+        }
+        aria-label={placeholder}
         value={query}
         disabled={disabled}
         onFocus={() => setOpen(true)}
+        onKeyDown={onKeyDown}
         onChange={(e) => {
           setQuery(e.target.value);
           setOpen(true);
+          // The old highlight points at a row that has since moved.
+          setActiveIndex(-1);
         }}
         placeholder={placeholder}
-        className="w-full rounded-md border border-border bg-muted/50 py-2 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none disabled:opacity-60"
+        className="w-full rounded-md border border-border bg-muted/50 py-2 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary disabled:opacity-60"
       />
 
+      {/* Announced separately from the list itself, so a screen reader hears
+          how many matches there are rather than only what is under the cursor. */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {open && !isLoading
+          ? people.length === 0
+            ? 'No matches'
+            : `${people.length} ${people.length === 1 ? 'match' : 'matches'} available`
+          : ''}
+      </span>
+
       {open && (
-        <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-border bg-card shadow-lg">
+        <ul
+          id={listId}
+          role="listbox"
+          className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-border bg-card shadow-lg"
+        >
           {isLoading ? (
             // Rows the shape of the results that replace them, so the dropdown
             // does not resize under the pointer as matches arrive.
@@ -144,16 +219,21 @@ export function PersonPicker({
               No colleagues match “{query.trim()}”
             </li>
           ) : (
-            people.map((p) => (
-              <li key={p.id}>
+            people.map((p, i) => (
+              <li
+                key={p.id}
+                id={`${listId}-${p.id}`}
+                role="option"
+                aria-selected={i === activeIndex}
+              >
                 <button
                   type="button"
-                  onClick={() => {
-                    onChange(p);
-                    setQuery('');
-                    setOpen(false);
-                  }}
-                  className="flex w-full items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-muted"
+                  tabIndex={-1}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onClick={() => choose(p)}
+                  className={`flex w-full items-center gap-2 px-3 py-2 text-left transition-colors ${
+                    i === activeIndex ? 'bg-muted' : 'hover:bg-muted'
+                  }`}
                 >
                   <UserCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
                   <span className="min-w-0">

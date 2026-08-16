@@ -40,8 +40,8 @@ import {
 } from '@/lib/types/events';
 
 const STATUS_PILL: Record<EventStatus, string> = {
-  PUBLISHED: 'bg-[#edf8f1] text-ring',
-  DRAFT: 'bg-[#edf3fd] text-primary',
+  PUBLISHED: 'bg-stat-green-bg text-success',
+  DRAFT: 'bg-stat-blue-bg text-primary',
   CANCELLED: 'bg-muted text-muted-foreground',
 };
 
@@ -53,9 +53,9 @@ const RSVP_LABEL: Record<string, string> = {
 };
 
 const RSVP_COLOR: Record<string, string> = {
-  INVITED: 'text-[#8a6d00]',
-  NO_RESPONSE: 'text-[#8a6d00]',
-  CONFIRMED: 'text-ring',
+  INVITED: 'text-stat-gold-fg',
+  NO_RESPONSE: 'text-stat-gold-fg',
+  CONFIRMED: 'text-success',
   DECLINED: 'text-destructive',
 };
 
@@ -418,7 +418,7 @@ export default function EventDetailPage({
                 disabled={isBusy}
                 className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium disabled:opacity-50 ${
                   confirmCancel
-                    ? 'bg-[#fab700] text-primary'
+                    ? 'bg-accent text-primary'
                     : 'border border-border text-foreground hover:bg-muted'
                 }`}
               >
@@ -605,7 +605,7 @@ export default function EventDetailPage({
                     <button
                       onClick={() => handleRsvp('CONFIRMED')}
                       disabled={isBusy || myInvite.status === 'CONFIRMED'}
-                      className="flex items-center gap-2 rounded-xl bg-ring px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
+                      className="flex items-center gap-2 rounded-xl bg-success px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-40"
                     >
                       <Check className="h-4 w-4" /> Confirm Attendance
                     </button>

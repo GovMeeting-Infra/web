@@ -46,7 +46,7 @@ function LocationCell({ record }: { record: AttendanceRecord }) {
     withinGeofence === true
       ? {
           label: 'Verified',
-          className: 'bg-[#edf8f1] text-ring',
+          className: 'bg-stat-green-bg text-success',
           hint: 'Their phone placed them inside the check-in area the organiser set.',
         }
       : withinGeofence === false
@@ -58,7 +58,7 @@ function LocationCell({ record }: { record: AttendanceRecord }) {
         : typeof gpsAccuracy === 'number'
           ? {
               label: 'Unconfirmed',
-              className: 'bg-[#fff8e5] text-[#8d6400]',
+              className: 'bg-stat-gold-bg text-stat-gold-fg',
               hint: 'A location arrived but was too vague to prove they were inside the area. They may well have been — indoors, a phone often cannot do better.',
             }
           : {
@@ -205,7 +205,7 @@ export function CheckedInTable({
   checkIns: AttendanceRecord[];
   eventId: string;
   canRemove: boolean;
-  onRemove: (attendanceId: string) => void;
+  onRemove: (attendanceId: string, name: string) => void;
 }) {
   // Newest first out of the API, which is the order a desk wants during a
   // meeting; name order is for reading the register afterwards.
@@ -302,7 +302,7 @@ export function CheckedInTable({
                       {c.signedName}
                     </span>
                     {c.isWalkIn && (
-                      <span className="ml-2 rounded-full bg-[#fff8e5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8d6400]">
+                      <span className="ml-2 rounded-full bg-stat-gold-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-stat-gold-fg">
                         Walk-in
                       </span>
                     )}
@@ -341,7 +341,7 @@ export function CheckedInTable({
                   {canRemove && (
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => onRemove(c.id)}
+                        onClick={() => onRemove(c.id, c.signedName || c.user?.name || "this attendee")}
                         aria-label={`Remove check-in for ${c.signedName}`}
                         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                       >
@@ -369,7 +369,7 @@ export function CheckedInTable({
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
                   {c.signedName}
                   {c.isWalkIn && (
-                    <span className="rounded-full bg-[#fff8e5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8d6400]">
+                    <span className="rounded-full bg-stat-gold-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-stat-gold-fg">
                       Walk-in
                     </span>
                   )}
@@ -388,7 +388,7 @@ export function CheckedInTable({
               </div>
               {canRemove && (
                 <button
-                  onClick={() => onRemove(c.id)}
+                  onClick={() => onRemove(c.id, c.signedName || c.user?.name || "this attendee")}
                   aria-label={`Remove check-in for ${c.signedName}`}
                   className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                 >

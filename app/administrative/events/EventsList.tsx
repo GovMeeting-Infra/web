@@ -26,8 +26,8 @@ import {
 
 /** Status pill colours: cancelled must read as inactive, not as a draft. */
 const STATUS_PILL: Record<EventStatus, string> = {
-  PUBLISHED: 'bg-[#edf8f1] text-ring',
-  DRAFT: 'bg-[#edf3fd] text-primary',
+  PUBLISHED: 'bg-stat-green-bg text-success',
+  DRAFT: 'bg-stat-blue-bg text-primary',
   CANCELLED: 'bg-muted text-muted-foreground line-through',
 };
 
@@ -265,7 +265,7 @@ export function EventsList() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>

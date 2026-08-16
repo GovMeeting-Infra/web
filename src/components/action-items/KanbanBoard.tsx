@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import {
   DndContext,
+  KeyboardSensor,
   PointerSensor,
   TouchSensor,
   useSensor,
@@ -19,7 +20,6 @@ import {
   ACTION_ITEM_STATUS_LABELS,
   ACTION_ITEM_STATUS_STYLES,
   ACTION_ITEM_STATUS_DOT,
-  ACTION_ITEM_STATUS_EDGE,
   type ActionItemStatus,
   type BoardActionItem,
 } from '@/lib/types/events';
@@ -63,13 +63,13 @@ function Card({
           ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
           : {}),
       }}
-      // The left edge carries the status, so a column can be scanned for the
-      // odd one out without reading a badge on every card.
-      className={`rounded-xl border border-l-4 border-border bg-card p-4 transition-shadow hover:shadow-sm ${
-        ACTION_ITEM_STATUS_EDGE[item.status]
-      } ${isDragging ? 'opacity-50 shadow-lg' : ''} ${
-        canDrag ? 'cursor-grab active:cursor-grabbing' : ''
-      }`}
+      // The 4px status stripe is gone: the card already states its status in
+      // words below, and the column it sits in says the same thing a third
+      // time. A thick coloured edge on a list item is decoration standing in
+      // for information that is already there.
+      className={`rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm ${
+        isDragging ? 'opacity-50 shadow-lg' : ''
+      } ${canDrag ? 'cursor-grab active:cursor-grabbing' : ''}`}
       {...listeners}
       {...attributes}
     >
@@ -206,6 +206,7 @@ export function KanbanBoard({
   onMove: (item: BoardActionItem, status: ActionItemStatus) => void;
 }) {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [announcement, setAnnouncement] = useState('');
 
   // A small distance constraint keeps a click from registering as a drag, so
   // cards stay clickable for the detail modal.
@@ -214,19 +215,38 @@ export function KanbanBoard({
   // phone a short drag is how you scroll, so distance alone would have the
   // board stealing every swipe. Press and hold to pick a card up; the
   // tolerance lets a finger wobble during that hold without cancelling it.
+  //
+  // KeyboardSensor last, and it is not an extra: the cards already spread
+  // dnd-kit's attributes, so each one announced itself as draggable and took a
+  // tab stop while Space and Enter did nothing. Moving a task is the board's
+  // only real interaction, which made this a 2.1.1 failure on the primary
+  // action of the page. Space picks a card up, arrows move it between columns,
+  // Space drops it, Escape cancels.
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 200, tolerance: 8 },
     }),
+    useSensor(KeyboardSensor),
   );
 
   const handleDragEnd = (e: DragEndEvent) => {
     setActiveId(null);
     const target = e.over?.id as ActionItemStatus | undefined;
-    if (!target) return;
     const item = items.find((i) => i.id === e.active.id);
-    if (!item || boardColumnFor(item.status) === target) return;
+    if (!target || !item) {
+      setAnnouncement(
+        item ? `${item.title} was left in place.` : 'Move cancelled.',
+      );
+      return;
+    }
+    if (boardColumnFor(item.status) === target) {
+      setAnnouncement(`${item.title} was left in place.`);
+      return;
+    }
+    const label =
+      BOARD_COLUMNS.find((c) => c.status === target)?.label ?? String(target);
+    setAnnouncement(`${item.title} moved to ${label}.`);
     onMove(item, target);
   };
 
@@ -249,11 +269,14 @@ export function KanbanBoard({
           />
         ))}
       </div>
-      {activeId && (
-        <span className="sr-only" aria-live="polite">
-          Moving action item
-        </span>
-      )}
+      {/* One region, always mounted, so a screen reader hears the pick-up and
+          the outcome. Previously it mounted on drag start saying "Moving action
+          item" and unmounted without ever saying where the card landed. */}
+      <span className="sr-only" role="status" aria-live="polite">
+        {activeId
+          ? `${items.find((i) => i.id === activeId)?.title ?? 'Action item'} picked up. Use the arrow keys to choose a column, space to drop, escape to cancel.`
+          : announcement}
+      </span>
     </DndContext>
   );
 }

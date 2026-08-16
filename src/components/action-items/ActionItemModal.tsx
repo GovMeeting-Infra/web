@@ -187,7 +187,7 @@ export function ActionItemModal({
                 }
               }}
               placeholder="What this involves…"
-              className="mt-1 w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="mt-1 w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary"
             />
           </div>
         ) : (
@@ -268,7 +268,7 @@ export function ActionItemModal({
                       dueDate: new Date(e.target.value).toISOString(),
                     });
                   }}
-                  className={`w-full rounded-xl border border-border bg-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                  className={`w-full rounded-xl border border-border bg-input px-3 py-2 text-sm focus:border-primary ${
                     overdue ? 'text-destructive' : 'text-foreground'
                   }`}
                 />
@@ -308,7 +308,7 @@ export function ActionItemModal({
                   onChange={(e) =>
                     void onStatusChange(e.target.value as ActionItemStatus)
                   }
-                  className={`cursor-pointer appearance-none rounded-full px-3 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
+                  className={`cursor-pointer appearance-none rounded-full px-3 py-1 text-xs font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
                 >
                   {STATUS_OPTIONS.map((st) => (
                     <option key={st} value={st}>
@@ -336,7 +336,7 @@ export function ActionItemModal({
                 <select
                   value={item.priority ?? 'medium'}
                   onChange={(e) => void save({ priority: e.target.value })}
-                  className="w-full cursor-pointer rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full cursor-pointer rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary"
                 >
                   {(['low', 'medium', 'high'] as const).map((p) => (
                     <option key={p} value={p}>
@@ -449,14 +449,14 @@ export function ActionItemModal({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="What has been done so far…"
-              className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary"
             />
             <input
               type="url"
               value={link}
               onChange={(e) => setLink(e.target.value)}
               placeholder="Link to the work (optional)"
-              className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary"
             />
             {progressError && (
               <p className="text-xs text-destructive">{progressError}</p>

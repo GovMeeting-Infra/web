@@ -74,7 +74,7 @@ export function PointList({
               placeholder={placeholder}
               maxLength={300}
               aria-label={`${label} ${index + 1}`}
-              className="min-w-0 flex-1 rounded-xl border border-border bg-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+              className="min-w-0 flex-1 rounded-xl border border-border bg-input px-3 py-2 text-sm focus:border-primary disabled:opacity-50"
             />
             <div className="flex shrink-0 items-center">
               <button
