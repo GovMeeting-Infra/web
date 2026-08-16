@@ -10,7 +10,7 @@
  * this dev database does not hold the seeded users.
  */
 
-const LOGIN = '/administrative/login';
+const LOGIN_PAGE = '/administrative/login';
 const REVEAL = 'button[aria-label="Show password"]';
 
 /**
@@ -27,7 +27,7 @@ const unhover = (selector: string) =>
 describe('Tooltips — no account needed', () => {
   beforeEach(() => {
     cy.viewport(1280, 800);
-    cy.visit(LOGIN);
+    cy.visit(LOGIN_PAGE);
   });
 
   it('appears on hover', () => {

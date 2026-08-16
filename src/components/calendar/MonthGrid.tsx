@@ -96,26 +96,32 @@ export function MonthGrid({
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-foreground">{monthLabel}</h2>
         <div className="flex gap-2">
-          <Link
-            href={navHref(prev)}
-            aria-label="Previous month"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
-          <Link
-            href={navHref('today')}
-            className="flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
-          >
-            Today
-          </Link>
-          <Link
-            href={navHref(next)}
-            aria-label="Next month"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
+          <Tooltip content="The month before this one">
+            <Link
+              href={navHref(prev)}
+              aria-label="Previous month"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
+          </Tooltip>
+          <Tooltip content="Jump back to the current month">
+            <Link
+              href={navHref('today')}
+              className="flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            >
+              Today
+            </Link>
+          </Tooltip>
+          <Tooltip content="The month after this one">
+            <Link
+              href={navHref(next)}
+              aria-label="Next month"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          </Tooltip>
         </div>
       </div>
 

@@ -23,12 +23,15 @@ function ReportCard({
   title,
   description,
   metrics,
+  hints,
   period,
   icon,
 }: {
   title: string;
   description: string;
   metrics: Record<string, string | number>;
+  /** What each figure actually counts, keyed by the same name. */
+  hints?: Record<string, string>;
   period: string;
   icon: React.ReactNode;
 }) {
@@ -46,12 +49,14 @@ function ReportCard({
 
       <div className="mt-6 grid grid-cols-1 gap-4 border-t border-slate-200 pt-4 sm:grid-cols-3">
         {Object.entries(metrics).map(([key, value]) => (
-          <div key={key}>
-            <p className="text-xs uppercase tracking-wider text-slate-500">
-              {key.replace(/([A-Z])/g, ' $1').trim()}
-            </p>
-            <p className="mt-1 text-lg font-bold text-[#003580]">{value}</p>
-          </div>
+          <Tooltip key={key} content={hints?.[key]} disabled={!hints?.[key]}>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-slate-500">
+                {key.replace(/([A-Z])/g, ' $1').trim()}
+              </p>
+              <p className="mt-1 text-lg font-bold text-[#003580]">{value}</p>
+            </div>
+          </Tooltip>
         ))}
       </div>
 
@@ -160,6 +165,13 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 events: data.eventStats.total,
                 checkIns: data.attendanceStats.totalCheckIns,
               }}
+              hints={{
+                attendance:
+                  'Of everyone invited across all meetings, the share who actually checked in.',
+                events: 'Every meeting and activity in your ministry.',
+                checkIns:
+                  'Every individual check-in recorded, including walk-ins who were never invited.',
+              }}
             />
 
             <ReportCard
@@ -171,6 +183,11 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 upcoming: data.eventStats.upcoming,
                 past: data.eventStats.past,
                 totalEvents: data.eventStats.total,
+              }}
+              hints={{
+                upcoming: 'Scheduled and not started yet.',
+                past: 'Already finished.',
+                totalEvents: 'Everything, whenever it happened.',
               }}
             />
 
@@ -244,6 +261,13 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               description="Accounts and sign-in activity"
               period={period}
               icon={<Users className="h-6 w-6 text-[#003580]" />}
+              hints={{
+                active:
+                  'Accounts that can sign in. Deactivated and erased accounts are excluded.',
+                total: 'Every account, active or not.',
+                'avg. sign-ins':
+                  'How often an average account signs in, across the accounts that ever have.',
+              }}
               metrics={{
                 active: data.userStats.activeUsers,
                 total: data.userStats.totalUsers,
@@ -361,14 +385,15 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               {CSV_EXPORTS.map((e) => (
                 // Plain links: the Next /api/* rewrite proxies these with the
                 // session cookie, so the browser downloads them directly.
-                <a
-                  key={e.dataset}
-                  href={`/api/v1/reports/export/${e.dataset}`}
-                  className="flex items-center justify-center gap-2 rounded-lg border border-[#d3deef] bg-white px-4 py-3 font-medium text-[#003580] transition-all hover:border-[#003580] hover:bg-[#e2ecfa]"
-                >
-                  <Download className="h-4 w-4" />
-                  {e.label}
-                </a>
+                <Tooltip key={e.dataset} content={e.hint}>
+                  <a
+                    href={`/api/v1/reports/export/${e.dataset}`}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-[#d3deef] bg-white px-4 py-3 font-medium text-[#003580] transition-all hover:border-[#003580] hover:bg-[#e2ecfa]"
+                  >
+                    <Download className="h-4 w-4" />
+                    {e.label}
+                  </a>
+                </Tooltip>
               ))}
             </div>
           </section>

@@ -48,18 +48,21 @@ const TABS = [
     title: 'Happening now',
     icon: Radio,
     empty: 'Nothing is running right now.',
+    hint: 'Under way at this moment — started and not yet finished. This is where to find a meeting you need to check people into.',
   },
   {
     timeframe: 'upcoming',
     title: 'Upcoming',
     icon: CalendarDays,
     empty: 'No upcoming events.',
+    hint: 'Scheduled but not started yet, soonest first.',
   },
   {
     timeframe: 'past',
     title: 'Past',
     icon: History,
     empty: 'No past events.',
+    hint: 'Already finished. Their minutes and attendance are still here.',
   },
 ] as const;
 
@@ -214,14 +217,16 @@ export function EventsList() {
             Manage your ministry&apos;s meetings and public events
           </p>
         </div>
-        <Link
-          href="/administrative/events/new"
-          data-tour="events-create"
-          className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-6 py-3 font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)] transition-all hover:shadow-[0_12px_24px_rgba(0,53,128,0.32)]"
-        >
-          <Plus className="h-5 w-5" />
-          Create Event
-        </Link>
+        <Tooltip content="Set the time, place and who is invited. The same form covers an internal meeting and a public activity.">
+          <Link
+            href="/administrative/events/new"
+            data-tour="events-create"
+            className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-6 py-3 font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)] transition-all hover:shadow-[0_12px_24px_rgba(0,53,128,0.32)]"
+          >
+            <Plus className="h-5 w-5" />
+            Schedule an activity
+          </Link>
+        </Tooltip>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -277,12 +282,12 @@ export function EventsList() {
           aria-label="Event timeframe"
           className="flex flex-wrap gap-1 border-b border-border"
         >
-          {TABS.map(({ timeframe, title, icon: Icon }) => {
+          {TABS.map(({ timeframe, title, icon: Icon, hint }) => {
             const isActive = active === timeframe;
             const count = queries[timeframe].data?.total;
             return (
+              <Tooltip key={timeframe} content={hint}>
               <button
-                key={timeframe}
                 role="tab"
                 type="button"
                 id={`events-tab-${timeframe}`}
@@ -309,6 +314,7 @@ export function EventsList() {
                   </span>
                 )}
               </button>
+              </Tooltip>
             );
           })}
         </div>

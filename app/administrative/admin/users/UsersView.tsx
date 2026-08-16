@@ -368,15 +368,17 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setShowCreate((v) => !v);
-            setInvite(null);
-          }}
-          className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)]"
-        >
-          <UserPlus className="h-4 w-4" /> Add User
-        </button>
+        <Tooltip content="Creates the account and emails them a link to set their own password — you never see or choose it. Their address must be on the ministry's domain.">
+          <button
+            onClick={() => {
+              setShowCreate((v) => !v);
+              setInvite(null);
+            }}
+            className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)]"
+          >
+            <UserPlus className="h-4 w-4" /> Add User
+          </button>
+        </Tooltip>
       </div>
 
       {error && (

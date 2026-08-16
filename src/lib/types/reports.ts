@@ -60,8 +60,27 @@ export interface AnalyticsDashboard {
   generatedAt: string;
 }
 
+/**
+ * The three downloads on the reports page.
+ *
+ * Each carries what it actually contains, because the label alone does not say
+ * how far it reaches — every one of these covers the whole ministry rather than
+ * the period shown on the page above it.
+ */
 export const CSV_EXPORTS = [
-  { dataset: 'events', label: 'Events CSV' },
-  { dataset: 'attendance', label: 'Attendance CSV' },
-  { dataset: 'action-items', label: 'Action Items CSV' },
+  {
+    dataset: 'events',
+    label: 'Events CSV',
+    hint: 'One row per meeting across your whole ministry, with how many were invited and how many turned up.',
+  },
+  {
+    dataset: 'attendance',
+    label: 'Attendance CSV',
+    hint: 'Every check-in across your whole ministry — name, email, title, organisation and how their location was judged.',
+  },
+  {
+    dataset: 'action-items',
+    label: 'Action Items CSV',
+    hint: 'Every action item from every meeting, with its owner, due date and status.',
+  },
 ] as const;
