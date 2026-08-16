@@ -33,12 +33,17 @@ export function NotificationBell() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Unread only. includeRead is deliberately absent — the page covers history.
-  const { data: unread = [], isLoading } = useQuery({
+  // The endpoint returns a page object now, so the list is under `items`.
+  const { data: unreadPage, isLoading } = useQuery({
     queryKey: ['notifications-unread'],
     queryFn: () =>
-      apiFetch<Notification[]>(`/api/v1/notifications?limit=${PREVIEW_LIMIT}`),
+      apiFetch<{ items: Notification[]; total: number }>(
+        `/api/v1/notifications?limit=${PREVIEW_LIMIT}`,
+      ),
     refetchInterval: 60_000,
   });
+
+  const unread = unreadPage?.items ?? [];
 
   // The real total, separate from the preview. The badge used to count the
   // preview array, which is capped at PREVIEW_LIMIT — so it stopped at 6 no
