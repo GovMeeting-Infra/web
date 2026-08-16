@@ -90,7 +90,7 @@ export default function CalendarDayPage() {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
             {view === 'public' ? 'Public agenda' : 'Internal agenda'}
           </p>
           <h1 className="text-3xl font-bold text-primary">{heading}</h1>

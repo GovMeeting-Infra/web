@@ -25,7 +25,7 @@ import {
 } from '@/lib/types/account';
 
 const field =
-  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
+  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
 const label = 'block text-sm font-medium text-foreground/80';
 
 function StatCard({
@@ -165,7 +165,7 @@ export default function ProfilePage() {
     <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
             Personal account
           </p>
           <h1 className="text-3xl font-bold text-primary">Profile</h1>
@@ -183,7 +183,7 @@ export default function ProfilePage() {
       </div>
 
       {notice && (
-        <div className="rounded-lg border border-ring/20 bg-[#edf8f1] p-4 text-sm text-ring">
+        <div className="rounded-lg border border-ring/20 bg-stat-green-bg p-4 text-sm text-success">
           {notice}
         </div>
       )}
@@ -257,7 +257,7 @@ export default function ProfilePage() {
               <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Account status
               </dt>
-              <dd className="mt-1 text-sm font-medium text-ring">
+              <dd className="mt-1 text-sm font-medium text-success">
                 {profile.active ? 'Active' : 'Inactive'}
               </dd>
             </div>
@@ -268,25 +268,25 @@ export default function ProfilePage() {
               label="Events Organized"
               value={profile.stats.organizedEvents}
               icon={<CalendarDays className="h-5 w-5 opacity-70" />}
-              tint="border-[#c9d9f2] bg-[#edf3fd] text-[#003580]"
+              tint="border-stat-blue-border bg-stat-blue-bg text-primary"
             />
             <StatCard
               label="Events Attended"
               value={profile.stats.attendedEvents}
               icon={<CheckCircle2 className="h-5 w-5 opacity-70" />}
-              tint="border-[#cfe5d7] bg-[#edf8f1] text-[#007236]"
+              tint="border-stat-green-border bg-stat-green-bg text-success"
             />
             <StatCard
               label="Open Action Items"
               value={profile.stats.actionItems}
               icon={<ClipboardList className="h-5 w-5 opacity-70" />}
-              tint="border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]"
+              tint="border-stat-gold-border bg-stat-gold-bg text-stat-gold-fg"
             />
             <StatCard
               label="Upcoming Events"
               value={profile.stats.upcomingEvents}
               icon={<Clock className="h-5 w-5 opacity-70" />}
-              tint="border-[#d9cff2] bg-[#f3effd] text-[#4c1d95]"
+              tint="border-stat-violet-border bg-stat-violet-bg text-stat-violet-fg"
             />
           </div>
         </>
@@ -349,8 +349,8 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className={label}>Full name *</label>
-              <input
+              <label className={label} htmlFor="full-name">Full name *</label>
+              <input id="full-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={field}
@@ -358,8 +358,8 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label className={label}>Job title</label>
-              <input
+              <label className={label} htmlFor="job-title">Job title</label>
+              <input id="job-title"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
                 placeholder="e.g. Director of Planning"

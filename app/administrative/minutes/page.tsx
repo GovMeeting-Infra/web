@@ -30,8 +30,8 @@ const ARCHIVE_READER_ROLES = ['MINISTER', 'SUPER_ADMIN'];
 
 function StatusBadge({ status }: { status: MinutesSummary['status'] }) {
   const styles: Record<string, string> = {
-    PUBLISHED: 'border-[#cfe5d7] bg-[#edf8f1] text-[#007236]',
-    DRAFT: 'border-[#c9d9f2] bg-[#edf3fd] text-[#003580]',
+    PUBLISHED: 'border-stat-green-border bg-stat-green-bg text-success',
+    DRAFT: 'border-stat-blue-border bg-stat-blue-bg text-primary',
     ARCHIVED: 'border-border bg-muted text-muted-foreground',
   };
   const labels: Record<string, string> = {
@@ -80,7 +80,7 @@ export default function MinutesPage() {
   return (
     <PageContainer>
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Records
         </p>
         <h1 className="text-3xl font-bold text-primary">Meeting Minutes</h1>
@@ -106,7 +106,7 @@ export default function MinutesPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by meeting or content…"
-            className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+            className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary"
           />
           {q && (
             <button

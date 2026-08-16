@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Table2,
@@ -55,7 +56,13 @@ export default function ActionItemsPage() {
   // The board is the page's own shape — the columns are the workflow. Table is
   // the alternate view for scanning everything at once.
   const [view, setView] = useState<'board' | 'table'>('board');
-  const [owner, setOwner] = useState('');
+  // Seeded from ?owner= so a link that promised one person's items opens on
+  // them. The dashboard sends people here from counts that are explicitly
+  // theirs; landing on the whole ministry's board made them re-filter every
+  // time. Still ordinary state afterwards — the picker below owns it, and the
+  // URL is not rewritten as they change it.
+  const searchParams = useSearchParams();
+  const [owner, setOwner] = useState(() => searchParams.get('owner') ?? '');
   const [selected, setSelected] = useState<BoardActionItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -127,7 +134,7 @@ export default function ActionItemsPage() {
     <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
             Task board
           </p>
           <h1 className="text-3xl font-bold text-primary">Action Items</h1>
@@ -172,7 +179,7 @@ export default function ActionItemsPage() {
                 // Options fall back to the full email when a person has no
                 // name, which sizes this control to ~280px and pushes it off
                 // the screen. Same fix as the activity log and users filters.
-                className="min-w-0 max-w-full truncate rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 sm:max-w-[14rem]"
+                className="min-w-0 max-w-full truncate rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary sm:max-w-[14rem]"
               >
                 <option value="">All assignees</option>
                 {currentUser && <option value={currentUser.id}>Assigned to me</option>}
@@ -349,7 +356,7 @@ export default function ActionItemsPage() {
                             onChange={(e) =>
                               changeStatus(item, e.target.value as ActionItemStatus)
                             }
-                            className={`cursor-pointer appearance-none rounded px-2 py-0.5 text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                            className={`cursor-pointer appearance-none rounded px-2 py-0.5 text-[11px] font-medium ${
                               ACTION_ITEM_STATUS_STYLES[item.status]
                             }`}
                           >
@@ -433,7 +440,7 @@ export default function ActionItemsPage() {
                           changeStatus(item, e.target.value as ActionItemStatus)
                         }
                         aria-label="Status"
-                        className={`cursor-pointer appearance-none rounded px-2 py-1 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                        className={`cursor-pointer appearance-none rounded px-2 py-1 text-base font-medium ${
                           ACTION_ITEM_STATUS_STYLES[item.status]
                         }`}
                       >

@@ -36,13 +36,13 @@ function ReportCard({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="group rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)] transition-all hover:shadow-[0_16px_40px_rgba(0,53,128,0.12)]">
+    <div className="group rounded-[1.75rem] border border-border bg-surface-raised p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)] transition-all hover:shadow-[0_16px_40px_rgba(0,53,128,0.12)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-semibold text-[#003580]">{title}</h3>
+          <h3 className="font-semibold text-primary">{title}</h3>
           <p className="mt-2 text-sm text-slate-600">{description}</p>
         </div>
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#e2ecfa]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-secondary">
           {icon}
         </div>
       </div>
@@ -54,7 +54,7 @@ function ReportCard({
               <p className="text-xs uppercase tracking-wider text-slate-500">
                 {key.replace(/([A-Z])/g, ' $1').trim()}
               </p>
-              <p className="mt-1 text-lg font-bold text-[#003580]">{value}</p>
+              <p className="mt-1 text-lg font-bold text-primary">{value}</p>
             </div>
           </Tooltip>
         ))}
@@ -84,7 +84,7 @@ function ProportionBar({
 
   return (
     <>
-      <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-[#e2ecfa]">
+      <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-secondary">
         {segments.map((s) =>
           s.value > 0 ? (
             <Tooltip key={s.label} content={`${s.label}: ${s.value}`}>
@@ -103,7 +103,7 @@ function ProportionBar({
               <span className={`h-2.5 w-2.5 rounded-full ${s.color}`} />
               {s.label}
             </span>
-            <span className="font-semibold text-[#003580]">
+            <span className="font-semibold text-primary">
               {s.value}
               <span className="ml-1 text-xs font-normal text-slate-500">
                 ({Math.round((s.value / total) * 100)}%)
@@ -135,10 +135,10 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
   return (
     <PageContainer className="space-y-8">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#007236]">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Insight centre
         </p>
-        <h1 className="text-3xl font-bold text-[#003580]">Reports &amp; Analytics</h1>
+        <h1 className="text-3xl font-bold text-primary">Reports &amp; Analytics</h1>
         <p className="mt-2 text-slate-600">{scopeLabel}</p>
       </div>
 
@@ -159,7 +159,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               title="Attendance Summary"
               description="Overview of attendance across all events"
               period={period}
-              icon={<BarChart3 className="h-6 w-6 text-[#003580]" />}
+              icon={<BarChart3 className="h-6 w-6 text-primary" />}
               metrics={{
                 attendance: pct(data.attendanceStats.attendanceRate),
                 events: data.eventStats.total,
@@ -178,7 +178,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               title="Event Performance"
               description="Analysis of event participation and engagement"
               period={period}
-              icon={<TrendingUp className="h-6 w-6 text-[#003580]" />}
+              icon={<TrendingUp className="h-6 w-6 text-primary" />}
               metrics={{
                 upcoming: data.eventStats.upcoming,
                 past: data.eventStats.past,
@@ -195,18 +195,18 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 completed, in progress and overdue were peers, and overdue is
                 not — an overdue item is also a to-do, so it belongs beside the
                 bar rather than inside it. */}
-            <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+            <section className="min-w-0 rounded-[1.75rem] border border-border bg-surface-raised p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="font-semibold text-[#003580]">
+                  <h2 className="font-semibold text-primary">
                     Action Items Progress
                   </h2>
                   <p className="mt-2 text-sm text-slate-600">
                     Where the work from meetings has got to
                   </p>
                 </div>
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[#e2ecfa]">
-                  <CheckCircle2 className="h-6 w-6 text-[#003580]" />
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-secondary">
+                  <CheckCircle2 className="h-6 w-6 text-primary" />
                 </div>
               </div>
 
@@ -260,7 +260,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               title="People"
               description="Accounts and sign-in activity"
               period={period}
-              icon={<Users className="h-6 w-6 text-[#003580]" />}
+              icon={<Users className="h-6 w-6 text-primary" />}
               hints={{
                 active:
                   'Accounts that can sign in. Deactivated and erased accounts are excluded.',
@@ -279,8 +279,8 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
           </div>
 
           {data.userStats.usersByRole.length > 0 && (
-            <section className="rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
-              <h2 className="font-semibold text-[#003580]">People by role</h2>
+            <section className="rounded-[1.75rem] border border-border bg-surface-raised p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+              <h2 className="font-semibold text-primary">People by role</h2>
               <p className="mt-2 text-sm text-slate-600">
                 Who holds which level of access
               </p>
@@ -288,12 +288,12 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 {data.userStats.usersByRole.map((r) => (
                   <div
                     key={r.role}
-                    className="rounded-xl border border-[#d3deef] bg-white p-4"
+                    className="rounded-xl border border-border bg-white p-4"
                   >
                     <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                       {ROLE_LABELS[r.role as SystemRole] ?? r.role}
                     </dt>
-                    <dd className="mt-1.5 text-2xl font-bold text-[#003580]">
+                    <dd className="mt-1.5 text-2xl font-bold text-primary">
                       {r.count}
                     </dd>
                   </div>
@@ -310,8 +310,8 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               with it. */}
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Check-in methods */}
-            <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
-              <h2 className="font-semibold text-[#003580]">Check-in Methods</h2>
+            <section className="min-w-0 rounded-[1.75rem] border border-border bg-surface-raised p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+              <h2 className="font-semibold text-primary">Check-in Methods</h2>
               <p className="mt-2 text-sm text-slate-600">
                 Whether people signed themselves in, or someone did it for them
               </p>
@@ -324,12 +324,12 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                   {
                     label: 'Checked in themselves',
                     value: data.checkInMethods.qr + data.checkInMethods.geo,
-                    color: 'bg-[#003580]',
+                    color: 'bg-primary',
                   },
                   {
                     label: 'Recorded by an organizer',
                     value: data.checkInMethods.manual,
-                    color: 'bg-[#007236]',
+                    color: 'bg-success',
                   },
                 ]}
               />
@@ -338,7 +338,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 // been too vague to prove, and only the attendance record
                 // separates those two.
                 <p className="mt-4 border-t border-slate-200 pt-4 text-sm text-slate-600">
-                  <span className="font-semibold text-[#003580]">
+                  <span className="font-semibold text-primary">
                     {data.checkInMethods.geo}
                   </span>{' '}
                   of those had their location checked against the venue.
@@ -347,8 +347,8 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             </section>
 
             {/* Events over time */}
-            <section className="min-w-0 rounded-[1.75rem] border border-[#d3deef] bg-[#fafdff] p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
-              <h2 className="font-semibold text-[#003580]">Events Created</h2>
+            <section className="min-w-0 rounded-[1.75rem] border border-border bg-surface-raised p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
+              <h2 className="font-semibold text-primary">Events Created</h2>
               <p className="mt-2 text-sm text-slate-600">Last 12 months</p>
 
               <div className="mt-6 -mx-2 overflow-x-auto px-2">
@@ -361,7 +361,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                       }`}
                     >
                       <div
-                        className="w-full rounded-t bg-[#003580] transition-all"
+                        className="w-full rounded-t bg-primary transition-all"
                         style={{
                           height: `${Math.max(2, (m.count / maxMonth) * 100)}%`,
                           opacity: m.count === 0 ? 0.15 : 1,
@@ -378,8 +378,8 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             </section>
           </div>
 
-          <section className="rounded-[2rem] border border-[#d3deef] bg-[#fafdff] p-8 shadow-[0_24px_70px_rgba(0,53,128,0.08)] max-sm:p-4">
-            <h2 className="text-2xl font-bold text-[#003580]">Quick Export</h2>
+          <section className="rounded-[2rem] border border-border bg-surface-raised p-8 shadow-[0_24px_70px_rgba(0,53,128,0.08)] max-sm:p-4">
+            <h2 className="text-2xl font-bold text-primary">Quick Export</h2>
             <p className="mt-2 text-slate-600">Download report data as CSV</p>
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               {CSV_EXPORTS.map((e) => (
@@ -388,7 +388,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 <Tooltip key={e.dataset} content={e.hint}>
                   <a
                     href={`/api/v1/reports/export/${e.dataset}`}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-[#d3deef] bg-white px-4 py-3 font-medium text-[#003580] transition-all hover:border-[#003580] hover:bg-[#e2ecfa]"
+                    className="flex items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-3 font-medium text-primary transition-all hover:border-primary hover:bg-secondary"
                   >
                     <Download className="h-4 w-4" />
                     {e.label}

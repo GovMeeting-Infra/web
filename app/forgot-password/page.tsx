@@ -7,12 +7,12 @@ import { KeyRound, MailCheck, ArrowLeft } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 
 const field =
-  'mt-1 w-full rounded-xl border border-[#d3deef] bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-[#003580] focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]';
+  'mt-1 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-primary';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[#f8fbff] p-4">
-      <div className="w-full max-w-md rounded-[1.75rem] border border-[#d3deef] bg-white p-6 shadow-[0_24px_70px_rgba(0,53,128,0.10)] sm:p-8">
+    <div className="flex min-h-dvh items-center justify-center bg-surface p-4">
+      <div className="w-full max-w-md rounded-[1.75rem] border border-border bg-white p-6 shadow-[0_24px_70px_rgba(0,53,128,0.10)] sm:p-8">
         <div className="mb-6 flex items-center gap-3">
           <Image
             src="/coat_of_arms.jpeg"
@@ -22,10 +22,10 @@ function Shell({ children }: { children: React.ReactNode }) {
             className="h-10 w-10 object-contain"
           />
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#007236]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-success">
               Government of Sierra Leone
             </p>
-            <p className="text-sm font-bold text-[#003580]">Smart Meeting</p>
+            <p className="text-sm font-bold text-primary">Smart Meeting</p>
           </div>
         </div>
         {children}
@@ -65,8 +65,8 @@ export default function ForgotPasswordPage() {
     return (
       <Shell>
         <div className="text-center">
-          <MailCheck className="mx-auto h-10 w-10 text-[#007236]" />
-          <h1 className="mt-3 text-lg font-bold text-[#003580]">Check your email</h1>
+          <MailCheck className="mx-auto h-10 w-10 text-success" />
+          <h1 className="mt-3 text-lg font-bold text-primary">Check your email</h1>
           <p className="mt-2 text-sm text-slate-600">
             If <span className="break-all font-medium">{email.trim()}</span>{' '}
             belongs to an
@@ -79,7 +79,7 @@ export default function ForgotPasswordPage() {
           </p>
           <Link
             href="/administrative/login"
-            className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-[#003580] hover:underline"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
           >
             <ArrowLeft className="h-4 w-4" /> Back to sign in
           </Link>
@@ -91,8 +91,8 @@ export default function ForgotPasswordPage() {
   return (
     <Shell>
       <div className="mb-5 flex items-center gap-2">
-        <KeyRound className="h-5 w-5 text-[#003580]" />
-        <h1 className="text-lg font-bold text-[#003580]">Forgotten password</h1>
+        <KeyRound className="h-5 w-5 text-primary" />
+        <h1 className="text-lg font-bold text-primary">Forgotten password</h1>
       </div>
       <p className="text-sm text-slate-600">
         Enter your government email address and we will send you a link to
@@ -123,7 +123,7 @@ export default function ForgotPasswordPage() {
         <button
           type="submit"
           disabled={isSending || !email.trim()}
-          className="mt-5 w-full rounded-xl bg-[#003580] px-5 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="mt-5 w-full rounded-xl bg-primary px-5 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           {isSending ? 'Sending…' : 'Send reset link'}
         </button>
@@ -131,7 +131,7 @@ export default function ForgotPasswordPage() {
 
       <Link
         href="/administrative/login"
-        className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-[#003580]"
+        className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-primary"
       >
         <ArrowLeft className="h-4 w-4" /> Back to sign in
       </Link>

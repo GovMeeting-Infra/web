@@ -23,9 +23,9 @@ export interface AuditListResponse {
 }
 
 export const AUDIT_STATUS_STYLES: Record<AuditStatus, string> = {
-  SUCCESS: 'border-[#cfe5d7] bg-[#edf8f1] text-[#007236]',
+  SUCCESS: 'border-stat-green-border bg-stat-green-bg text-success',
   FAILURE: 'border-destructive/20 bg-destructive/5 text-destructive',
-  PARTIAL: 'border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]',
+  PARTIAL: 'border-stat-gold-border bg-stat-gold-bg text-stat-gold-fg',
 };
 
 /** ACTION_NAME → "Action name", so the log reads as prose. */

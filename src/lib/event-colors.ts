@@ -6,12 +6,12 @@ import type { EventType } from './types/events';
  * directly. Same brand hues used across the app.
  */
 const CATEGORY_COLORS: Record<string, string> = {
-  CONFERENCE: 'border-[#c9d9f2] bg-[#edf3fd] text-[#003580]',
-  MEETING: 'border-[#cfe5d7] bg-[#edf8f1] text-[#007236]',
-  WORKSHOP: 'border-[#c9d9f2] bg-[#eef4ff] text-[#003580]',
-  TRAINING: 'border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]',
+  CONFERENCE: 'border-stat-blue-border bg-stat-blue-bg text-primary',
+  MEETING: 'border-stat-green-border bg-stat-green-bg text-success',
+  WORKSHOP: 'border-stat-blue-border bg-[#eef4ff] text-primary',
+  TRAINING: 'border-stat-gold-border bg-stat-gold-bg text-stat-gold-fg',
   LAUNCH: 'border-[#f8b4b4] bg-[#fde8e8] text-[#9b1c1c]',
-  APPOINTMENT: 'border-[#d9cff2] bg-[#f3effd] text-[#4c1d95]',
+  APPOINTMENT: 'border-stat-violet-border bg-stat-violet-bg text-stat-violet-fg',
   OTHER: 'border-slate-200 bg-slate-50 text-slate-700',
 };
 
