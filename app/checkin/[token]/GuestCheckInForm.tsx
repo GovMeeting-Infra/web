@@ -135,6 +135,7 @@ export function GuestCheckInForm({
         </label>
         <input
           id="guestName"
+          autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           minLength={2}
@@ -151,6 +152,7 @@ export function GuestCheckInForm({
         </label>
         <input
           id="guestEmail"
+          autoComplete="email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -167,6 +169,7 @@ export function GuestCheckInForm({
         </label>
         <input
           id="guestTitle"
+          autoComplete="organization-title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           minLength={2}
@@ -183,6 +186,7 @@ export function GuestCheckInForm({
         </label>
         <input
           id="guestOrg"
+          autoComplete="organization"
           value={organisation}
           onChange={(e) => setOrganisation(e.target.value)}
           minLength={2}
@@ -199,6 +203,7 @@ export function GuestCheckInForm({
         </label>
         <input
           id="guestPhone"
+          autoComplete="tel"
           type="tel"
           inputMode="tel"
           value={phone}
