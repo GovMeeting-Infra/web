@@ -10,7 +10,6 @@ import {
   CalendarDays,
   CircleDot,
   User,
-  Tag,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { ListSkeleton } from '@/components/ui/skeletons';
@@ -20,8 +19,8 @@ import { ActionItemModal } from '@/components/action-items/ActionItemModal';
 import { PageContainer } from '@/components/ui/page-container';
 import {
   ACTION_ITEM_STATUS_LABELS,
-  POINT_LABELS,
-  POINT_STYLES,
+  ACTION_ITEM_STATUS_STYLES,
+  ACTION_ITEM_STATUS_DOT,
   isActionItemOverdue,
   type ActionItemStatus,
   type BoardActionItem,
@@ -30,19 +29,6 @@ import {
 
 /** Roles that may move any item; everyone else only their own. */
 const ADMIN_ROLES = ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'];
-
-/**
- * Notion's select-property palette: a soft tint with dark text of the same hue,
- * rather than the saturated badge colours used elsewhere in the app. Muted
- * enough that a column of them reads as data, not as a row of warnings.
- */
-const STATUS_PILL: Record<ActionItemStatus, string> = {
-  TODO: 'bg-[#f1f1ef] text-[#32302c]',
-  IN_PROGRESS: 'bg-[#e7f3f8] text-[#183347]',
-  BLOCKED: 'bg-[#fdebec] text-[#5d1715]',
-  COMPLETED: 'bg-[#edf3ec] text-[#1c3829]',
-  CANCELLED: 'bg-[#f1f1ef] text-[#787774]',
-};
 
 const STATUS_OPTIONS: ActionItemStatus[] = [
   'TODO',
@@ -105,6 +91,24 @@ export default function ActionItemsPage() {
       (item.ownerId === currentUser.id ||
         item.assignedBy?.id === currentUser.id));
 
+  /** Helping with it, which allows status and progress and nothing else. */
+  const isAssistant = (item: BoardActionItem) =>
+    !!currentUser &&
+    !!item.assistants?.some((a) => a.userId === currentUser.id);
+
+  /**
+   * One PATCH, returning the updated item so the open modal reflects the
+   * change without waiting for the list query to come back.
+   */
+  const patchItem = async (id: string, patch: Record<string, unknown>) => {
+    const updated = await apiFetch<BoardActionItem>(
+      `/api/v1/action-items/${id}`,
+      { method: 'PATCH', body: JSON.stringify(patch) },
+    );
+    await queryClient.invalidateQueries({ queryKey: ['action-items'] });
+    return updated;
+  };
+
   const changeStatus = async (item: BoardActionItem, status: ActionItemStatus) => {
     setError(null);
     try {
@@ -126,8 +130,29 @@ export default function ActionItemsPage() {
             Task board
           </p>
           <h1 className="text-3xl font-bold text-primary">Action Items</h1>
-          <p className="mt-2 text-muted-foreground">
-            {counts.todo} to do · {counts.inProgress} in progress · {counts.done} done
+          {/* Coloured to match the board, so the same number means the same
+              thing whichever view you came from. Blocked counts as to-do and
+              cancelled as done, matching boardColumnFor — three figures for
+              three columns, not five for five states. */}
+          <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.TODO}`}
+              />
+              {counts.todo} to do
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.IN_PROGRESS}`}
+              />
+              {counts.inProgress} in progress
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span
+                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.COMPLETED}`}
+              />
+              {counts.done} done
+            </span>
           </p>
         </div>
 
@@ -215,11 +240,11 @@ export default function ActionItemsPage() {
            hairline under the header, thin separators between columns, and rows
            that only shade on hover. The chrome recedes so the data reads. */
         <div>
-          {/* Six columns need 896px. Below sm the same rows render as cards
+          {/* Five columns need 768px. Below sm the same rows render as cards
               instead — a phone can scroll a table sideways but cannot tell you
               which row it has ended up in. */}
           <div className="-mx-1 hidden overflow-x-auto sm:block">
-            <table className="w-full min-w-[56rem] border-collapse text-sm">
+            <table className="w-full min-w-[48rem] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-border">
                   {[
@@ -227,7 +252,6 @@ export default function ActionItemsPage() {
                     { icon: ClipboardList, label: 'Event' },
                     { icon: User, label: 'Assignee' },
                     { icon: CalendarDays, label: 'Due' },
-                    { icon: Tag, label: 'Type' },
                     { icon: CircleDot, label: 'Status' },
                   ].map(({ icon: Icon, label }, i) => (
                     <th
@@ -300,14 +324,6 @@ export default function ActionItemsPage() {
                         </span>
                       </td>
 
-                      <td className="border-l border-border px-3 py-2">
-                        <span
-                          className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${POINT_STYLES[item.point]}`}
-                        >
-                          {POINT_LABELS[item.point]}
-                        </span>
-                      </td>
-
                       {/* Stop propagation so using the select doesn't open the modal */}
                       <td
                         className="border-l border-border px-3 py-2"
@@ -323,7 +339,7 @@ export default function ActionItemsPage() {
                               changeStatus(item, e.target.value as ActionItemStatus)
                             }
                             className={`cursor-pointer appearance-none rounded px-2 py-0.5 text-[11px] font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                              STATUS_PILL[item.status]
+                              ACTION_ITEM_STATUS_STYLES[item.status]
                             }`}
                           >
                             {STATUS_OPTIONS.map((st) => (
@@ -334,7 +350,7 @@ export default function ActionItemsPage() {
                           </select>
                         ) : (
                           <span
-                            className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[item.status]}`}
+                            className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
                           >
                             {ACTION_ITEM_STATUS_LABELS[item.status]}
                           </span>
@@ -397,12 +413,6 @@ export default function ActionItemsPage() {
                     className="flex flex-wrap items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <span
-                      className={`inline-block rounded px-1.5 py-0.5 text-[11px] font-medium ${POINT_STYLES[item.point]}`}
-                    >
-                      {POINT_LABELS[item.point]}
-                    </span>
-
                     {canChange(item) ? (
                       // text-base, unlike the table's 11px: Safari zooms the
                       // whole page when a control under 16px takes focus.
@@ -413,7 +423,7 @@ export default function ActionItemsPage() {
                         }
                         aria-label="Status"
                         className={`cursor-pointer appearance-none rounded px-2 py-1 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${
-                          STATUS_PILL[item.status]
+                          ACTION_ITEM_STATUS_STYLES[item.status]
                         }`}
                       >
                         {STATUS_OPTIONS.map((st) => (
@@ -424,7 +434,7 @@ export default function ActionItemsPage() {
                       </select>
                     ) : (
                       <span
-                        className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${STATUS_PILL[item.status]}`}
+                        className={`inline-block rounded px-2 py-0.5 text-[11px] font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
                       >
                         {ACTION_ITEM_STATUS_LABELS[item.status]}
                       </span>
@@ -480,6 +490,56 @@ export default function ActionItemsPage() {
                     queryKey: ['action-items'],
                   });
                   setSelected(null);
+                }
+              : undefined
+          }
+          // Separate from onEdit deliberately: an assistant may move the
+          // status and report progress but not redefine the task, and the
+          // server enforces exactly that split.
+          onStatusChange={
+            canChange(selected) || isAssistant(selected)
+              ? async (status) => {
+                  const updated = await patchItem(selected.id, { status });
+                  setSelected(updated);
+                }
+              : undefined
+          }
+          onEdit={
+            canChange(selected)
+              ? async (patch) => {
+                  const updated = await patchItem(selected.id, patch);
+                  setSelected(updated);
+                }
+              : undefined
+          }
+          onAddAssistant={
+            canChange(selected)
+              ? async (person) => {
+                  const updated = await apiFetch<BoardActionItem>(
+                    `/api/v1/action-items/${selected.id}/assistants`,
+                    {
+                      method: 'POST',
+                      body: JSON.stringify({ userId: person.id }),
+                    },
+                  );
+                  await queryClient.invalidateQueries({
+                    queryKey: ['action-items'],
+                  });
+                  setSelected(updated);
+                }
+              : undefined
+          }
+          onRemoveAssistant={
+            canChange(selected)
+              ? async (userId) => {
+                  const updated = await apiFetch<BoardActionItem>(
+                    `/api/v1/action-items/${selected.id}/assistants/${userId}`,
+                    { method: 'DELETE' },
+                  );
+                  await queryClient.invalidateQueries({
+                    queryKey: ['action-items'],
+                  });
+                  setSelected(updated);
                 }
               : undefined
           }

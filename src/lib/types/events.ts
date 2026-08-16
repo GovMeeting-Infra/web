@@ -52,18 +52,29 @@ export const EVENT_STATUS_LABELS: Record<EventStatus, string> = {
 export type CheckInMethod = 'QR' | 'MANUAL' | 'GEO';
 export type MinutesStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
 
+/** A decision, or something happening next. One line either way. */
+export type MinutePointType = 'DECISION' | 'NEXT_STEP';
+
+export interface MinutePoint {
+  id: string;
+  type: MinutePointType;
+  text: string;
+  order: number;
+}
+
 /** One row in the cross-event minutes list. */
 export interface MinutesSummary {
   id: string;
   status: MinutesStatus;
-  summary: string | null;
+  /** The first couple of decisions, standing in for the old summary line. */
+  points: { id: string; text: string }[];
   draftedAt: string | null;
   publishedAt: string | null;
   updatedAt: string;
   event: { id: string; title: string; startAt: string; ministryId: string };
   draftedBy: { id: string; name: string } | null;
   publishedBy: { id: string; name: string } | null;
-  _count: { actionItems: number };
+  _count: { actionItems: number; points: number };
 }
 
 export interface MinutesListResponse {
@@ -303,8 +314,8 @@ export interface CheckInResult {
 export interface Minutes {
   id: string;
   eventId: string;
-  body: string;
-  summary: string | null;
+  /** Decisions and next steps together, ordered within each kind. */
+  points: MinutePoint[];
   status: MinutesStatus;
   draftedById: string | null;
   draftedAt: string | null;
@@ -313,6 +324,12 @@ export interface Minutes {
   draftedBy?: { id: string; name: string; email: string } | null;
   publishedBy?: { id: string; name: string; email: string } | null;
   actionItems?: ActionItem[];
+}
+
+export interface ActionItemAssistant {
+  id: string;
+  userId: string;
+  user: { id: string; name: string; email: string };
 }
 
 export interface ActionItem {
@@ -332,6 +349,12 @@ export interface ActionItem {
   /** What has been done, and a link to it. */
   progressNotes: string | null;
   progressLink: string | null;
+  priority?: string;
+  /**
+   * Who else is working on this. They may report progress and move the
+   * status; the owner stays the one person answerable for it.
+   */
+  assistants?: ActionItemAssistant[];
   owner?: { id: string; name: string; email: string } | null;
   /**
    * Who raised it. Named assignedBy to match what the API actually returns —
@@ -428,9 +451,26 @@ export interface AttendanceRecord {
   checkInMethod: CheckInMethod;
   /** null means no check-in area was set, not that the check failed. */
   withinGeofence?: boolean | null;
+  /** Metres. Only present when the browser gave a position. */
+  gpsAccuracy?: number | null;
   mockLocationFlag?: boolean;
-  user?: { id: string; name: string; email: string };
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    /** A staff member's title and ministry stand in for the guest fields. */
+    jobTitle?: string | null;
+    ministry?: { name: string } | null;
+  };
 }
+
+/** Which of the attendees page's five lists an export covers. */
+export type AttendanceExportSet =
+  | 'checked-in'
+  | 'invited'
+  | 'confirmed'
+  | 'declined'
+  | 'awaiting';
 
 export interface AddAttendeesInput {
   userIds?: string[];
@@ -459,4 +499,57 @@ export const ACTION_ITEM_STATUS_LABELS: Record<ActionItemStatus, string> = {
   BLOCKED: 'Blocked',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
+};
+
+/**
+ * Status colour, in one place.
+ *
+ * There were two maps before this — one on the board and one on the table —
+ * and they disagreed: the same In Progress item was amber in a column header
+ * and blue in a row. Colour that changes depending on where you are looking
+ * teaches nothing, so it lives here now, keyed by the enum so a new status
+ * cannot be added without one.
+ *
+ * Red, amber and green carry the three columns, and are the same tints the
+ * attendee and event pills already use. The two states without a column of
+ * their own get hues from outside that progression, because they are outside
+ * it: blocked is not a stage between started and finished, it is an exception,
+ * and cancelled is closed without being done.
+ *
+ * Blocked is indigo rather than the obvious purple: every card already carries
+ * a purple "Action Point" badge, and two purples on one card would say less
+ * than one does.
+ */
+export const ACTION_ITEM_STATUS_STYLES: Record<ActionItemStatus, string> = {
+  TODO: 'bg-destructive/10 text-destructive',
+  IN_PROGRESS: 'bg-[#fff8e5] text-[#8d6400]',
+  COMPLETED: 'bg-[#edf8f1] text-ring',
+  BLOCKED: 'bg-[#eef2ff] text-[#3730a3]',
+  CANCELLED: 'bg-muted text-muted-foreground',
+};
+
+/** The same five as solid fills, for dots, card edges and bar segments. */
+export const ACTION_ITEM_STATUS_DOT: Record<ActionItemStatus, string> = {
+  TODO: 'bg-destructive',
+  IN_PROGRESS: 'bg-[#fab700]',
+  COMPLETED: 'bg-[#007236]',
+  BLOCKED: 'bg-[#3730a3]',
+  CANCELLED: 'bg-muted-foreground',
+};
+
+/** As a left edge on a card, where the fill classes do not apply. */
+export const ACTION_ITEM_STATUS_EDGE: Record<ActionItemStatus, string> = {
+  TODO: 'border-l-destructive',
+  IN_PROGRESS: 'border-l-[#fab700]',
+  COMPLETED: 'border-l-[#007236]',
+  BLOCKED: 'border-l-[#3730a3]',
+  CANCELLED: 'border-l-muted-foreground',
+};
+
+export type ActionItemPriority = 'low' | 'medium' | 'high';
+
+export const ACTION_ITEM_PRIORITY_LABELS: Record<ActionItemPriority, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
 };

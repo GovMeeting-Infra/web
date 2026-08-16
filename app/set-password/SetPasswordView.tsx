@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { KeyRound, CheckCircle2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { PasswordInput } from '@/components/ui/password-input';
 
 const field =
   'mt-1 w-full rounded-xl border border-[#d3deef] bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-[#003580] focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]';
@@ -149,12 +150,12 @@ export function SetPasswordView() {
           <label className="block text-sm font-medium text-slate-700">
             New password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
-            className={field}
+            wrapperClassName="mt-1"
+            className={`${field} mt-0`}
           />
           <p className="mt-1 text-xs text-slate-500">At least 8 characters.</p>
         </div>
@@ -163,13 +164,13 @@ export function SetPasswordView() {
           <label className="block text-sm font-medium text-slate-700">
             Confirm password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             autoComplete="new-password"
-            className={field}
+            wrapperClassName="mt-1"
+            className={`${field} mt-0`}
           />
         </div>
 

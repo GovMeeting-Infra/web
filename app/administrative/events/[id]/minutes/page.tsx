@@ -3,19 +3,35 @@
 import { use, useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { ArrowLeft, Send, Plus, Archive, Lock, RotateCcw } from 'lucide-react';
+import {
+  ArrowLeft,
+  Send,
+  Plus,
+  Archive,
+  Lock,
+  RotateCcw,
+  CheckCircle2,
+  ArrowRight,
+} from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PersonPicker } from '@/components/ui/person-picker';
-import { ACTION_ITEM_STATUS_LABELS, type EventDetail, type Minutes, type ActionItem } from '@/lib/types/events';
+import {
+  ACTION_ITEM_STATUS_LABELS,
+  type EventDetail,
+  type Minutes,
+  type ActionItem,
+} from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
+import { MinutesRecord, pointsOfType } from '@/components/minutes/MinutesRecord';
+import { PointList } from './PointList';
 
 export default function MinutesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
   const currentUser = useCurrentUser();
-  const [body, setBody] = useState('');
-  const [summary, setSummary] = useState('');
+  const [decisions, setDecisions] = useState<string[]>([]);
+  const [nextSteps, setNextSteps] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newActionItem, setNewActionItem] = useState<{
@@ -69,8 +85,8 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   // editable afterwards (including clearing them).
   useEffect(() => {
     if (minutes) {
-      setBody(minutes.body ?? '');
-      setSummary(minutes.summary ?? '');
+      setDecisions(pointsOfType(minutes.points, 'DECISION').map((p) => p.text));
+      setNextSteps(pointsOfType(minutes.points, 'NEXT_STEP').map((p) => p.text));
     }
   }, [minutes]);
 
@@ -131,38 +147,38 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
     }
   };
 
-  // Server rejects publishing without a body or without at least one attendee
+  // Server rejects publishing an empty record or one with no attendees
   // (minutes.service.ts publishMinutes), so mirror both preconditions here.
   const isOrganizer = !!currentUser && currentUser.id === event?.organizerId;
   const isCoOrganizer =
     !!currentUser && !!event?.coOrganizers.some((c) => c.userId === currentUser.id);
   const hasAttendees = (event?.attendees.length ?? 0) > 0;
-  const canPublish = (isOrganizer || isCoOrganizer) && !!body.trim() && hasAttendees;
+  // Any one of the three is a record worth sending. Counted from what is
+  // saved, not from the editor, so an unsaved line does not unlock Publish.
+  const recordedCount =
+    (minutes?.points?.length ?? 0) + actionItems.length;
+  const canPublish =
+    (isOrganizer || isCoOrganizer) && recordedCount > 0 && hasAttendees;
   const publishBlockedReason = !hasAttendees
     ? 'This event has no attendees yet.'
-    : !body.trim()
-      ? 'Add minutes content before publishing.'
+    : recordedCount === 0
+      ? 'Record a decision, action item or next step first.'
       : null;
 
   const handleSaveMinutes = async () => {
-    if (!body.trim() && !minutes) {
-      setError('Minutes body cannot be empty');
-      return;
-    }
     setIsSaving(true);
     setError(null);
+    // Both lists are sent every time, including empty ones: that is how a
+    // drafter deletes their last decision.
+    const payload = JSON.stringify({
+      decisions: decisions.map((d) => d.trim()).filter(Boolean),
+      nextSteps: nextSteps.map((s) => s.trim()).filter(Boolean),
+    });
     try {
-      if (minutes) {
-        await apiFetch(`/api/v1/events/${id}/minutes`, {
-          method: 'PATCH',
-          body: JSON.stringify({ body, summary: summary || undefined }),
-        });
-      } else {
-        await apiFetch(`/api/v1/events/${id}/minutes`, {
-          method: 'POST',
-          body: JSON.stringify({ body, summary: summary || undefined }),
-        });
-      }
+      await apiFetch(`/api/v1/events/${id}/minutes`, {
+        method: minutes ? 'PATCH' : 'POST',
+        body: payload,
+      });
       queryClient.invalidateQueries({ queryKey: ['minutes', id] });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save minutes');
@@ -196,10 +212,17 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
           title: newActionItem.title,
           dueDate: new Date(newActionItem.dueDate).toISOString(),
           // A guest: id is a marker for someone with no account, not something
-        // the server can look up — they are assigned by email instead.
-        ownerId: newActionItem.ownerId?.startsWith('guest:')
-          ? undefined
-          : (newActionItem.ownerId ?? undefined),
+          // the server can look up — they are assigned by email instead.
+          ownerId: newActionItem.ownerId?.startsWith('guest:')
+            ? undefined
+            : (newActionItem.ownerId ?? undefined),
+          // These three were collected, shown, and then dropped on the way
+          // out. The email one mattered most: for someone with no account it
+          // is the only way the item reaches them, so an item assigned to an
+          // outside participant was assigned to nobody.
+          description: newActionItem.description.trim() || undefined,
+          ownerName: newActionItem.ownerName?.trim() || undefined,
+          ownerEmail: newActionItem.ownerEmail.trim() || undefined,
         }),
       });
       setNewActionItem({
@@ -292,12 +315,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
               : 'You are viewing a published record. Editing is left to the organizing team.'}
           </p>
 
-          {minutes.summary && (
-            <p className="text-sm font-medium text-foreground">{minutes.summary}</p>
-          )}
-          <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
-            {minutes.body}
-          </p>
+          <MinutesRecord points={minutes.points} actionItems={actionItems} />
 
           <div className="border-t border-border pt-4 text-xs text-muted-foreground">
             {minutes.publishedBy && <>Published by {minutes.publishedBy.name}</>}
@@ -320,35 +338,35 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
             These minutes are read-only for you — the edit window has closed or you
             aren&apos;t an organizer.
           </p>
-          {minutes?.body && (
-            <p className="whitespace-pre-wrap break-words text-sm text-foreground">{minutes.body}</p>
+          {minutes && (
+            <MinutesRecord points={minutes.points} actionItems={actionItems} />
           )}
         </div>
       )}
 
       {canEdit && (
         <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Body</label>
-            <textarea
-              rows={8}
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Enter the meeting minutes..."
-              className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
+          <PointList
+            label="Decisions"
+            hint="What the meeting settled. One line each."
+            placeholder="e.g. Approved the Q3 budget at Le 4.2bn"
+            addLabel="Add decision"
+            icon={<CheckCircle2 className="h-4 w-4 text-ring" />}
+            values={decisions}
+            onChange={setDecisions}
+            disabled={isSaving}
+          />
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Summary</label>
-            <input
-              type="text"
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              placeholder="Brief summary (optional)"
-              className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
+          <PointList
+            label="Next steps"
+            hint="What happens next, with nobody assigned. Anything with an owner and a deadline belongs below as an action item."
+            placeholder="e.g. Reconvene after the budget review"
+            addLabel="Add next step"
+            icon={<ArrowRight className="h-4 w-4 text-muted-foreground" />}
+            values={nextSteps}
+            onChange={setNextSteps}
+            disabled={isSaving}
+          />
 
           <div className="flex flex-wrap gap-2">
             <button

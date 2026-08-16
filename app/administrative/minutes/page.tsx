@@ -11,6 +11,7 @@ import {
   X,
   ClipboardList,
   ArrowRight,
+  CheckCircle2,
 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
@@ -187,9 +188,12 @@ export default function MinutesPage() {
                         <h2 className="truncate font-semibold text-primary">
                           {m.event.title}
                         </h2>
-                        {m.summary && (
+                        {/* What the meeting settled, in its own words. The
+                            summary line this replaced was a separate thing
+                            somebody had to remember to write. */}
+                        {m.points.length > 0 && (
                           <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                            {m.summary}
+                            {m.points.map((p) => p.text).join(' · ')}
                           </p>
                         )}
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -203,6 +207,13 @@ export default function MinutesPage() {
                               {m.publishedBy
                                 ? `Published by ${m.publishedBy.name}`
                                 : `Drafted by ${m.draftedBy?.name}`}
+                            </span>
+                          )}
+                          {m._count.points > 0 && (
+                            <span className="flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {m._count.points}{' '}
+                              {m._count.points === 1 ? 'point' : 'points'}
                             </span>
                           )}
                           {m._count.actionItems > 0 && (

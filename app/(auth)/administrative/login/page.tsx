@@ -9,6 +9,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ShieldCheck, CalendarCheck2, LockKeyhole } from 'lucide-react';
 import { SierraLeoneFlag } from '@/components/SierraLeoneFlag';
+import { PasswordInput } from '@/components/ui/password-input';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -223,8 +224,7 @@ export default function LoginPage() {
                 <label className="text-sm font-medium text-foreground">
                   Password
                 </label>
-                <input
-                  type="password"
+                <PasswordInput
                   placeholder="••••••••"
                   className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   {...register('password')}

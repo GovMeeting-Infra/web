@@ -25,8 +25,10 @@ export interface GuestMinutes {
     ministryName: string | null;
   };
   minutes: {
-    body: string;
-    summary: string | null;
+    /** What the meeting settled, one line each, in order. */
+    decisions: string[];
+    /** What happens next, with nobody assigned. */
+    nextSteps: string[];
     publishedAt: string | null;
   };
   actionItems: GuestActionItem[];

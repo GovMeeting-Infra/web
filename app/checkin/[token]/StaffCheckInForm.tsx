@@ -8,6 +8,7 @@ import {
 import { useCheckInSubmit, submitLabel } from './useCheckInSubmit';
 import { CheckInSuccess, AlreadyCheckedIn } from './CheckInResultView';
 import { LocationNotice } from './LocationNotice';
+import { LocationHelp } from './LocationHelp';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
@@ -29,8 +30,18 @@ export function StaffCheckInForm({
   const [hasSignature, setHasSignature] = useState(false);
   const pad = useRef<SignaturePadHandle>(null);
 
-  const { phase, error, alreadyCheckedIn, result, submit } =
-    useCheckInSubmit(geofenceRequired);
+  const {
+    phase,
+    stage,
+    error,
+    helpReason,
+    permission,
+    alreadyCheckedIn,
+    result,
+    submit,
+    retry,
+    reportLocationProblem,
+  } = useCheckInSubmit(geofenceRequired);
 
   if (result) return <CheckInSuccess result={result} />;
   if (alreadyCheckedIn) {
@@ -43,7 +54,10 @@ export function StaffCheckInForm({
   }
 
   const busy = phase !== 'idle';
-  const canSubmit = name.trim().length >= 2 && hasSignature && !busy;
+  // Known to be blocked before anyone signs. The server is still the authority;
+  // this only avoids inviting someone to fill in a form that cannot be sent.
+  const blocked = geofenceRequired && permission === 'denied';
+  const canSubmit = name.trim().length >= 2 && hasSignature && !busy && !blocked;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,10 +82,23 @@ export function StaffCheckInForm({
         )}
       </header>
 
-      {error && !alreadyCheckedIn && (
-        <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
-          {error}
-        </p>
+      {/* Before anything is filled in, where the browser will tell us. */}
+      {blocked && !helpReason && <LocationHelp reason="DENIED" />}
+
+      {helpReason ? (
+        <LocationHelp
+          reason={helpReason}
+          message={error}
+          onRetry={retry}
+          busy={busy}
+        />
+      ) : (
+        error &&
+        !alreadyCheckedIn && (
+          <p className="mt-4 rounded-lg border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive">
+            {error}
+          </p>
+        )
       )}
 
       <div className="mt-5">
@@ -99,14 +126,17 @@ export function StaffCheckInForm({
         </div>
       </div>
 
-      <LocationNotice required={geofenceRequired} />
+      <LocationNotice
+        required={geofenceRequired}
+        onProblem={reportLocationProblem}
+      />
 
       <button
         type="submit"
         disabled={!canSubmit}
         className="mt-5 w-full rounded-[1.25rem] bg-primary px-5 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
       >
-        {submitLabel(phase, geofenceRequired)}
+        {submitLabel(phase, geofenceRequired, stage)}
       </button>
 
     </form>

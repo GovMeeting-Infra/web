@@ -2,18 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { X, CalendarDays, User, UserCheck, CircleDot, FileText } from 'lucide-react';
+import {
+  X,
+  CalendarDays,
+  User,
+  UserCheck,
+  UserPlus,
+  Users,
+  CircleDot,
+  Flag,
+  FileText,
+} from 'lucide-react';
 import {
   PersonPicker,
   type DirectoryPerson,
 } from '@/components/ui/person-picker';
 import {
   ACTION_ITEM_STATUS_LABELS,
-  POINT_LABELS,
-  POINT_STYLES,
+  ACTION_ITEM_STATUS_STYLES,
+  ACTION_ITEM_PRIORITY_LABELS,
   isActionItemOverdue,
+  type ActionItemStatus,
   type BoardActionItem,
 } from '@/lib/types/events';
+
+const STATUS_OPTIONS: ActionItemStatus[] = [
+  'TODO',
+  'IN_PROGRESS',
+  'BLOCKED',
+  'COMPLETED',
+  'CANCELLED',
+];
 
 function Field({
   icon,
@@ -46,12 +65,26 @@ export function ActionItemModal({
   onClose,
   onReassign,
   onSaveProgress,
+  onEdit,
+  onStatusChange,
+  onAddAssistant,
+  onRemoveAssistant,
 }: {
   item: BoardActionItem;
   onClose: () => void;
   onReassign?: (person: DirectoryPerson | null) => Promise<void>;
   /** Omitted when the viewer may not record progress — the block turns read-only. */
   onSaveProgress?: (notes: string, link: string) => Promise<void>;
+  /**
+   * Change the task itself. Omitted for an assistant, who may report on the
+   * work but not redefine it — the server refuses either way, this only
+   * decides whether to offer the controls.
+   */
+  onEdit?: (patch: Record<string, unknown>) => Promise<void>;
+  /** Separate from onEdit: an assistant may move the status but edit nothing else. */
+  onStatusChange?: (status: ActionItemStatus) => Promise<void>;
+  onAddAssistant?: (person: DirectoryPerson) => Promise<void>;
+  onRemoveAssistant?: (userId: string) => Promise<void>;
 }) {
   const [isReassigning, setIsReassigning] = useState(false);
   const [reassignError, setReassignError] = useState<string | null>(null);
@@ -59,6 +92,23 @@ export function ActionItemModal({
   const [link, setLink] = useState(item.progressLink ?? '');
   const [isSavingProgress, setIsSavingProgress] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
+  const [description, setDescription] = useState(item.description ?? '');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isAddingHelper, setIsAddingHelper] = useState(false);
+
+  /**
+   * Each field saves itself rather than queueing behind one Save button,
+   * matching how the assignee picker and the progress block already behave.
+   */
+  const save = async (patch: Record<string, unknown>) => {
+    if (!onEdit) return;
+    setEditError(null);
+    try {
+      await onEdit(patch);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : 'Could not save.');
+    }
+  };
 
   const handleReassign = async (person: DirectoryPerson | null) => {
     if (!onReassign) return;
@@ -106,11 +156,6 @@ export function ActionItemModal({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             <h2 className="text-xl font-bold text-primary">{item.title}</h2>
-            <span
-              className={`mt-2 inline-block rounded border px-2 py-0.5 text-xs font-medium ${POINT_STYLES[item.point]}`}
-            >
-              {POINT_LABELS[item.point]}
-            </span>
           </div>
           <button
             onClick={onClose}
@@ -121,10 +166,40 @@ export function ActionItemModal({
           </button>
         </div>
 
-        {item.description && (
-          <p className="mt-4 whitespace-pre-wrap text-sm text-muted-foreground">
-            {item.description}
-          </p>
+        {onEdit ? (
+          <div className="mt-4">
+            <label
+              htmlFor="ai-description"
+              className="text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+            >
+              Description
+            </label>
+            <textarea
+              id="ai-description"
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              // On blur, and only when it changed: a save per keystroke would
+              // be a request per keystroke.
+              onBlur={() => {
+                if (description !== (item.description ?? '')) {
+                  void save({ description });
+                }
+              }}
+              placeholder="What this involves…"
+              className="mt-1 w-full rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+          </div>
+        ) : (
+          item.description && (
+            <p className="mt-4 whitespace-pre-wrap text-sm text-muted-foreground">
+              {item.description}
+            </p>
+          )
+        )}
+
+        {editError && (
+          <p className="mt-2 text-xs text-destructive">{editError}</p>
         )}
 
         <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -175,22 +250,194 @@ export function ActionItemModal({
             label="Assigned by"
             value={item.assignedBy?.name ?? '—'}
           />
-          <Field
-            icon={<CalendarDays className="h-3.5 w-3.5" />}
-            label="Timeline"
-            value={
-              <span className={overdue ? 'font-semibold text-destructive' : ''}>
-                {dt(item.dueDate)}
-                {overdue ? ' · Overdue' : ''}
-              </span>
-            }
-          />
-          <Field
-            icon={<CircleDot className="h-3.5 w-3.5" />}
-            label="Status"
-            value={ACTION_ITEM_STATUS_LABELS[item.status] ?? item.status}
-          />
+          {onEdit ? (
+            <div>
+              <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <CalendarDays className="h-3.5 w-3.5" />
+                Due
+              </dt>
+              <dd className="mt-1">
+                <input
+                  type="date"
+                  value={item.dueDate.slice(0, 10)}
+                  onChange={(e) => {
+                    if (!e.target.value) return;
+                    // Moving the date clears the reminder stamp server-side,
+                    // so a rescheduled item gets chased again.
+                    void save({
+                      dueDate: new Date(e.target.value).toISOString(),
+                    });
+                  }}
+                  className={`w-full rounded-xl border border-border bg-input px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                    overdue ? 'text-destructive' : 'text-foreground'
+                  }`}
+                />
+                {overdue && (
+                  <p className="mt-1 text-xs font-medium text-destructive">
+                    Overdue
+                  </p>
+                )}
+              </dd>
+            </div>
+          ) : (
+            <Field
+              icon={<CalendarDays className="h-3.5 w-3.5" />}
+              label="Timeline"
+              value={
+                <span
+                  className={overdue ? 'font-semibold text-destructive' : ''}
+                >
+                  {dt(item.dueDate)}
+                  {overdue ? ' · Overdue' : ''}
+                </span>
+              }
+            />
+          )}
+
+          <div>
+            <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <CircleDot className="h-3.5 w-3.5" />
+              Status
+            </dt>
+            <dd className="mt-1">
+              {onStatusChange ? (
+                // Styled as the pill it replaces, so the control reads the
+                // same whether or not this viewer may use it.
+                <select
+                  value={item.status}
+                  onChange={(e) =>
+                    void onStatusChange(e.target.value as ActionItemStatus)
+                  }
+                  className={`cursor-pointer appearance-none rounded-full px-3 py-1 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
+                >
+                  {STATUS_OPTIONS.map((st) => (
+                    <option key={st} value={st}>
+                      {ACTION_ITEM_STATUS_LABELS[st]}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span
+                  className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${ACTION_ITEM_STATUS_STYLES[item.status]}`}
+                >
+                  {ACTION_ITEM_STATUS_LABELS[item.status]}
+                </span>
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <Flag className="h-3.5 w-3.5" />
+              Priority
+            </dt>
+            <dd className="mt-1">
+              {onEdit ? (
+                <select
+                  value={item.priority ?? 'medium'}
+                  onChange={(e) => void save({ priority: e.target.value })}
+                  className="w-full cursor-pointer rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                >
+                  {(['low', 'medium', 'high'] as const).map((p) => (
+                    <option key={p} value={p}>
+                      {ACTION_ITEM_PRIORITY_LABELS[p]}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-sm text-foreground">
+                  {ACTION_ITEM_PRIORITY_LABELS[
+                    (item.priority ?? 'medium') as 'low' | 'medium' | 'high'
+                  ] ?? item.priority}
+                </span>
+              )}
+            </dd>
+          </div>
         </dl>
+
+        {/* Who else is on this. The owner stays the one person answerable;
+            a helper may move the status and record progress, nothing more. */}
+        <div className="mt-6">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Users className="h-3.5 w-3.5" />
+            Assisting
+          </p>
+
+          {item.assistants && item.assistants.length > 0 ? (
+            <ul className="mt-2 flex flex-wrap gap-2">
+              {item.assistants.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-xs text-foreground"
+                >
+                  {a.user.name}
+                  {onRemoveAssistant && (
+                    <button
+                      type="button"
+                      onClick={() => void onRemoveAssistant(a.userId)}
+                      aria-label={`Remove ${a.user.name}`}
+                      className="rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Nobody else is helping with this yet.
+            </p>
+          )}
+
+          {onAddAssistant &&
+            (isAddingHelper ? (
+              <div className="mt-3">
+                <PersonPicker
+                  value={null}
+                  // The same people the item could be assigned to: help with
+                  // work from a meeting comes from someone who was in it.
+                  endpoint={`/api/v1/events/${item.minutes.event.id}/attendee-candidates`}
+                  placeholder="Search the people invited to this meeting…"
+                  allowUnassign={false}
+                  excludeIds={[
+                    ...(item.owner?.id ? [item.owner.id] : []),
+                    ...(item.assistants ?? []).map((a) => a.userId),
+                  ]}
+                  onChange={async (person) => {
+                    if (!person) return;
+                    setEditError(null);
+                    try {
+                      await onAddAssistant(person);
+                      setIsAddingHelper(false);
+                    } catch (err) {
+                      setEditError(
+                        err instanceof Error
+                          ? err.message
+                          : 'Could not add that person.',
+                      );
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsAddingHelper(false)}
+                  className="mt-2 text-xs text-muted-foreground underline underline-offset-2"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsAddingHelper(true)}
+                className="mt-3 flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Ask someone to help
+              </button>
+            ))}
+        </div>
 
         {onSaveProgress ? (
           <div className="mt-6 space-y-3 rounded-xl border border-border p-4">

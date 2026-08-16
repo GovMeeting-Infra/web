@@ -163,3 +163,61 @@ describe('Check-in code page — organizer', () => {
     });
   });
 });
+
+/**
+ * What someone sees when their phone will not share a location.
+ *
+ * The failure that prompted this could not be reproduced by reading the code:
+ * three unrelated things — a blocked permission, a fix the server called too
+ * vague, and a rate limit — all reached the attendee as one flat sentence. The
+ * part worth pinning down is that a blocked permission now produces
+ * instructions for the phone in the person's hand, and a way back.
+ */
+describe('Check-in — location refused', () => {
+  beforeEach(() => {
+    cy.login('staff@moh.gov.sl', 'Password@123');
+  });
+
+  /** Every route to a position fails as blocked, however the page asks. */
+  const denyLocation = (win: Window) => {
+    const denied = (_ok: unknown, fail: (e: unknown) => void) =>
+      fail({ code: 1, PERMISSION_DENIED: 1, TIMEOUT: 3, message: 'denied' });
+
+    cy.stub(win.navigator.geolocation, 'getCurrentPosition').callsFake(denied);
+    cy.stub(win.navigator.geolocation, 'watchPosition').callsFake(denied);
+  };
+
+  it('tells a blocked attendee which setting to change, and offers a retry', () => {
+    withCheckInToken((token) => {
+      cy.viewport(320, 640);
+      cy.visit(`/checkin/${token}`, { onBeforeLoad: denyLocation });
+
+      cy.get('input#signedName').type('Aminata Kamara');
+      cy.get('canvas[aria-label="Signature pad"]')
+        .trigger('pointerdown', 20, 20)
+        .trigger('pointermove', 80, 60)
+        .trigger('pointerup');
+
+      cy.get('button[type="submit"]').click();
+
+      // Not the old flat sentence: a named remedy and a way to act on it.
+      cy.contains('Allow location').should('be.visible');
+      cy.contains('button', 'Try again').should('be.visible');
+      // Nobody should be left with no route at all.
+      cy.contains('check you in at the desk').should('exist');
+      cy.assertNoClipping();
+    });
+  });
+
+  it('lets someone test their location before filling anything in', () => {
+    withCheckInToken((token) => {
+      cy.viewport(320, 640);
+      cy.visit(`/checkin/${token}`, { onBeforeLoad: denyLocation });
+
+      // The only pre-flight an iPhone can have: WebKit will not answer a
+      // permissions query, so asking for a position is the sole way to know.
+      cy.contains('button', 'Check location access first').click();
+      cy.contains('button', 'Try again').should('be.visible');
+    });
+  });
+});

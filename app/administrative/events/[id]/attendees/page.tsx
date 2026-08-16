@@ -13,10 +13,12 @@ import {
   Plus,
   Users,
   Mail,
+  Download,
 } from 'lucide-react';
-import { apiFetch } from '@/lib/api/client';
+import { apiFetch, apiDownload } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
+import { CheckedInTable } from './CheckedInTable';
 import {
   PersonPicker,
   type DirectoryPerson,
@@ -24,8 +26,8 @@ import {
 import {
   attendeeName,
   attendeeEmail,
-  CHECK_IN_METHOD_LABELS,
   ATTENDEE_STATUS_LABELS,
+  type AttendanceExportSet,
   type AttendeeStatus,
   type EventDetail,
   type EventAttendee,
@@ -51,6 +53,15 @@ const TABS = [
 ] as const;
 
 type TabKey = (typeof TABS)[number]['key'];
+
+/** Each tab, in the vocabulary the export endpoint uses. */
+const EXPORT_SETS: Record<TabKey, AttendanceExportSet> = {
+  all: 'invited',
+  checkedIn: 'checked-in',
+  confirmed: 'confirmed',
+  declined: 'declined',
+  awaiting: 'awaiting',
+};
 
 /**
  * A row in the combined list. Two different records end up here — an invitation
@@ -181,6 +192,8 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   // shows a pending state.
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [isResendingAll, setIsResendingAll] = useState(false);
+  // Which format is being prepared, so only that button reads as busy.
+  const [downloading, setDownloading] = useState<'csv' | 'pdf' | null>(null);
   // Not the first tab, deliberately: this page is mostly open while a meeting
   // is running, and who has actually turned up is the live question. The full
   // invite list stays first because that is the set the others are drawn from.
@@ -277,6 +290,13 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
       ['MINISTER', 'MINISTRY_ADMIN'].includes(currentUser.systemRole) &&
       event?.ministryId === currentUser.ministryId);
 
+  // Mirrors the export route's guards: the people running the meeting, plus a
+  // minister across their own ministry's meetings whoever organized them.
+  const canExport =
+    canDoWalkIn ||
+    (currentUser?.systemRole === 'MINISTER' &&
+      event?.ministryId === currentUser.ministryId);
+
   const addGuest = () => {
     const name = guestName.trim();
     const email = guestEmail.trim().toLowerCase();
@@ -298,6 +318,28 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
     setGuests((prev) => [...prev, { name, email }]);
     setGuestName('');
     setGuestEmail('');
+  };
+
+  /**
+   * Download the list the open tab is showing. The tab keys and the sets the
+   * API knows are the same five, named differently on each side.
+   */
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    const set = EXPORT_SETS[activeTab];
+    setDownloading(format);
+    setError(null);
+    try {
+      await apiDownload(
+        `/api/v1/events/${id}/attendance/export?format=${format}&set=${set}`,
+        `attendance-${set}.${format}`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Could not prepare the download.',
+      );
+    } finally {
+      setDownloading(null);
+    }
   };
 
   const handleInvite = async () => {
@@ -670,10 +712,11 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           was empty to reach whichever was not, on a page whose whole job is
           those lists. Pattern matches the tabs on the events list. */}
       <div>
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border">
         <div
           role="tablist"
           aria-label="Attendance lists"
-          className="flex flex-wrap gap-1 border-b border-border"
+          className="flex flex-wrap gap-1"
         >
           {TABS.map(({ key, title, icon: Icon }) => {
             const isActive = activeTab === key;
@@ -707,6 +750,33 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               </button>
             );
           })}
+        </div>
+
+          {/* Downloads whichever list is open, so what arrives is what was
+              on screen. The server decides who may — this only decides
+              whether to offer it. */}
+          {canExport && (
+            <div className="flex items-center gap-2 pb-2">
+              <button
+                type="button"
+                onClick={() => handleExport('csv')}
+                disabled={downloading !== null}
+                className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                {downloading === 'csv' ? 'Preparing…' : 'CSV'}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleExport('pdf')}
+                disabled={downloading !== null}
+                className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+              >
+                <Download className="h-4 w-4" />
+                {downloading === 'pdf' ? 'Preparing…' : 'PDF'}
+              </button>
+            </div>
+          )}
         </div>
 
         <div
@@ -792,74 +862,14 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               </ul>
             ))}
 
-          {activeTab === 'checkedIn' &&
-            (checkIns.length === 0 ? (
-              <p className="rounded-[1.5rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                Nobody has checked in yet.
-              </p>
-            ) : (
-              <ul className="divide-y divide-border rounded-[1.5rem] border border-border bg-card px-6">
-                {checkIns.map((c) => (
-                  <li
-                    key={c.id}
-                    className="flex items-baseline justify-between gap-4 py-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-2 truncate text-sm font-medium text-foreground">
-                        {c.signedName}
-                        {c.isWalkIn && (
-                          <span className="shrink-0 rounded-full bg-[#fff8e5] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8d6400]">
-                            Walk-in
-                          </span>
-                        )}
-                        {/* An organizer recorded this one; nobody signed. Worth
-                            showing, so the list does not read as if every
-                            record carries the same proof. */}
-                        {c.hasSignature === false && (
-                          <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                            No signature
-                          </span>
-                        )}
-                      </p>
-                      {/* Guests have no linked account, so fall back to the email
-                          they signed in with. */}
-                      {(c.guestTitle || c.guestOrganisation) && (
-                        <p className="truncate text-xs text-muted-foreground">
-                          {[c.guestTitle, c.guestOrganisation]
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </p>
-                      )}
-                      {(c.user?.email || c.guestEmail) && (
-                        <p className="truncate text-xs text-muted-foreground">
-                          {c.user?.email ?? c.guestEmail}
-                          {c.guestPhone ? ` · ${c.guestPhone}` : ''}
-                          {!c.userId && ' · guest'}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 items-center gap-3">
-                      <span className="text-xs text-muted-foreground">
-                        {CHECK_IN_METHOD_LABELS[c.checkInMethod] ?? c.checkInMethod} ·{' '}
-                        {new Date(c.checkInAt).toLocaleString(undefined, {
-                          dateStyle: 'medium',
-                          timeStyle: 'short',
-                        })}
-                      </span>
-                      {canDoWalkIn && (
-                        <button
-                          onClick={() => handleRemoveCheckIn(c.id)}
-                          aria-label={`Remove check-in for ${c.signedName}`}
-                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ))}
+          {activeTab === 'checkedIn' && (
+            <CheckedInTable
+              checkIns={checkIns}
+              eventId={id}
+              canRemove={canDoWalkIn}
+              onRemove={handleRemoveCheckIn}
+            />
+          )}
 
           {activeTab === 'confirmed' && (
             <AttendeeSection

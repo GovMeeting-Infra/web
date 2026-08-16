@@ -428,8 +428,9 @@ export default function NewEventPage() {
               </span>
               <span className="mt-1 block text-xs text-muted-foreground">
                 Attendees must be within 100m of where you stand when you
-                generate the QR code. Without this, a poor GPS signal at that
-                moment produces a code anyone can use from anywhere.
+                generate the QR code, and anyone whose phone will not share a
+                location is turned away. Leave it off and location is still
+                recorded, just never used to refuse anyone.
               </span>
             </span>
           </label>

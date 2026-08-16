@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeaderSkeleton, StatCardsSkeleton } from '@/components/ui/skeletons';
 import { uploadImage } from '@/lib/upload';
 import { PageContainer } from '@/components/ui/page-container';
+import { PasswordInput } from '@/components/ui/password-input';
 import {
   ROLE_LABELS,
   initialsOf,
@@ -66,7 +67,6 @@ export default function ProfilePage() {
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [showPasswords, setShowPasswords] = useState(false);
 
   const { data: profile, isLoading, error: loadError } = useQuery({
     queryKey: ['me'],
@@ -377,38 +377,28 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className={label}>Current password</label>
-                <input
-                  type={showPasswords ? 'text' : 'password'}
+                <PasswordInput
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   autoComplete="current-password"
-                  className={field}
+                  wrapperClassName="mt-1"
+                  className={`${field} mt-0`}
                 />
               </div>
               <div>
                 <label className={label}>New password</label>
-                <input
-                  type={showPasswords ? 'text' : 'password'}
+                <PasswordInput
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   autoComplete="new-password"
-                  className={field}
+                  wrapperClassName="mt-1"
+                  className={`${field} mt-0`}
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
                   At least 8 characters.
                 </p>
               </div>
             </div>
-
-            <label className="flex items-center gap-2 text-sm text-muted-foreground">
-              <input
-                type="checkbox"
-                checked={showPasswords}
-                onChange={(e) => setShowPasswords(e.target.checked)}
-                className="h-4 w-4 rounded border-border"
-              />
-              Show passwords
-            </label>
           </section>
 
           <div className="flex flex-wrap gap-2">
@@ -425,7 +415,6 @@ export default function ProfilePage() {
                 setIsEditing(false);
                 setError(null);
                 setUploadError(null);
-                setShowPasswords(false);
               }}
               className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
