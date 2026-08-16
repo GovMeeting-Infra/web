@@ -15,7 +15,6 @@ import {
 import { apiFetch } from '@/lib/api/client';
 import { eventColor, eventCategoryLabel, toDayParam } from '@/lib/event-colors';
 import { PageContainer } from '@/components/ui/page-container';
-import { Tooltip } from '@/components/ui/tooltip';
 import { ListSkeleton } from '@/components/ui/skeletons';
 import {
   EVENT_STATUS_LABELS,
@@ -79,14 +78,13 @@ export default function CalendarDayPage() {
 
   return (
     <PageContainer>
-      <Tooltip content="Back to the month this day belongs to">
-        <Link
+              <Link
           href={`/administrative/calendar?y=${selected.getFullYear()}&m=${selected.getMonth()}&view=${view}`}
           className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" /> Back to Calendar
         </Link>
-      </Tooltip>
+      
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
@@ -100,32 +98,29 @@ export default function CalendarDayPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Tooltip content="The day before this one">
-            <Link
+                      <Link
               href={shift(-1)}
               aria-label="Previous day"
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
             >
               <ChevronLeft className="h-4 w-4" />
             </Link>
-          </Tooltip>
-          <Tooltip content="Jump back to today's agenda">
-            <Link
+          
+                      <Link
               href={`/administrative/calendar/day?view=${view}`}
               className="rounded-lg border border-border bg-muted px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
             >
               Today
             </Link>
-          </Tooltip>
-          <Tooltip content="The day after this one">
-            <Link
+          
+                      <Link
               href={shift(1)}
               aria-label="Next day"
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
             >
               <ChevronRight className="h-4 w-4" />
             </Link>
-          </Tooltip>
+          
         </div>
       </div>
 

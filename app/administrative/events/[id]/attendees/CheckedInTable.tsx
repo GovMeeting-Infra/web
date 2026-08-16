@@ -1,7 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { X, ArrowUpDown, MapPin, ShieldAlert } from 'lucide-react';
+import {
+  X,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  MapPin,
+  ShieldAlert,
+} from 'lucide-react';
 import {
   CHECK_IN_METHOD_LABELS,
   type AttendanceRecord,
@@ -67,34 +74,107 @@ function LocationCell({ record }: { record: AttendanceRecord }) {
               hint: 'No location was checked. Either no check-in area was set for this meeting, or an organiser recorded them at the desk.',
             };
 
+  // No tooltips here any more. These four verdicts, the accuracy figure and the
+  // mock-location flag are the evidence this product exists to produce, and all
+  // of them sat on a bare <span> — unfocusable, so a keyboard or screen-reader
+  // user could never reach the explanation, and on a phone reachable only by a
+  // 500ms hold nothing advertises. The legend below the table says the same
+  // things to everyone, once, permanently.
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <Tooltip content={verdict.hint}>
-        <span
-          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${verdict.className}`}
-        >
-          <MapPin className="h-3 w-3" />
-          {verdict.label}
-        </span>
-      </Tooltip>
+      <span
+        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${verdict.className}`}
+      >
+        <MapPin className="h-3 w-3" aria-hidden="true" />
+        {verdict.label}
+      </span>
       {typeof gpsAccuracy === 'number' && (
-        <Tooltip
-          content={`Their phone reported being accurate to about ${gpsAccuracy} metres. The smaller the number, the more certain the position.`}
-        >
-          <span className="text-[11px] text-muted-foreground">
-            ±{gpsAccuracy}m
-          </span>
-        </Tooltip>
+        <span className="text-[11px] text-muted-foreground">
+          ±{gpsAccuracy}m
+        </span>
       )}
       {mockLocationFlag && (
-        <Tooltip content="The phone reported a position no real one can produce, which is the usual signature of a location-spoofing app. Recorded rather than refused — it is a hint, not proof.">
-          <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-            <ShieldAlert className="h-3 w-3" />
-            Mock GPS
-          </span>
-        </Tooltip>
+        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+          <ShieldAlert className="h-3 w-3" aria-hidden="true" />
+          Mock GPS
+        </span>
       )}
     </div>
+  );
+}
+
+/**
+ * What the location column means, on the page rather than behind a hover.
+ *
+ * Written once under the table: it is read when somebody is working out whether
+ * an attendance record will survive being questioned, which is not a moment to
+ * be discovering that a word had a definition you had to hover to find.
+ */
+export function LocationLegend() {
+  const rows: { label: string; className: string; text: string }[] = [
+    {
+      label: 'Verified',
+      className: 'bg-stat-green-bg text-success',
+      text: 'Their phone placed them inside the check-in area the organiser set.',
+    },
+    {
+      label: 'Outside area',
+      className: 'bg-destructive/10 text-destructive',
+      text: 'Their phone placed them outside it, even allowing for its margin of error. The check-in still counts; the location is recorded for the audit log.',
+    },
+    {
+      label: 'Unconfirmed',
+      className: 'bg-stat-gold-bg text-stat-gold-fg',
+      text: 'A location arrived, but too vague to settle it either way. Indoors, phones often cannot do better.',
+    },
+    {
+      label: 'Not verified',
+      className: 'bg-muted text-muted-foreground',
+      text: 'No location was checked — either no area was set for this meeting, or an organiser recorded them at the desk.',
+    },
+  ];
+
+  return (
+    <section className="rounded-[1.5rem] border border-border bg-card p-5">
+      <h3 className="text-sm font-semibold text-primary">
+        What the location column means
+      </h3>
+      <dl className="mt-3 space-y-2">
+        {rows.map((r) => (
+          <div key={r.label} className="flex flex-wrap items-baseline gap-2">
+            <dt>
+              <span
+                className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${r.className}`}
+              >
+                {r.label}
+              </span>
+            </dt>
+            <dd className="min-w-0 flex-1 text-xs text-muted-foreground">
+              {r.text}
+            </dd>
+          </div>
+        ))}
+        <div className="flex flex-wrap items-baseline gap-2">
+          <dt className="text-[11px] font-medium text-muted-foreground">±40m</dt>
+          <dd className="min-w-0 flex-1 text-xs text-muted-foreground">
+            How accurate the phone said its position was. The smaller the number,
+            the more certain it is.
+          </dd>
+        </div>
+        <div className="flex flex-wrap items-baseline gap-2">
+          <dt>
+            <span className="inline-flex shrink-0 items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+              Mock GPS
+            </span>
+          </dt>
+          <dd className="min-w-0 flex-1 text-xs text-muted-foreground">
+            The phone reported a position a real one cannot produce, usually a
+            location-spoofing app. Recorded as a flag, not as proof — check the
+            audit log for the record before acting on it.
+          </dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 
@@ -113,18 +193,38 @@ function SignatureCell({
 }) {
   const [failed, setFailed] = useState(false);
 
-  if (record.hasSignature === false || failed) {
+  // A failed image is its own state. It used to fall in with "no signature",
+  // so a dropped connection made the table assert that somebody who signed had
+  // not — the one claim this register exists to be trusted about.
+  if (failed) {
     return (
-      <Tooltip content="Recorded by an organiser at the desk, so there was nobody to sign. People who scan the code sign for themselves.">
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-          No signature
-        </span>
-      </Tooltip>
+      <span className="rounded-full bg-alert-bg px-2 py-0.5 text-[11px] font-medium text-alert-fg">
+        Signature didn&rsquo;t load
+      </span>
+    );
+  }
+
+  const state =
+    record.signatureState ?? (record.hasSignature === false ? 'NONE' : 'SIGNED');
+
+  if (state === 'ERASED') {
+    return (
+      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        Signature erased
+      </span>
+    );
+  }
+
+  if (state === 'NONE') {
+    return (
+      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+        Signed in at the desk
+      </span>
     );
   }
 
   return (
-    <Tooltip content={`The signature ${record.signedName} drew when they checked in. Click to see it larger.`}>
+    <Tooltip content={`${record.signedName}'s signature. Open it to see it larger.`}>
     <button
       type="button"
       onClick={() => onOpen(record)}
@@ -243,28 +343,31 @@ export function CheckedInTable({
 
   const sortButton = (key: SortKey, label: string) => {
     const active = sort.key === key;
-    // The current direction is conveyed only by icon opacity, which tells you
-    // which column is sorted but never which way.
-    const hint = active
-      ? `Sorted by ${label.toLowerCase()}, ${
-          sort.ascending ? 'A to Z' : 'Z to A'
-        }. Click to reverse it.`
-      : `Sort by ${label.toLowerCase()}`;
+
+    // A directional arrow rather than a change in opacity, and the state in the
+    // accessible name rather than in a tooltip. The name used to say "Sort by
+    // name" on the column the table was already sorted by — telling a screen
+    // reader the opposite of what the screen showed — while the true state sat
+    // in a hover nobody using a screen reader could trigger.
+    const Icon = active ? (sort.ascending ? ArrowUp : ArrowDown) : ArrowUpDown;
 
     return (
-      <Tooltip content={hint}>
-        <button
-          type="button"
-          onClick={() => toggleSort(key)}
-          className="inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-foreground"
-          aria-label={`Sort by ${label.toLowerCase()}`}
-        >
-          {label}
-          <ArrowUpDown
-            className={`h-3 w-3 ${active ? 'text-foreground' : 'opacity-40'}`}
-          />
-        </button>
-      </Tooltip>
+      <button
+        type="button"
+        onClick={() => toggleSort(key)}
+        className="inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-foreground"
+        aria-label={
+          active
+            ? `${label}, sorted ${sort.ascending ? 'A to Z' : 'Z to A'}. Activate to reverse.`
+            : `Sort by ${label.toLowerCase()}`
+        }
+      >
+        {label}
+        <Icon
+          aria-hidden="true"
+          className={`h-3 w-3 ${active ? 'text-foreground' : 'opacity-40'}`}
+        />
+      </button>
     );
   };
 

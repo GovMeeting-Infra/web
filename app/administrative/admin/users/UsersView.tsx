@@ -255,7 +255,11 @@ export function UsersView({
   /** Focus target for the invite result, which can fire from far down the list. */
   const inviteRef = useRef<HTMLDivElement>(null);
   const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isResending, setIsResending] = useState(false);
+  // Per-row. This was a single page-level boolean, so resending one person's
+  // invitation disabled — and silenced the tooltip on — every other row's Mail
+  // button at the same time.
+  const [resendingId, setResendingId] = useState<string | null>(null);
+  const isResending = resendingId !== null;
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
@@ -397,7 +401,7 @@ export function UsersView({
    */
   const resendInvite = async (userId: string) => {
     setError(null);
-    setIsResending(true);
+    setResendingId(userId);
     try {
       setInvite(
         await apiFetch<Invite>(`/api/v1/admin/users/${userId}/invite`, {
@@ -409,7 +413,7 @@ export function UsersView({
         err instanceof Error ? err.message : "Couldn't send a new invitation. Try again, or copy the link from their row.",
       );
     } finally {
-      setIsResending(false);
+      setResendingId(null);
     }
   };
 
@@ -520,7 +524,7 @@ export function UsersView({
         >
         <button
           aria-label={`Re-send invitation to ${u.name}, which stops their current link working`}
-          disabled={isResending}
+          disabled={resendingId === u.id}
           onClick={() => setConfirming({ user: u, kind: 'resend' })}
           className="rounded-lg p-1.5 max-sm:p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
         >
@@ -557,7 +561,7 @@ export function UsersView({
             when someone cannot sign in for an unrelated reason. */}
         {isLocked(u) && (
           <Tooltip
-            content={`Locked after too many failed sign-ins, until ${new Date(
+            content={`Locked after five failed sign-ins. Clears at ${new Date(
               u.lockedUntil!,
             ).toLocaleTimeString()}. Unlock to let them try now.`}
           >

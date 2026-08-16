@@ -279,7 +279,7 @@ export function SidebarNav({
       <div className="border-t border-sidebar-border pt-6">
         <Tooltip
           side="right"
-          content="Sign out of Smart Meeting on this device"
+          content="Signs you out on this device only"
         >
           <button
             onClick={handleSignOut}

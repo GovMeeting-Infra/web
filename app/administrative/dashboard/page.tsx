@@ -22,7 +22,6 @@ import { StatCardsSkeleton, RowsSkeleton } from '@/components/ui/skeletons';
 import type { MyProfile } from '@/lib/types/account';
 import type { AnalyticsDashboard } from '@/lib/types/reports';
 import { PageContainer } from '@/components/ui/page-container';
-import { Tooltip } from '@/components/ui/tooltip';
 import {
   isActionItemOverdue,
   ACTION_ITEM_STATUS_LABELS,
@@ -378,15 +377,14 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <Tooltip content="Set the time, place and who is invited. The same form covers an internal meeting and a public activity.">
-              <Link
+                          <Link
                 href="/administrative/events/new"
                 className={`flex min-h-[2.75rem] items-center gap-2 rounded-[1.25rem] border border-white/40 bg-white/15 px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-white/25 ${FOCUS} on-dark`}
               >
                 <CalendarPlus className="h-4 w-4" aria-hidden /> Schedule an
                 activity
               </Link>
-            </Tooltip>
+            
           </div>
         )}
       </section>

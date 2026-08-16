@@ -18,7 +18,7 @@ import {
 import { apiFetch, apiDownload } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
-import { CheckedInTable } from './CheckedInTable';
+import { CheckedInTable, LocationLegend } from './CheckedInTable';
 import { ConfirmDialog } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
@@ -793,7 +793,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               whether to offer it. */}
           {canExport && (
             <div className="flex items-center gap-2 pb-2">
-              <Tooltip content="A spreadsheet of whichever list is open, for analysis. Signatures cannot go in a cell, so each row says only whether one was given.">
+              <Tooltip content="A spreadsheet for analysis. Signatures cannot fit in a cell, so each row only says whether one was given.">
                 <button
                   type="button"
                   onClick={() => handleExport('csv')}
@@ -804,7 +804,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                   {downloading === 'csv' ? 'Preparing…' : 'CSV'}
                 </button>
               </Tooltip>
-              <Tooltip content="The signed register for whichever list is open, with each attendee's signature drawn beside their name — the paper sign-in sheet this replaces.">
+              <Tooltip content="The signed register, with each signature beside the name. This is the sheet to file.">
                 <button
                   type="button"
                   onClick={() => handleExport('pdf')}
@@ -930,14 +930,18 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           )}
 
           {activeTab === 'checkedIn' && !checkInsError && (
-            <CheckedInTable
-              checkIns={checkIns}
-              eventId={id}
-              canRemove={canDoWalkIn}
-              onRemove={(attendanceId, name) =>
-                setPendingRemoval({ id: attendanceId, name })
-              }
-            />
+            <>
+              <CheckedInTable
+                checkIns={checkIns}
+                eventId={id}
+                canRemove={canDoWalkIn}
+                onRemove={(attendanceId, name) =>
+                  setPendingRemoval({ id: attendanceId, name })
+                }
+              />
+              {/* Under the table it explains, and only when there is one. */}
+              {checkIns.length > 0 && <LocationLegend />}
+            </>
           )}
 
           {activeTab === 'confirmed' && (

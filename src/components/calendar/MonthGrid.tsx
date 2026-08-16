@@ -6,6 +6,7 @@ import { eventColor, toDayParam } from '@/lib/event-colors';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { EventType } from '@/lib/types/events';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useIsTruncated } from '@/lib/hooks/useIsTruncated';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_CHIPS = 3;
@@ -54,6 +55,60 @@ function sameDay(a: Date, b: Date) {
  * `hrefForEvent` and `hrefForDay` let each caller route into its own detail and
  * day pages, and `navHref` builds the prev/today/next links.
  */
+/**
+ * One event in a day cell.
+ *
+ * Its own component so it can measure itself: the tooltip repeats the chip's
+ * own title, time and place, which at most widths are fully visible — the exact
+ * noise useIsTruncated was written to prevent, and which had gone unwired while
+ * this was the most-hovered tooltip in the product. Now it only appears when
+ * something is genuinely cut off.
+ */
+function EventChip({
+  href,
+  title,
+  detail,
+  className,
+}: {
+  href: string;
+  title: string;
+  detail: string;
+  className: string;
+}) {
+  const { ref: titleRef, isTruncated: titleClipped } =
+    useIsTruncated<HTMLSpanElement>();
+  const { ref: detailRef, isTruncated: detailClipped } =
+    useIsTruncated<HTMLSpanElement>();
+  const clipped = titleClipped || detailClipped;
+
+  return (
+    <Tooltip
+      disabled={!clipped}
+      content={
+        <>
+          <span className="font-semibold">{title}</span>
+          <span className="block opacity-80">{detail}</span>
+        </>
+      }
+    >
+      <Link
+        href={href}
+        className={`block rounded border px-2 py-1.5 text-xs font-medium transition-shadow hover:shadow-sm ${className}`}
+      >
+        <span ref={titleRef} className="block truncate">
+          {title}
+        </span>
+        <span className="mt-0.5 flex items-center gap-1 truncate opacity-75">
+          <Clock className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
+          <span ref={detailRef} className="truncate">
+            {detail}
+          </span>
+        </span>
+      </Link>
+    </Tooltip>
+  );
+}
+
 export function MonthGrid({
   year,
   month,
@@ -116,32 +171,29 @@ export function MonthGrid({
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-foreground">{monthLabel}</h2>
         <div className="flex gap-2">
-          <Tooltip content="The month before this one">
-            <Link
+                      <Link
               href={navHref(prev)}
               aria-label="Previous month"
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
             >
               <ChevronLeft className="h-4 w-4" />
             </Link>
-          </Tooltip>
-          <Tooltip content="Jump back to the current month">
-            <Link
+          
+                      <Link
               href={navHref('today')}
               className="flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
             >
               Today
             </Link>
-          </Tooltip>
-          <Tooltip content="The month after this one">
-            <Link
+          
+                      <Link
               href={navHref(next)}
               aria-label="Next month"
               className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
             >
               <ChevronRight className="h-4 w-4" />
             </Link>
-          </Tooltip>
+          
         </div>
       </div>
 
@@ -282,38 +334,13 @@ export function MonthGrid({
                   const place = e.venueName;
 
                   return (
-                    // A chip in a calendar cell is narrow enough that most
-                    // titles clip, and the time and place clip with them — so
-                    // the hint carries all three rather than only the name.
-                    <Tooltip
+                    <EventChip
                       key={e.id}
-                      content={
-                        <>
-                          <span className="font-semibold">{e.title}</span>
-                          <span className="block opacity-80">
-                            {time}
-                            {place ? ` · ${place}` : ''}
-                          </span>
-                        </>
-                      }
-                    >
-                    <Link
                       href={hrefForEvent(e.id)}
-                      className={`block rounded border px-2 py-1.5 text-xs font-medium transition-shadow hover:shadow-sm ${eventColor(
-                        e.colorCategory,
-                        e.type,
-                      )}`}
-                    >
-                      <span className="block truncate">{e.title}</span>
-                      <span className="mt-0.5 flex items-center gap-1 truncate opacity-75">
-                        <Clock className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">
-                          {time}
-                          {place ? ` · ${place}` : ''}
-                        </span>
-                      </span>
-                    </Link>
-                    </Tooltip>
+                      title={e.title}
+                      detail={`${time}${place ? ` · ${place}` : ''}`}
+                      className={eventColor(e.colorCategory, e.type)}
+                    />
                   );
                 })}
 
