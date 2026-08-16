@@ -6,6 +6,10 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, X, Building2, Globe, Upload } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import {
+  useUnsavedWarning,
+  confirmLeave,
+} from '@/lib/hooks/useUnsavedWarning';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
@@ -19,9 +23,9 @@ import type {
 
 // Reference form styling (src/app/(app)/events/new/EventForm.tsx).
 const field =
-  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
+  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
 const dateField =
-  'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]';
+  'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground';
 const label = 'block text-sm font-medium text-foreground/80';
 const dateLabel = 'block text-sm font-medium text-foreground mb-2';
 
@@ -58,6 +62,23 @@ function titleCase(value: string) {
 
 type Invite = { name: string; email: string };
 
+/**
+ * A landmark in a long form.
+ *
+ * This page asks for eighteen to twenty-one things under a single heading, in
+ * one flat stack where every label is the same size — so there was no sense of
+ * what belonged with what, or how much was left. The fields have not moved;
+ * they are just grouped now, which is most of what was missing.
+ */
+function SectionHeading({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="border-t border-border pt-6 first:border-0 first:pt-0">
+      <h2 className="font-semibold text-primary">{title}</h2>
+      {hint && <p className="mt-0.5 text-sm text-muted-foreground">{hint}</p>}
+    </div>
+  );
+}
+
 export default function NewEventPage() {
   const router = useRouter();
   const currentUser = useCurrentUser();
@@ -73,7 +94,6 @@ export default function NewEventPage() {
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
   const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
-  const [requireGeofence, setRequireGeofence] = useState(false);
   const [ministryId, setMinistryId] = useState('');
   const [type, setType] = useState<string>('MEETING');
   const [startAt, setStartAt] = useState('');
@@ -106,7 +126,13 @@ export default function NewEventPage() {
   const [recurrenceCount, setRecurrenceCount] = useState('4');
   const [recurrenceUntil, setRecurrenceUntil] = useState('');
 
-  const { data: candidates = [] } = useQuery({
+  /**
+   * Co-organiser candidates. A failure here mattered more than most: at least
+   * one co-organiser is mandatory, so an empty list is a hard block, and with
+   * no error branch it read as "this ministry has no other staff" rather than
+   * "the list did not load".
+   */
+  const { data: candidates = [], error: candidatesError } = useQuery({
     queryKey: ['co-organizer-candidates'],
     queryFn: () =>
       apiFetch<CoOrganizerCandidate[]>('/api/v1/events/co-organizer-candidates'),
@@ -229,7 +255,6 @@ export default function NewEventPage() {
         coOrganizerIds: coOrganizers.length ? coOrganizers : undefined,
         ministryId: isSuperAdmin ? ministryId || undefined : undefined,
         allowGuestCheckIn,
-        requireGeofence,
       };
 
       if (isPublic) {
@@ -293,17 +318,34 @@ export default function NewEventPage() {
     }
   };
 
+  /**
+   * Enough typed to be worth protecting. Anything the user actually authored
+   * counts; the many fields that arrive with a default do not, or every visit
+   * to this form would prompt on the way out.
+   */
+  const hasEnteredSomething =
+    title.trim() !== '' ||
+    description.trim() !== '' ||
+    venueName.trim() !== '' ||
+    startAt !== '' ||
+    coOrganizers.length > 0;
+
+  useUnsavedWarning(hasEnteredSomething && !isSubmitting);
+
   return (
     <PageContainer>
       <Link
         href="/administrative/events"
+        onClick={(e) => {
+          if (!confirmLeave(hasEnteredSomething)) e.preventDefault();
+        }}
         className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Back to Events
+        <ArrowLeft className="h-4 w-4" /> Back to events
       </Link>
 
       <div>
-        <h1 className="text-3xl font-bold text-primary">Schedule Activity</h1>
+        <h1 className="text-3xl font-bold text-primary">Schedule an activity</h1>
         <p className="mt-2 text-muted-foreground">
           Create an internal meeting or a public activity
         </p>
@@ -318,7 +360,7 @@ export default function NewEventPage() {
 
         {/* Activity Type Toggle */}
         <div>
-          <label className={label}>Activity Type</label>
+          <p className={label}>Activity Type</p>
           <div className="mt-3 flex gap-1 rounded-xl border border-border bg-muted/30 p-1">
             <button
               type="button"
@@ -347,9 +389,14 @@ export default function NewEventPage() {
           </div>
         </div>
 
+        <SectionHeading
+          title="About this activity"
+          hint="What it is and where it is being held."
+        />
+
         <div>
-          <label className={label}>Title *</label>
-          <input
+          <label className={label} htmlFor="title">Title *</label>
+          <input id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className={field}
@@ -357,8 +404,8 @@ export default function NewEventPage() {
         </div>
 
         <div>
-          <label className={label}>Description</label>
-          <textarea
+          <label className={label} htmlFor="description">Description</label>
+          <textarea id="description"
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -368,8 +415,8 @@ export default function NewEventPage() {
 
         {isPublic ? (
           <div>
-            <label className={label}>Location *</label>
-            <input
+            <label className={label} htmlFor="location">Location *</label>
+            <input id="location"
               type="text"
               required
               value={venueName}
@@ -381,8 +428,8 @@ export default function NewEventPage() {
         ) : (
           <>
             <div>
-              <label className={label}>Location *</label>
-              <input
+              <label className={label} htmlFor="location-2">Location *</label>
+              <input id="location-2"
                 type="text"
                 required
                 value={venueName}
@@ -414,32 +461,32 @@ export default function NewEventPage() {
           </label>
         </div>
 
-        <div className="rounded-xl border border-border bg-muted/30 p-4">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              checked={requireGeofence}
-              onChange={(e) => setRequireGeofence(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-border"
-            />
-            <span>
-              <span className="text-sm font-medium text-foreground">
-                Require location verification
-              </span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Attendees must be within 100m of where you stand when you
-                generate the QR code, and anyone whose phone will not share a
-                location is turned away. Leave it off and location is still
-                recorded, just never used to refuse anyone.
-              </span>
-            </span>
-          </label>
+        {/* Not a choice any more. Location verification always applies, so
+            there is nothing to set here — but it does change what the organizer
+            has to do on the day, and that is worth saying before they arrive
+            rather than when a code is refused. */}
+        <div className="rounded-xl border border-stat-blue-border bg-stat-blue-bg p-4">
+          <p className="text-sm font-medium text-primary">
+            Attendees must be within 100m to check in
+          </p>
+          <p className="mt-1 text-xs text-stat-blue-muted">
+            Wherever you stand when you generate the QR code becomes the
+            check-in area. Generate it in the room, on the day — a code cannot
+            be created until your phone knows where you are. If the signal will
+            not allow it, you can still record people at the desk from the
+            attendees page.
+          </p>
         </div>
+
+        <SectionHeading
+          title="Who to contact"
+          hint="Shown to attendees so they can ask about the activity."
+        />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Organizer&apos;s email</label>
-            <input
+            <label className={label} htmlFor="organizers-email">Organizer&apos;s email</label>
+            <input id="organizers-email"
               type="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
@@ -448,8 +495,8 @@ export default function NewEventPage() {
             />
           </div>
           <div>
-            <label className={label}>Contact Phone (optional)</label>
-            <input
+            <label className={label} htmlFor="contact-phone-optional">Contact Phone (optional)</label>
+            <input id="contact-phone-optional"
               type="tel"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
@@ -461,8 +508,8 @@ export default function NewEventPage() {
 
         {isSuperAdmin && (
           <div>
-            <label className={label}>Ministry</label>
-            <select
+            <label className={label} htmlFor="ministry">Ministry</label>
+            <select id="ministry"
               value={ministryId}
               onChange={(e) => setMinistryId(e.target.value)}
               className={field}
@@ -482,8 +529,8 @@ export default function NewEventPage() {
         {!isPublic && (
           <>
             <div>
-              <label className={label}>Session Type</label>
-              <select
+              <label className={label} htmlFor="session-type">Session Type</label>
+              <select id="session-type"
                 value={type}
                 onChange={(e) => setType(e.target.value)}
                 className={field}
@@ -532,8 +579,20 @@ export default function NewEventPage() {
                 </div>
               )}
 
+              {candidatesError && (
+                <p
+                  role="alert"
+                  className="mt-1 rounded-md border border-alert-border bg-alert-bg px-3 py-2 text-sm text-alert-fg"
+                >
+                  We could not load your colleagues. This is a connection
+                  problem, not an empty ministry — reload the page before
+                  filling this in.
+                </p>
+              )}
+
               <select
                 value=""
+                aria-label="Add a co-organizer"
                 onChange={(e) => {
                   const id = e.target.value;
                   if (id && !coOrganizers.includes(id)) {
@@ -565,7 +624,7 @@ export default function NewEventPage() {
         {isPublic && (
           <>
             <div>
-              <label className={label}>Category</label>
+              <p className={label}>Category</p>
               <div className="relative">
                 <input
                   type="text"
@@ -623,7 +682,7 @@ export default function NewEventPage() {
             </div>
 
             <div>
-              <label className={label}>Banner Image</label>
+              <p className={label}>Banner Image</p>
 
               {bannerImage.trim() && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -680,7 +739,7 @@ export default function NewEventPage() {
             </div>
 
             <div>
-              <label className={label}>Invited Ministries</label>
+              <p className={label}>Invited Ministries</p>
 
               {invitedMinistries.length > 0 && (
                 <div className="mb-3 mt-1 flex flex-wrap gap-2">
@@ -689,7 +748,7 @@ export default function NewEventPage() {
                     return (
                       <div
                         key={mid}
-                        className="flex max-w-full items-center gap-2 rounded-full bg-ring/10 px-3 py-1 text-sm text-ring"
+                        className="flex max-w-full items-center gap-2 rounded-full bg-success/10 px-3 py-1 text-sm text-success"
                       >
                         <span className="truncate">{m?.name ?? mid}</span>
                         <button
@@ -699,7 +758,7 @@ export default function NewEventPage() {
                               invitedMinistries.filter((x) => x !== mid),
                             )
                           }
-                          className="ml-1 text-ring/60 transition-colors hover:text-ring"
+                          className="ml-1 text-success/60 transition-colors hover:text-success"
                           aria-label="Remove ministry"
                         >
                           ✕
@@ -751,8 +810,8 @@ export default function NewEventPage() {
             </div>
 
             <div>
-              <label className={label}>External URL (optional)</label>
-              <input
+              <label className={label} htmlFor="external-url-optional">External URL (optional)</label>
+              <input id="external-url-optional"
                 type="url"
                 value={externalUrl}
                 onChange={(e) => setExternalUrl(e.target.value)}
@@ -762,6 +821,11 @@ export default function NewEventPage() {
             </div>
           </>
         )}
+
+        <SectionHeading
+          title="When it happens"
+          hint="A meeting can repeat; each occurrence is then managed on its own."
+        />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
@@ -795,10 +859,8 @@ export default function NewEventPage() {
           <h2 className="text-sm font-medium text-foreground">Repeat</h2>
           <div className="mt-3 space-y-3">
             <div>
-              <label className="text-xs font-medium text-foreground/80">
-                Frequency
-              </label>
-              <select
+              <label className="text-xs font-medium text-foreground/80" htmlFor="frequency">Frequency</label>
+              <select id="frequency"
                 value={recurrenceFreq}
                 onChange={(e) => setRecurrenceFreq(e.target.value)}
                 className={field}
@@ -815,10 +877,8 @@ export default function NewEventPage() {
             {recurrenceFreq && (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div>
-                  <label className="text-xs font-medium text-foreground/80">
-                    Interval
-                  </label>
-                  <input
+                  <label className="text-xs font-medium text-foreground/80" htmlFor="interval">Interval</label>
+                  <input id="interval"
                     type="number"
                     min="1"
                     value={recurrenceInterval}
@@ -827,10 +887,8 @@ export default function NewEventPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-foreground/80">
-                    Ends
-                  </label>
-                  <select
+                  <label className="text-xs font-medium text-foreground/80" htmlFor="ends">Ends</label>
+                  <select id="ends"
                     value={recurrenceEndType}
                     onChange={(e) => setRecurrenceEndType(e.target.value as EndType)}
                     className={field}
@@ -842,10 +900,8 @@ export default function NewEventPage() {
                 </div>
                 {recurrenceEndType === 'COUNT' && (
                   <div>
-                    <label className="text-xs font-medium text-foreground/80">
-                      Occurrences
-                    </label>
-                    <input
+                    <label className="text-xs font-medium text-foreground/80" htmlFor="occurrences">Occurrences</label>
+                    <input id="occurrences"
                       type="number"
                       min="2"
                       value={recurrenceCount}
@@ -856,10 +912,8 @@ export default function NewEventPage() {
                 )}
                 {recurrenceEndType === 'UNTIL' && (
                   <div>
-                    <label className="text-xs font-medium text-foreground/80">
-                      Until
-                    </label>
-                    <input
+                    <label className="text-xs font-medium text-foreground/80" htmlFor="until">Until</label>
+                    <input id="until"
                       type="date"
                       value={recurrenceUntil}
                       onChange={(e) => setRecurrenceUntil(e.target.value)}
@@ -872,10 +926,17 @@ export default function NewEventPage() {
           </div>
         </div>
 
+        {!isPublic && (
+          <SectionHeading
+            title="Who is invited"
+            hint="Everyone here gets an invitation with an RSVP link."
+          />
+        )}
+
         {/* Invite attendees — internal only, mirroring the reference */}
         {!isPublic && (
           <div>
-            <label className={label}>Invite attendees</label>
+            <p className={label}>Invite attendees</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Enter a name and email to add attendees. They receive an RSVP link.
             </p>

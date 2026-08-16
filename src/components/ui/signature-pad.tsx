@@ -40,6 +40,8 @@ export const SignaturePad = forwardRef<
   const box = useRef<HTMLDivElement>(null);
   const [hasSignature, setHasSignature] = useState(false);
   const [width, setWidth] = useState(MAX_WIDTH);
+  const [mode, setMode] = useState<'draw' | 'type'>('draw');
+  const [typed, setTyped] = useState('');
 
   // Match the pad to whatever the card actually gives it. Resizing a canvas
   // clears it, so a stroke already drawn is re-applied from its point data
@@ -71,46 +73,101 @@ export const SignaturePad = forwardRef<
 
   const clear = () => {
     pad.current?.clear();
+    setTyped('');
     update(false);
+  };
+
+  /**
+   * Renders a typed name as the signature image.
+   *
+   * Drawing was the only way to sign, and a canvas cannot be driven from a
+   * keyboard — so anyone who cannot use a pointer could not check in at all,
+   * on the one action this product exists to perform. A typed signature is the
+   * standard accessible equivalent and still produces the image the record
+   * expects.
+   *
+   * Deliberately set in italic serif so it never passes for a drawn mark: an
+   * auditor looking at the attendance sheet can see which is which.
+   */
+  const renderTyped = (value: string): string | null => {
+    const text = value.trim();
+    if (!text) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = HEIGHT;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'black';
+    ctx.font = `italic 34px Georgia, 'Times New Roman', serif`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'center';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2, canvas.width - 24);
+    return canvas.toDataURL('image/png');
   };
 
   useImperativeHandle(ref, () => ({
     // isEmpty() must be checked first: getTrimmedCanvas() on an untouched
     // canvas still returns a perfectly truthy data URL, so a caller that only
     // tests the string would accept blank signatures.
-    getSignature: () =>
-      !pad.current || pad.current.isEmpty()
+    getSignature: () => {
+      if (mode === 'type') return renderTyped(typed);
+      return !pad.current || pad.current.isEmpty()
         ? null
-        : pad.current.getTrimmedCanvas().toDataURL('image/png'),
+        : pad.current.getTrimmedCanvas().toDataURL('image/png');
+    },
     clear,
   }));
 
   return (
-    <div>
-      {/* The measured element is the full-width box; the canvas is sized from
-          it, so the pad fits the card instead of hanging out past its edge. */}
-      <div
-        ref={box}
-        className="w-full max-w-[400px] overflow-hidden rounded-xl border border-border bg-white"
-      >
-        <SignatureCanvas
-          ref={(instance) => {
-            pad.current = instance;
-          }}
-          penColor="black"
-          backgroundColor="white"
-          onEnd={() => update(true)}
-          canvasProps={{
-            width,
-            height: HEIGHT,
-            // touch-action: none, or the page scrolls instead of drawing.
-            className: 'block touch-none',
-            'aria-label': 'Signature pad',
-          }}
-        />
-      </div>
+    <div ref={box}>
+      {mode === 'draw' ? (
+        // The measured element is the full-width box; the canvas is sized from
+        // it, so the pad fits the card instead of hanging out past its edge.
+        <div className="w-full max-w-[400px] overflow-hidden rounded-xl border border-border bg-white">
+          <SignatureCanvas
+            ref={(instance) => {
+              pad.current = instance;
+            }}
+            penColor="black"
+            backgroundColor="white"
+            onEnd={() => update(true)}
+            canvasProps={{
+              width,
+              height: HEIGHT,
+              // touch-action: none, or the page scrolls instead of drawing.
+              className: 'block touch-none',
+              'aria-label': 'Signature pad. Draw your signature with a finger or mouse.',
+              role: 'img',
+            }}
+          />
+        </div>
+      ) : (
+        <div className="w-full max-w-[400px]">
+          <label
+            htmlFor="typed-signature"
+            className="block text-xs font-medium text-muted-foreground"
+          >
+            Type your full name as your signature
+          </label>
+          <input
+            id="typed-signature"
+            type="text"
+            value={typed}
+            disabled={disabled}
+            autoComplete="name"
+            onChange={(e) => {
+              setTyped(e.target.value);
+              update(e.target.value.trim().length > 1);
+            }}
+            className="mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-lg italic text-foreground"
+            placeholder="Aminata Kamara"
+          />
+        </div>
+      )}
 
-      <div className="mt-1 flex items-center gap-1">
+      <div className="mt-1 flex flex-wrap items-center gap-1">
         {/* Padded out to a real tap target rather than left as bare text. This
             is the only way back from a bad stroke, and it is reached with the
             same finger that just drew one. The negative margin keeps the label
@@ -123,9 +180,26 @@ export const SignaturePad = forwardRef<
         >
           Clear signature
         </button>
+        {/* The keyboard route through the one mandatory control in the check-in
+            flow. Without it a canvas was the only way to sign, and nobody who
+            cannot use a pointer could check in at all. */}
+        <button
+          type="button"
+          onClick={() => {
+            clear();
+            setMode(mode === 'draw' ? 'type' : 'draw');
+          }}
+          disabled={disabled}
+          className="px-3 py-2.5 text-xs text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
+        >
+          {mode === 'draw' ? 'Type it instead' : 'Draw it instead'}
+        </button>
         {hasSignature && (
-          <span className="text-xs font-medium text-[#007236]">
-            ✓ Signature captured
+          <span
+            role="status"
+            className="text-xs font-medium text-stat-green-muted"
+          >
+            Signature captured
           </span>
         )}
       </div>

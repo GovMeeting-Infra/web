@@ -7,6 +7,7 @@ import { Bell, BellOff, ArrowUpRight } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { Skeleton } from './skeleton';
 import type { Notification } from '@/lib/types/account';
+import { Tooltip } from './tooltip';
 
 const PREVIEW_LIMIT = 6;
 
@@ -32,12 +33,30 @@ export function NotificationBell() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Unread only. includeRead is deliberately absent — the page covers history.
-  const { data: unread = [], isLoading } = useQuery({
+  // The endpoint returns a page object now, so the list is under `items`.
+  const { data: unreadPage, isLoading } = useQuery({
     queryKey: ['notifications-unread'],
     queryFn: () =>
-      apiFetch<Notification[]>(`/api/v1/notifications?limit=${PREVIEW_LIMIT}`),
+      apiFetch<{ items: Notification[]; total: number }>(
+        `/api/v1/notifications?limit=${PREVIEW_LIMIT}`,
+      ),
     refetchInterval: 60_000,
   });
+
+  const unread = unreadPage?.items ?? [];
+
+  // The real total, separate from the preview. The badge used to count the
+  // preview array, which is capped at PREVIEW_LIMIT — so it stopped at 6 no
+  // matter how many were waiting, and said so out loud to screen readers.
+  const { data: counts } = useQuery({
+    queryKey: ['notifications-unread-count'],
+    queryFn: () => apiFetch<{ unread: number }>('/api/v1/notifications/unread-count'),
+    refetchInterval: 60_000,
+  });
+
+  // Falls back to the preview length while the count is in flight, so the badge
+  // never blinks out on a slow connection.
+  const unreadTotal = counts?.unread ?? unread.length;
 
   useEffect(() => {
     if (!open) return;
@@ -57,6 +76,7 @@ export function NotificationBell() {
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
+    queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
     queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
@@ -81,23 +101,34 @@ export function NotificationBell() {
 
   return (
     <div ref={containerRef} className="relative">
+      {/* Suppressed while the panel is open, or the hint would float over the
+          thing it describes. */}
+      <Tooltip
+        disabled={open}
+        content={
+          unread.length
+            ? `${unread.length} unread — meetings, minutes and anything assigned to you`
+            : 'Meetings, minutes and anything assigned to you'
+        }
+      >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={
-          unread.length ? `Notifications, ${unread.length} unread` : 'Notifications'
+          unreadTotal ? `Notifications, ${unreadTotal} unread` : 'Notifications'
         }
         aria-expanded={open}
         aria-haspopup="menu"
         className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-muted"
       >
         <Bell className="h-5 w-5 text-foreground" />
-        {unread.length > 0 && (
+        {unreadTotal > 0 && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
-            {unread.length > 9 ? '9+' : unread.length}
+            {unreadTotal > 9 ? '9+' : unreadTotal}
           </span>
         )}
       </button>
+      </Tooltip>
 
       {open && (
         <div

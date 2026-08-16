@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 import { PageContainer } from '@/components/ui/page-container';
 import { CardGridSkeleton } from '@/components/ui/skeletons';
+import { Tooltip } from '@/components/ui/tooltip';
 import {
   EVENT_TYPE_LABELS,
   EVENT_STATUS_LABELS,
@@ -25,8 +26,8 @@ import {
 
 /** Status pill colours: cancelled must read as inactive, not as a draft. */
 const STATUS_PILL: Record<EventStatus, string> = {
-  PUBLISHED: 'bg-[#edf8f1] text-ring',
-  DRAFT: 'bg-[#edf3fd] text-primary',
+  PUBLISHED: 'bg-stat-green-bg text-success',
+  DRAFT: 'bg-stat-blue-bg text-primary',
   CANCELLED: 'bg-muted text-muted-foreground line-through',
 };
 
@@ -47,18 +48,21 @@ const TABS = [
     title: 'Happening now',
     icon: Radio,
     empty: 'Nothing is running right now.',
+    hint: 'Under way at this moment — started and not yet finished. This is where to find a meeting you need to check people into.',
   },
   {
     timeframe: 'upcoming',
     title: 'Upcoming',
     icon: CalendarDays,
     empty: 'No upcoming events.',
+    hint: 'Scheduled but not started yet, soonest first.',
   },
   {
     timeframe: 'past',
     title: 'Past',
     icon: History,
     empty: 'No past events.',
+    hint: 'Already finished. Their minutes and attendance are still here.',
   },
 ] as const;
 
@@ -213,30 +217,44 @@ export function EventsList() {
             Manage your ministry&apos;s meetings and public events
           </p>
         </div>
-        <Link
-          href="/administrative/events/new"
-          data-tour="events-create"
-          className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-6 py-3 font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)] transition-all hover:shadow-[0_12px_24px_rgba(0,53,128,0.32)]"
-        >
-          <Plus className="h-5 w-5" />
-          Create Event
-        </Link>
+                  <Link
+            href="/administrative/events/new"
+            data-tour="events-create"
+            className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-6 py-3 font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)] transition-all hover:shadow-[0_12px_24px_rgba(0,53,128,0.32)]"
+          >
+            <Plus className="h-5 w-5" />
+            Schedule an activity
+          </Link>
+        
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {(['all', 'internal', 'public'] as const).map((filter) => (
-            <button
+            // "Public" is the one that needs saying: it does not mean open to
+            // colleagues, it means listed on the calendar outside the platform,
+            // where anyone can see it.
+            <Tooltip
               key={filter}
-              onClick={() => setIsPublicFilter(filter)}
-              className={`rounded-full px-4 py-2 text-sm font-medium capitalize transition-colors ${
-                isPublicFilter === filter
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-muted'
-              }`}
+              content={
+                filter === 'all'
+                  ? 'Everything in your ministry, internal and public alike'
+                  : filter === 'internal'
+                    ? 'Meetings visible only inside the platform'
+                    : 'Activities listed on the public calendar, where anyone outside government can see them'
+              }
             >
-              {filter}
-            </button>
+              <button
+                onClick={() => setIsPublicFilter(filter)}
+                className={`rounded-full px-4 py-2 text-sm font-medium capitalize transition-colors ${
+                  isPublicFilter === filter
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                }`}
+              >
+                {filter}
+              </button>
+            </Tooltip>
           ))}
         </div>
 
@@ -246,7 +264,7 @@ export function EventsList() {
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="rounded-xl border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary"
           >
             {SORT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -263,12 +281,12 @@ export function EventsList() {
           aria-label="Event timeframe"
           className="flex flex-wrap gap-1 border-b border-border"
         >
-          {TABS.map(({ timeframe, title, icon: Icon }) => {
+          {TABS.map(({ timeframe, title, icon: Icon, hint }) => {
             const isActive = active === timeframe;
             const count = queries[timeframe].data?.total;
             return (
+              <Tooltip key={timeframe} content={hint}>
               <button
-                key={timeframe}
                 role="tab"
                 type="button"
                 id={`events-tab-${timeframe}`}
@@ -295,6 +313,7 @@ export function EventsList() {
                   </span>
                 )}
               </button>
+              </Tooltip>
             );
           })}
         </div>

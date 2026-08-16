@@ -10,6 +10,7 @@ import { requestLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
 import type { CheckInCodeResponse, EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { CardSkeleton } from '@/components/ui/skeletons';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface GeneratePayload {
   lat?: number;
@@ -27,6 +28,9 @@ export default function CheckInCodePage({
   const { id } = use(params);
   const queryClient = useQueryClient();
   const [countdown, setCountdown] = useState<string>('');
+  // null until the first tick, so the code is never painted as expired during
+  // the frame before the timer has run.
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -111,9 +115,11 @@ export default function CheckInCodePage({
         // Telling someone to generate a new code next to a button that
         // refuses to is worse than saying nothing.
         setCountdown(cannotGenerate ? 'Expired' : 'Expired — generate a new code');
+        setSecondsLeft(0);
         return;
       }
       const total = Math.ceil(remaining / 1000);
+      setSecondsLeft(total);
       const mins = Math.floor(total / 60);
       const secs = total % 60;
       setCountdown(`Expires in ${mins}:${String(secs).padStart(2, '0')}`);
@@ -195,7 +201,7 @@ export default function CheckInCodePage({
       </Link>
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Check-In
         </p>
         <h1 className="text-3xl font-bold text-primary">QR Code</h1>
@@ -210,7 +216,7 @@ export default function CheckInCodePage({
         </div>
       )}
       {notice && (
-        <div className="rounded-lg border border-ring/20 bg-[#edf8f1] p-4 text-sm text-ring">
+        <div className="rounded-lg border border-ring/20 bg-stat-green-bg p-4 text-sm text-success">
           {notice}
         </div>
       )}
@@ -266,25 +272,78 @@ export default function CheckInCodePage({
                 loss, and at 256px plus this card's and the page's padding the
                 code was 472px wide on a 375px screen — a quarter of it cut
                 off, on the page whose whole job is being pointed at. */}
-            <div className="w-full max-w-[18rem] rounded-2xl border-4 border-border bg-white p-3 sm:p-6">
-              <QRCodeSVG
-                value={qrCode.qrCodeUrl!}
-                size={256}
-                level="H"
-                includeMargin={true}
-                className="h-auto w-full"
-              />
+            {/* A dead code looked exactly like a live one: the countdown line
+                changed wording in body-weight text and the QR carried on
+                rendering. An organiser holding the phone up glanced at it and
+                could not tell, while a queue kept scanning something expired —
+                a silent, multi-person attendance loss. */}
+            <div className="relative w-full max-w-[18rem]">
+              <div className="rounded-2xl border-4 border-border bg-white p-3 sm:p-6">
+                <QRCodeSVG
+                  value={qrCode.qrCodeUrl!}
+                  size={256}
+                  level="H"
+                  includeMargin={true}
+                  className="h-auto w-full"
+                  title="Check-in QR code"
+                />
+              </div>
+              {secondsLeft === 0 && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-scrim/75 p-4 text-center">
+                  <span className="text-base font-bold text-white">
+                    This code has expired
+                  </span>
+                  <span className="text-sm text-white/85">
+                    {cannotGenerate
+                      ? 'Ask a ministry admin to reopen check-in.'
+                      : 'Tap New code below, then hold the phone up again.'}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="space-y-1 text-center">
-              <p className="text-sm font-medium text-foreground">{countdown}</p>
+              <p
+                className={
+                  secondsLeft === 0
+                    ? 'text-lg font-bold text-alert-fg'
+                    : secondsLeft !== null && secondsLeft <= 60
+                      ? 'text-lg font-bold text-stat-gold-muted'
+                      : 'text-sm font-medium text-foreground'
+                }
+              >
+                {countdown}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Codes last 5 minutes. Refresh before it expires.
+                A code lasts 5 minutes. Refresh it before it runs out.
+              </p>
+              {/* Announced at the two thresholds that matter. A per-second
+                  live region would talk over everything else on the page. */}
+              <span role="status" aria-live="polite" className="sr-only">
+                {secondsLeft === 0
+                  ? 'The check-in code has expired. Generate a new one.'
+                  : secondsLeft !== null && secondsLeft <= 60
+                    ? 'The check-in code expires in less than a minute.'
+                    : ''}
+              </span>
+              {/* The code as text. Someone whose camera will not focus, or who
+                  is reading this aloud down a phone line, has no other way in. */}
+              <p className="pt-1 text-xs break-all text-muted-foreground">
+                Or open{' '}
+                <span className="font-medium text-foreground">
+                  {qrCode.qrCodeUrl}
+                </span>
               </p>
             </div>
           </div>
 
           <div className="space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row">
+            <Tooltip
+              content={
+                blockedReason ??
+                'Replaces the code on screen. The check-in area stays where it was set, so refreshing from the corridor does not drag it with you.'
+              }
+            >
             <button
               onClick={() => {
                 setActionError(null);
@@ -297,12 +356,12 @@ export default function CheckInCodePage({
               // refusal once the meeting is over. Closing check-in below stays
               // available — tidying up after the fact is still legitimate.
               disabled={busy || cannotGenerate}
-              title={blockedReason ?? undefined}
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-muted px-4 py-3 font-medium text-foreground hover:bg-border disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-muted"
             >
               <RefreshCw className="h-4 w-4" />
               {generate.isPending ? 'Working…' : 'New code'}
             </button>
+            </Tooltip>
 
             <button
               onClick={() => {

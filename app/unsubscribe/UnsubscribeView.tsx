@@ -9,8 +9,8 @@ import { apiFetch } from '@/lib/api/client';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-[#f8fbff] p-4">
-      <div className="w-full max-w-md rounded-[1.75rem] border border-[#d3deef] bg-white p-6 shadow-[0_24px_70px_rgba(0,53,128,0.10)] sm:p-8">
+    <div className="flex min-h-dvh items-center justify-center bg-surface p-4">
+      <div className="w-full max-w-md rounded-[1.75rem] border border-border bg-white p-6 shadow-[0_24px_70px_rgba(0,53,128,0.10)] sm:p-8">
         <div className="mb-6 flex items-center gap-3">
           <Image
             src="/coat_of_arms.jpeg"
@@ -20,10 +20,10 @@ function Shell({ children }: { children: React.ReactNode }) {
             className="h-10 w-10 object-contain"
           />
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#007236]">
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-success">
               Government of Sierra Leone
             </p>
-            <p className="text-sm font-bold text-[#003580]">Smart Meeting</p>
+            <p className="text-sm font-bold text-primary">Smart Meeting</p>
           </div>
         </div>
         {children}
@@ -52,7 +52,7 @@ export function UnsubscribeView() {
   if (!email || !token) {
     return (
       <Shell>
-        <h1 className="text-lg font-bold text-[#003580]">
+        <h1 className="text-lg font-bold text-primary">
           This link is incomplete
         </h1>
         <p className="mt-3 text-sm text-slate-600">
@@ -66,7 +66,7 @@ export function UnsubscribeView() {
   if (done) {
     return (
       <Shell>
-        <div className="flex items-center gap-2 text-[#007236]">
+        <div className="flex items-center gap-2 text-success">
           <Check className="h-5 w-5" />
           <h1 className="text-lg font-bold">Unsubscribed</h1>
         </div>
@@ -81,7 +81,7 @@ export function UnsubscribeView() {
         </p>
         <Link
           href="/administrative/login"
-          className="mt-5 inline-block text-sm font-medium text-[#003580] underline underline-offset-2"
+          className="mt-5 inline-block text-sm font-medium text-primary underline underline-offset-2"
         >
           Return to Smart Meeting
         </Link>
@@ -109,7 +109,7 @@ export function UnsubscribeView() {
 
   return (
     <Shell>
-      <div className="flex items-center gap-2 text-[#003580]">
+      <div className="flex items-center gap-2 text-primary">
         <BellOff className="h-5 w-5" />
         <h1 className="text-lg font-bold">Stop the Monday summary?</h1>
       </div>
@@ -132,7 +132,7 @@ export function UnsubscribeView() {
       <button
         onClick={unsubscribe}
         disabled={isSaving}
-        className="mt-5 w-full rounded-xl bg-[#003580] px-5 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="mt-5 w-full rounded-xl bg-primary px-5 py-3 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {isSaving ? 'Saving…' : 'Unsubscribe'}
       </button>

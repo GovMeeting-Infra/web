@@ -113,7 +113,7 @@ export function MobileNavDrawer({
           scroll chaining left to block. */}
       <div
         onClick={onClose}
-        className="animate-fade-in absolute inset-0 touch-none bg-[#0b1f3a]/50"
+        className="animate-fade-in absolute inset-0 touch-none bg-scrim/50"
       />
 
       <div
@@ -137,9 +137,9 @@ export function MobileNavDrawer({
                 carries it on desktop is hidden at this width. */}
             <div className="min-w-0 space-y-1">
               <span className="block text-[17px] font-semibold leading-none tracking-[-0.02em] text-sidebar-foreground">
-                GovMeeting
+                Smart Meeting
               </span>
-              <span className="block truncate text-[10px] font-medium uppercase tracking-[0.16em] text-sidebar-primary/80">
+              <span className="block truncate text-[10px] font-medium uppercase tracking-[0.16em] text-sidebar-primary">
                 {ministryName ?? 'Government of Sierra Leone'}
               </span>
             </div>

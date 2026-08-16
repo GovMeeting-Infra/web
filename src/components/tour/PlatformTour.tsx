@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api/client';
 import type { SystemRole } from '@/lib/roles';
@@ -94,6 +94,8 @@ export function PlatformTour({
   // One run per mount. Without this, a re-render mid-tour starts a second
   // driver over the first and the page ends up with two overlays.
   const running = useRef(false);
+  /** Set only by the two buttons below, so this stays a render-time decision. */
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     if (running.current) return;
@@ -101,14 +103,9 @@ export function PlatformTour({
     const steps = stepsForRole(role, firstName);
     const saved = readState();
 
-    // Start only on the dashboard, which is where signing in lands. Resuming
-    // can happen anywhere, because that is the tour navigating.
-    const isFirstRun =
-      !saved &&
-      completedVersion !== TOUR_VERSION &&
-      pathname === '/administrative/dashboard';
-
-    if (!saved && !isFirstRun) return;
+    // This effect now only ever runs a tour someone asked for. Starting is an
+    // invitation rendered below, not something that happens to you.
+    if (!saved) return;
 
     const startIndex = saved?.index ?? 0;
     if (startIndex >= steps.length) {
@@ -125,6 +122,12 @@ export function PlatformTour({
 
     const finish = async () => {
       writeState(null);
+      // Back where they started. The tour walks real pages, so it ended by
+      // leaving people on whatever page the last step lived on — for staff,
+      // an action-item board they had never seen and had not navigated to.
+      if (pathname !== '/administrative/dashboard') {
+        router.push('/administrative/dashboard');
+      }
       try {
         await apiFetch('/api/v1/me/preferences', {
           method: 'PATCH',
@@ -209,5 +212,71 @@ export function PlatformTour({
     };
   }, [pathname, role, firstName, completedVersion, router]);
 
-  return null;
+  /**
+   * The tour used to start on its own the first time someone reached the
+   * dashboard: an overlay dropped over a product they had not looked at yet,
+   * and the only way to stop it was to click through or close it — which
+   * recorded the tour as done. People dismissed it to be rid of it and could
+   * never find it again. Asking is both kinder and better remembered.
+   *
+   * A saved mid-tour state is deliberately not consulted here: while the tour
+   * runs, driver.js paints a full-screen overlay over this banner anyway, and
+   * reading sessionStorage during render would mean deciding this in an effect.
+   */
+  const offering =
+    !dismissed &&
+    completedVersion !== TOUR_VERSION &&
+    pathname === '/administrative/dashboard';
+
+  /** Records that they were asked and declined, so it does not ask again. */
+  const decline = async () => {
+    setDismissed(true);
+    try {
+      await apiFetch('/api/v1/me/preferences', {
+        method: 'PATCH',
+        body: JSON.stringify({ tourCompletedVersion: TOUR_VERSION }),
+      });
+    } catch {
+      // Same reasoning as finish(): not worth interrupting anyone over.
+    }
+  };
+
+  if (!offering) return null;
+
+  return (
+    <div className="px-4 pb-4 sm:px-6 lg:px-8">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[1.5rem] border border-stat-blue-border bg-stat-blue-bg p-5">
+        <div className="min-w-0">
+          <p className="font-semibold text-primary">
+            New here, {firstName}? There is a two-minute tour.
+          </p>
+          <p className="mt-1 text-sm text-stat-blue-muted">
+            It walks through scheduling a meeting, checking people in, and
+            writing the record afterwards. You can start it any time from Help.
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={decline}
+            className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            Not now
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDismissed(true);
+              writeState({ index: 0 });
+              // Re-mounts the effect above with saved state, which starts it.
+              router.refresh();
+            }}
+            className="rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Take the tour
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

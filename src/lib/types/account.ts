@@ -13,6 +13,8 @@ export interface MyProfile {
   name: string;
   image: string | null;
   jobTitle: string | null;
+  /** Work phone. Stamped onto attendance records at check-in. */
+  phone: string | null;
   systemRole: SystemRole;
   ministryId: string | null;
   active: boolean;
@@ -36,13 +38,41 @@ export interface UserPreferences {
   tourCompletedVersion: string | null;
 }
 
+export type NotificationType =
+  | 'MINUTES_PUBLISHED'
+  | 'ACTION_ITEM_ASSIGNED'
+  | 'ACTION_ITEM_STATUS_CHANGED'
+  | 'ACTION_ITEM_DUE_SOON'
+  | 'ACTION_ITEM_WEEKLY_DIGEST'
+  | 'MEETING_INVITATION'
+  | 'MEETING_CHANGED'
+  | 'MEETING_CANCELLED'
+  | 'MEETING_REMINDER';
+
 export interface Notification {
   id: string;
+  /**
+   * What kind of thing this is. The server has always sent it — the list query
+   * uses no `select` — and this interface used to drop it, along with
+   * entityType and entityId, so nine kinds of message rendered as one card.
+   */
+  type: NotificationType;
   title: string;
   body: string;
   link: string | null;
   read: boolean;
   createdAt: string;
+  entityType: string | null;
+  /** The specific record, so a notification can open the item and not the board. */
+  entityId: string | null;
+}
+
+/** One page of notifications, with the total behind it. */
+export interface NotificationPage {
+  items: Notification[];
+  total: number;
+  skip: number;
+  limit: number;
 }
 
 export interface SearchResults {
@@ -70,12 +100,18 @@ export const ROLE_LABELS: Record<SystemRole, string> = {
   STAFF: 'Staff',
 };
 
-export const SESSION_TIMEOUTS = [
-  { value: 1800, label: '30 minutes' },
-  { value: 3600, label: '1 hour' },
-  { value: 7200, label: '2 hours' },
-  { value: -1, label: 'Never' },
-];
+/**
+ * What each role can actually do, for the person whose account it is.
+ *
+ * The role was rendered as a bare word beside a free-text job title, which told
+ * someone in their first week nothing about the difference between the two.
+ */
+export const ROLE_DESCRIPTIONS: Record<SystemRole, string> = {
+  SUPER_ADMIN: 'You can see and administer every ministry on the platform.',
+  MINISTER: 'You can see everything in your ministry and manage its people.',
+  MINISTRY_ADMIN: 'You can manage meetings, people and reports for your ministry.',
+  STAFF: 'You can run your own meetings, check in, and keep minutes.',
+};
 
 export function initialsOf(name?: string | null): string {
   if (!name) return '?';

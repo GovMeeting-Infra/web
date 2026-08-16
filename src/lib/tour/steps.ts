@@ -69,7 +69,7 @@ function coreSteps(firstName: string): TourStep[] {
       element: '[data-tour="events-create"]',
       title: 'Creating a meeting',
       description:
-        'Set the time, room and who is invited. A meeting can repeat, and each occurrence is then managed on its own.',
+        'Set the time, where it is being held and who is invited. Saving sends the invitations straight away, so get those right first. A meeting can repeat, and each occurrence is then managed on its own.',
     },
     {
       route: EVENTS,
@@ -83,14 +83,17 @@ function coreSteps(firstName: string): TourStep[] {
       element: 'h1',
       title: 'Minutes',
       description:
-        'Minutes are written here, then published to everyone who attended. You have two days to edit them afterwards; past that, a ministry admin can still make corrections.',
+        'Minutes are written here, then published to everyone who attended. You have two days to edit them afterwards; past that a ministry admin can still correct them, until they are archived at six months and fixed for good.',
     },
     {
       route: ACTION_ITEMS,
       element: 'h1',
       title: 'Action items',
       description:
-        'Everything assigned out of a meeting, on one board across all your meetings. Drag an item to move it along, and owners are reminded the day before it is due.',
+        // Was "reminded the day before". The cron matches the calendar day the
+        // item is due (tasks.service.ts), so no advance warning exists — and
+        // the help page said something different again.
+        'Everything assigned out of a meeting, on one board across all your meetings. Drag an item to move it along. Owners get an email at 8am on the day an item is due, so the due date is the day it lands.',
     },
   ];
 }

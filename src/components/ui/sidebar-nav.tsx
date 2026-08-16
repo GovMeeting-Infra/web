@@ -8,7 +8,6 @@ import {
   Users,
   UserCircle,
   HelpCircle,
-  Settings,
   LayoutDashboard,
   CalendarDays,
   KanbanSquare,
@@ -24,6 +23,7 @@ import { cn } from '@/lib/utils/cn';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { ADMIN_ROLES } from '@/lib/roles';
 import { signOut } from '@/lib/sign-out';
+import { Tooltip } from './tooltip';
 
 interface NavItem {
   href: string;
@@ -142,14 +142,12 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <Bell className="h-4 w-4" />,
       },
       {
+        // One entry, not the Profile/Settings pair this used to be. Your
+        // details, your password and your data are one subject, and splitting
+        // them meant remembering which page a thing was on.
         href: '/administrative/profile',
         label: 'Profile',
         icon: <UserCircle className="h-4 w-4" />,
-      },
-      {
-        href: '/administrative/settings',
-        label: 'Settings',
-        icon: <Settings className="h-4 w-4" />,
       },
       {
         href: '/administrative/help',
@@ -222,7 +220,7 @@ export function SidebarNav({
         >
           <p
             className={cn(
-              'overflow-hidden px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 transition-[max-height,opacity,margin] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]',
+              'overflow-hidden px-3 text-[12px] font-semibold uppercase tracking-widest text-sidebar-muted transition-[max-height,opacity,margin] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]',
               collapsed ? 'mb-0 max-h-0 opacity-0' : 'mb-1 max-h-6 opacity-100',
             )}
           >
@@ -232,29 +230,46 @@ export function SidebarNav({
             {group.items.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
-                <Link
+                // Collapsed, this rail is the whole navigation and nothing on
+                // it is labelled: the span below is not rendered, and the
+                // native title it fell back to took a second to appear and was
+                // never read aloud. aria-label is the fix for the second half
+                // of that; the tooltip is the fix for the first.
+                <Tooltip
                   key={item.href}
-                  href={item.href}
-                  onClick={onNavigate}
-                  // Anchor for the guided tour. Derived from the href so a new
-                  // nav entry is reachable without remembering to label it.
-                  data-tour={
-                    tourAnchors
-                      ? `nav-${item.href.split('/').pop()}`
-                      : undefined
-                  }
-                  className={cn(
-                    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                    collapsed && 'justify-center',
-                    isActive
-                      ? 'bg-sidebar-accent text-sidebar-primary'
-                      : 'text-sidebar-foreground hover:bg-muted',
-                  )}
-                  title={collapsed ? item.label : undefined}
+                  side="right"
+                  disabled={!collapsed}
+                  content={item.label}
                 >
-                  {item.icon}
-                  {!collapsed && <span>{item.label}</span>}
-                </Link>
+                  <Link
+                    href={item.href}
+                    onClick={onNavigate}
+                    aria-label={collapsed ? item.label : undefined}
+                    // The active item was signalled by a hue swap alone, over
+                    // backgrounds about 2% apart, and screen readers were never
+                    // told. Weight carries it without colour; aria-current
+                    // carries it without sight.
+                    aria-current={isActive ? 'page' : undefined}
+                    // Anchor for the guided tour. Derived from the href so a
+                    // new nav entry is reachable without remembering to label
+                    // it.
+                    data-tour={
+                      tourAnchors
+                        ? `nav-${item.href.split('/').pop()}`
+                        : undefined
+                    }
+                    className={cn(
+                      'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200',
+                      collapsed && 'justify-center',
+                      isActive
+                        ? 'bg-sidebar-accent font-semibold text-sidebar-primary'
+                        : 'font-medium text-sidebar-foreground hover:bg-muted',
+                    )}
+                  >
+                    {item.icon}
+                    {!collapsed && <span>{item.label}</span>}
+                  </Link>
+                </Tooltip>
               );
             })}
           </div>
@@ -262,18 +277,25 @@ export function SidebarNav({
       ))}
 
       <div className="border-t border-sidebar-border pt-6">
-        <button
-          onClick={handleSignOut}
-          disabled={isSigningOut}
-          className={cn(
-            'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive transition-all duration-200 hover:bg-red-50 disabled:opacity-60',
-            collapsed && 'justify-center',
-          )}
-          title={collapsed ? 'Sign Out' : undefined}
+        <Tooltip
+          side="right"
+          content="Signs you out on this device only"
         >
-          <LogOut className="h-4 w-4" />
-          {!collapsed && <span>{isSigningOut ? 'Signing out…' : 'Sign Out'}</span>}
-        </button>
+          <button
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            aria-label={collapsed ? 'Sign Out' : undefined}
+            className={cn(
+              'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-destructive transition-all duration-200 hover:bg-red-50 disabled:opacity-60',
+              collapsed && 'justify-center',
+            )}
+          >
+            <LogOut className="h-4 w-4" />
+            {!collapsed && (
+              <span>{isSigningOut ? 'Signing out…' : 'Sign Out'}</span>
+            )}
+          </button>
+        </Tooltip>
       </div>
     </nav>
   );

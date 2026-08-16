@@ -37,9 +37,9 @@ export default async function GuestMinutesPage({
   // you nothing about what exists.
   if (!data) {
     return (
-      <PublicShell>
+      <PublicShell title="Meeting Record" linkHome={false} footerNote="This record was sent to you by the organising ministry.">
         <div className="mx-auto max-w-lg p-6 text-center sm:p-10">
-          <h1 className="text-xl font-bold text-[#003580]">
+          <h1 className="text-xl font-bold text-primary">
             These minutes aren&apos;t available
           </h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -55,13 +55,13 @@ export default async function GuestMinutesPage({
   const mine = actionItems.filter((i) => i.isMine);
 
   return (
-    <PublicShell>
+    <PublicShell title="Meeting Record" linkHome={false} footerNote="This record was sent to you by the organising ministry.">
       <article className="w-full space-y-8">
         <header className="space-y-3">
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[#007236]">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
             Meeting minutes
           </p>
-          <h1 className="text-2xl font-bold text-[#003580] sm:text-3xl">
+          <h1 className="text-2xl font-bold text-primary sm:text-3xl">
             {event.title}
           </h1>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
@@ -85,7 +85,7 @@ export default async function GuestMinutesPage({
         </header>
 
         {mine.length > 0 && (
-          <div className="rounded-2xl border border-[#fde8a6] bg-[#fff8e5] px-4 py-4 text-sm text-[#8d6400] sm:px-6">
+          <div className="rounded-2xl border border-stat-gold-border bg-stat-gold-bg px-4 py-4 text-sm text-stat-gold-fg sm:px-6">
             {mine.length === 1
               ? '1 action item below is assigned to you. You can update it here.'
               : `${mine.length} action items below are assigned to you. You can update them here.`}
@@ -96,7 +96,7 @@ export default async function GuestMinutesPage({
             out: a heading over nothing reads as something missing, when a
             meeting that decided nothing is perfectly ordinary. */}
         {minutes.decisions.length > 0 && (
-          <section className="rounded-2xl border border-[#d3deef] bg-white p-4 sm:p-6">
+          <section className="rounded-2xl border border-border bg-white p-4 sm:p-6">
             <h2 className="text-sm font-semibold text-slate-900">
               Decisions ({minutes.decisions.length})
             </h2>
@@ -122,7 +122,7 @@ export default async function GuestMinutesPage({
           </h2>
 
           {actionItems.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-[#d3deef] p-6 text-center text-sm text-slate-500 sm:p-8">
+            <p className="rounded-2xl border border-dashed border-border p-6 text-center text-sm text-slate-500 sm:p-8">
               No action items were raised at this meeting.
             </p>
           ) : (
@@ -139,7 +139,7 @@ export default async function GuestMinutesPage({
         </section>
 
         {minutes.nextSteps.length > 0 && (
-          <section className="rounded-2xl border border-[#d3deef] bg-white p-4 sm:p-6">
+          <section className="rounded-2xl border border-border bg-white p-4 sm:p-6">
             <h2 className="text-sm font-semibold text-slate-900">
               Next steps ({minutes.nextSteps.length})
             </h2>

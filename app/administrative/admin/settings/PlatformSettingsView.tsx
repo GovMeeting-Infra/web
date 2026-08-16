@@ -7,7 +7,7 @@ import { apiFetch } from '@/lib/api/client';
 import { PageContainer } from '@/components/ui/page-container';
 
 const field =
-  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
+  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
 const label = 'block text-sm font-medium text-foreground/80';
 
 interface Setting {
@@ -87,7 +87,7 @@ export function PlatformSettingsView() {
   return (
     <PageContainer className="max-w-3xl">
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Platform administration
         </p>
         <h1 className="text-3xl font-bold text-primary">Platform settings</h1>
@@ -103,7 +103,7 @@ export function PlatformSettingsView() {
         </div>
       )}
       {saved && (
-        <div className="rounded-lg border border-[#cfe5d7] bg-[#edf8f1] p-4 text-sm text-[#007236]">
+        <div className="rounded-lg border border-stat-green-border bg-stat-green-bg p-4 text-sm text-success">
           Saved {saved}.
         </div>
       )}
@@ -126,8 +126,8 @@ export function PlatformSettingsView() {
             </div>
 
             <div className="max-w-xs">
-              <label className={label}>Seconds</label>
-              <input
+              <label className={label} htmlFor="seconds">Seconds</label>
+              <input id="seconds"
                 type="number"
                 min={300}
                 max={604800}
@@ -170,8 +170,8 @@ export function PlatformSettingsView() {
             </div>
 
             <div className="max-w-xs">
-              <label className={label}>Suffix</label>
-              <input
+              <label className={label} htmlFor="suffix">Suffix</label>
+              <input id="suffix"
                 value={domain}
                 onChange={(e) => setDomainEdit(e.target.value)}
                 placeholder=".gov.sl"
@@ -186,10 +186,10 @@ export function PlatformSettingsView() {
                 locks out everyone whose address no longer matches, including
                 the person making the change. */}
             {domainChanged && (
-              <div className="space-y-3 rounded-[1rem] border border-[#fde8a6] bg-[#fff8e5] p-4">
+              <div className="space-y-3 rounded-[1rem] border border-stat-gold-border bg-stat-gold-bg p-4">
                 <div className="flex items-start gap-2">
-                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-[#8d6400]" />
-                  <p className="text-sm text-[#8d6400]">
+                  <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-stat-gold-fg" />
+                  <p className="text-sm text-stat-gold-fg">
                     Everyone whose email does not end in{' '}
                     <strong>{domain.trim()}</strong> will be unable to sign in,
                     including you. Existing sessions keep working until they

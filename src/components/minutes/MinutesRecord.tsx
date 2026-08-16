@@ -71,7 +71,7 @@ export function MinutesRecord({
         <Section
           title="Decisions"
           count={decisions.length}
-          icon={<CheckCircle2 className="h-4 w-4 text-ring" />}
+          icon={<CheckCircle2 className="h-4 w-4 text-success" />}
         >
           <ul className="mt-2 space-y-1.5">
             {decisions.map((d) => (

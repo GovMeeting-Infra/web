@@ -169,7 +169,7 @@ export function SearchDialog({
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search events, minutes, people…"
                 aria-label="Search"
-                className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary"
               />
             </div>
 

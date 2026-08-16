@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiFetch, ApiError } from '@/lib/api/client';
+import { apiFetch, ApiError, isOffline, messageFor } from '@/lib/api/client';
 import { acquireLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
 import { useGeolocationPermission } from '@/lib/hooks/useGeolocationPermission';
 import type { HelpReason } from '@/lib/checkin/locationHelp';
@@ -104,9 +104,33 @@ export function useCheckInSubmit(geofenceRequired: boolean) {
           if (err instanceof ApiError && err.code && API_REASONS[err.code]) {
             setHelpReason(API_REASONS[err.code]);
           }
-          setError(
-            err instanceof Error ? err.message : 'Could not complete check-in.',
-          );
+          // The form stays mounted through all of these, so what has been
+          // typed and drawn is still on screen. Each message now says so and
+          // names the way out — an expired token in particular used to end the
+          // attempt with a bare statement, next to a signature the person had
+          // just given and no instruction about what to do with it.
+          const expired =
+            err instanceof ApiError &&
+            (err.status === 410 ||
+              /expire/i.test(err.message) ||
+              err.code === 'TOKEN_EXPIRED');
+
+          if (expired) {
+            setError(
+              'That code expired while you were filling this in. Ask the organiser to show the code again and scan it — what you have typed and signed is still here.',
+            );
+          } else if (isOffline(err)) {
+            setError(
+              'Your connection dropped before we could record you. Nothing has been lost — tap Check in again when you have a signal.',
+            );
+          } else {
+            setError(
+              messageFor(
+                err,
+                'We could not complete your check-in. Tap Check in to try again, or ask the organiser to record you at the desk.',
+              ),
+            );
+          }
         }
       } finally {
         setPhase('idle');

@@ -18,7 +18,9 @@ import {
 import { apiFetch, apiDownload } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
-import { CheckedInTable } from './CheckedInTable';
+import { CheckedInTable, LocationLegend } from './CheckedInTable';
+import { ConfirmDialog } from '@/components/ui/modal';
+import { Tooltip } from '@/components/ui/tooltip';
 import {
   PersonPicker,
   type DirectoryPerson,
@@ -36,10 +38,10 @@ import {
 } from '@/lib/types/events';
 
 const STATUS_PILL: Record<AttendeeStatus, string> = {
-  CONFIRMED: 'bg-[#edf8f1] text-ring',
+  CONFIRMED: 'bg-stat-green-bg text-success',
   DECLINED: 'bg-destructive/10 text-destructive',
-  INVITED: 'bg-[#fff8e5] text-[#8d6400]',
-  NO_RESPONSE: 'bg-[#fff8e5] text-[#8d6400]',
+  INVITED: 'bg-stat-gold-bg text-stat-gold-fg',
+  NO_RESPONSE: 'bg-stat-gold-bg text-stat-gold-fg',
 };
 
 // Five views of the same event, shown one at a time. All comes first because
@@ -144,24 +146,31 @@ function AttendeeSection({
                 </span>
               )}
               {onResend && email && (
-                <button
-                  onClick={() => onResend(a.id)}
-                  disabled={resendingId === a.id}
-                  aria-label={`Re-send invitation to ${attendeeName(a)}`}
-                  title={`Re-send invitation to ${attendeeName(a)}`}
-                  className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                <Tooltip
+                  content={`Send the invitation to ${attendeeName(a)} again. Useful when the first one never arrived.`}
                 >
-                  <Mail className="h-4 w-4" />
-                </button>
+                  <button
+                    onClick={() => onResend(a.id)}
+                    disabled={resendingId === a.id}
+                    aria-label={`Re-send invitation to ${attendeeName(a)}`}
+                    className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                  >
+                    <Mail className="h-4 w-4" />
+                  </button>
+                </Tooltip>
               )}
               {onRemove && (
-                <button
-                  onClick={() => onRemove(a.id)}
-                  aria-label={`Remove ${attendeeName(a)}`}
-                  className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                <Tooltip
+                  content={`Take ${attendeeName(a)} off the invite list. If they have already checked in, that record stays.`}
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  <button
+                    onClick={() => onRemove(a.id)}
+                    aria-label={`Remove ${attendeeName(a)}`}
+                    className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </Tooltip>
               )}
             </div>
           </li>
@@ -214,7 +223,17 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
     queryFn: () => apiFetch<EventAttendee[]>(`/api/v1/events/${id}/attendees/declined`),
   });
 
-  const { data: checkIns = [] } = useQuery({
+  /**
+   * The attendance list. Its failure is the one that matters here: with no
+   * error branch, a dropped request rendered an empty register, which on this
+   * page is indistinguishable from "nobody has arrived" — the exact false
+   * negative the product cannot afford.
+   */
+  const {
+    data: checkIns = [],
+    error: checkInsError,
+    refetch: refetchCheckIns,
+  } = useQuery({
     queryKey: ['checkins', id],
     queryFn: () => apiFetch<AttendanceRecord[]>(`/api/v1/events/${id}/checkins`),
   });
@@ -446,17 +465,34 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
     }
   };
 
+  /**
+   * Deleting a check-in destroys the one artefact this product exists to
+   * produce, and it cannot be reconstructed: the signature was drawn on the
+   * attendee's own device at the moment they arrived. It was a single
+   * unconfirmed tap on a 36px icon, on the phone that lives at the walk-in
+   * desk. Archiving minutes — which is reversible — already asked first.
+   */
+  const [pendingRemoval, setPendingRemoval] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [removing, setRemoving] = useState(false);
+
   const handleRemoveCheckIn = async (attendanceId: string) => {
     setError(null);
     setNotice(null);
+    setRemoving(true);
     try {
       await apiFetch(`/api/v1/events/${id}/checkins/${attendanceId}`, {
         method: 'DELETE',
       });
       setNotice('Check-in removed.');
       queryClient.invalidateQueries({ queryKey: ['checkins', id] });
+      setPendingRemoval(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove check-in.');
+    } finally {
+      setRemoving(false);
     }
   };
 
@@ -506,7 +542,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
       </Link>
 
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">Attendance</p>
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">Attendance</p>
         <h1 className="text-3xl font-bold text-primary">Attendees</h1>
         {event && <p className="mt-2 text-sm text-muted-foreground">{event.title}</p>}
       </div>
@@ -517,7 +553,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         </div>
       )}
       {notice && (
-        <div className="rounded-lg border border-ring/20 bg-[#edf8f1] p-4 text-sm text-ring">
+        <div className="rounded-lg border border-ring/20 bg-stat-green-bg p-4 text-sm text-success">
           {notice}
         </div>
       )}
@@ -556,7 +592,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                   .map((a) => a.userId)
                   .filter((x): x is string => !!x),
               ]}
-              placeholder="Search by name or email…"
+              aria-label="Search attendees by name or email" placeholder="Search by name or email…"
               allowUnassign={false}
               disabled={isInviting}
             />
@@ -599,8 +635,8 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                     addGuest();
                   }
                 }}
-                placeholder="Full name"
-                className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                aria-label="Full name" placeholder="Full name"
+                className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary"
               />
               <input
                 type="email"
@@ -612,8 +648,8 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                     addGuest();
                   }
                 }}
-                placeholder="Email (optional)"
-                className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                aria-label="Email (optional)" placeholder="Email (optional)"
+                className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary"
               />
               <button
                 type="button"
@@ -685,15 +721,15 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               type="text"
               value={walkInName}
               onChange={(e) => setWalkInName(e.target.value)}
-              placeholder="Full name"
-              className="rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              aria-label="Full name" placeholder="Full name"
+              className="rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary"
             />
             <input
               type="email"
               value={walkInEmail}
               onChange={(e) => setWalkInEmail(e.target.value)}
-              placeholder="Email"
-              className="rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              aria-label="Email" placeholder="Email"
+              className="rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary"
             />
           </div>
 
@@ -757,24 +793,28 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               whether to offer it. */}
           {canExport && (
             <div className="flex items-center gap-2 pb-2">
-              <button
-                type="button"
-                onClick={() => handleExport('csv')}
-                disabled={downloading !== null}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-              >
-                <Download className="h-4 w-4" />
-                {downloading === 'csv' ? 'Preparing…' : 'CSV'}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExport('pdf')}
-                disabled={downloading !== null}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-              >
-                <Download className="h-4 w-4" />
-                {downloading === 'pdf' ? 'Preparing…' : 'PDF'}
-              </button>
+              <Tooltip content="A spreadsheet for analysis. Signatures cannot fit in a cell, so each row only says whether one was given.">
+                <button
+                  type="button"
+                  onClick={() => handleExport('csv')}
+                  disabled={downloading !== null}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading === 'csv' ? 'Preparing…' : 'CSV'}
+                </button>
+              </Tooltip>
+              <Tooltip content="The signed register, with each signature beside the name. This is the sheet to file.">
+                <button
+                  type="button"
+                  onClick={() => handleExport('pdf')}
+                  disabled={downloading !== null}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading === 'pdf' ? 'Preparing…' : 'PDF'}
+                </button>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -819,22 +859,25 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                       ) : (
                         // Never invited, but present. Worth saying so rather
                         // than showing an RSVP they were never asked for.
-                        <span className="rounded-full bg-[#fff8e5] px-2.5 py-0.5 text-[11px] font-medium text-[#8d6400]">
+                        <span className="rounded-full bg-stat-gold-bg px-2.5 py-0.5 text-[11px] font-medium text-stat-gold-fg">
                           Walk-in
                         </span>
                       )}
                       {/* Only invitees have an invitation to re-send. A walk-in
                           is an attendance record with nothing behind it. */}
                       {r.kind === 'invitee' && canInvite && r.email && (
+                        <Tooltip
+                          content={`Send the invitation to ${r.name} again. Useful when the first one never arrived.`}
+                        >
                         <button
                           onClick={() => handleResend(r.id)}
                           disabled={resendingId === r.id}
                           aria-label={`Re-send invitation to ${r.name}`}
-                          title={`Re-send invitation to ${r.name}`}
                           className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
                         >
                           <Mail className="h-4 w-4" />
                         </button>
+                        </Tooltip>
                       )}
                       {/* An invitation can be withdrawn; a walk-in has none, so
                           the equivalent is removing the check-in itself. */}
@@ -849,7 +892,9 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                       )}
                       {r.kind === 'walkIn' && canDoWalkIn && (
                         <button
-                          onClick={() => handleRemoveCheckIn(r.id)}
+                          onClick={() =>
+                            setPendingRemoval({ id: r.id, name: r.name })
+                          }
                           aria-label={`Remove check-in for ${r.name}`}
                           className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                         >
@@ -862,13 +907,41 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               </ul>
             ))}
 
-          {activeTab === 'checkedIn' && (
-            <CheckedInTable
-              checkIns={checkIns}
-              eventId={id}
-              canRemove={canDoWalkIn}
-              onRemove={handleRemoveCheckIn}
-            />
+          {activeTab === 'checkedIn' && checkInsError && (
+            <div
+              role="alert"
+              className="rounded-[1.5rem] border border-alert-border bg-alert-bg p-6 text-center"
+            >
+              <p className="font-medium text-alert-fg">
+                We could not load the attendance record.
+              </p>
+              <p className="mt-1 text-sm text-alert-fg/90">
+                This is a connection problem, not an empty register. Nobody has
+                been removed.
+              </p>
+              <button
+                type="button"
+                onClick={() => void refetchCheckIns()}
+                className="mt-4 rounded-full border border-alert-border bg-card px-4 py-2 text-sm font-medium text-alert-fg"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+
+          {activeTab === 'checkedIn' && !checkInsError && (
+            <>
+              <CheckedInTable
+                checkIns={checkIns}
+                eventId={id}
+                canRemove={canDoWalkIn}
+                onRemove={(attendanceId, name) =>
+                  setPendingRemoval({ id: attendanceId, name })
+                }
+              />
+              {/* Under the table it explains, and only when there is one. */}
+              {checkIns.length > 0 && <LocationLegend />}
+            </>
           )}
 
           {activeTab === 'confirmed' && (
@@ -920,6 +993,19 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={!!pendingRemoval}
+        onClose={() => setPendingRemoval(null)}
+        onConfirm={() =>
+          pendingRemoval && handleRemoveCheckIn(pendingRemoval.id)
+        }
+        title="Remove this check-in?"
+        description={`This deletes the attendance record for ${pendingRemoval?.name ?? 'this attendee'}, including the signature they drew. It cannot be recovered, and they would have to check in again in person.`}
+        confirmLabel="Remove check-in"
+        destructive
+        busy={removing}
+      />
     </PageContainer>
   );
 }

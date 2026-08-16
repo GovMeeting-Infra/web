@@ -8,6 +8,7 @@ import { apiFetch } from '@/lib/api/client';
 import { MonthGrid, monthRange, type CalendarEvent } from '@/components/calendar/MonthGrid';
 import type { EventListResponse } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
+import { Tooltip } from '@/components/ui/tooltip';
 
 export default function CalendarPage() {
   const params = useSearchParams();
@@ -64,7 +65,7 @@ export default function CalendarPage() {
     <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
             Calendar
           </p>
           <h1 className="text-3xl font-bold text-primary">
@@ -78,35 +79,41 @@ export default function CalendarPage() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Internal / public toggle */}
           <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1">
-            <Link
-              href={buildHref({ y: year, m: month, view: 'internal' })}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                view === 'internal'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-secondary/50'
-              }`}
-            >
-              <Building2 className="h-3.5 w-3.5" /> Internal
-            </Link>
-            <Link
-              href={buildHref({ y: year, m: month, view: 'public' })}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                view === 'public'
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'text-muted-foreground hover:bg-secondary/50'
-              }`}
-            >
-              <Globe className="h-3.5 w-3.5" /> Public
-            </Link>
+            <Tooltip content="Meetings inside your ministry, visible only to people signed in here.">
+              <Link
+                href={buildHref({ y: year, m: month, view: 'internal' })}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  view === 'internal'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-secondary/50'
+                }`}
+              >
+                <Building2 className="h-3.5 w-3.5" /> Internal
+              </Link>
+            </Tooltip>
+            <Tooltip content="Activities listed on the public calendar, exactly as anyone outside government sees them.">
+              <Link
+                href={buildHref({ y: year, m: month, view: 'public' })}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  view === 'public'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-secondary/50'
+                }`}
+              >
+                <Globe className="h-3.5 w-3.5" /> Public
+              </Link>
+            </Tooltip>
           </div>
 
-          <Link
-            href="/administrative/events/new"
-            className="flex shrink-0 items-center gap-2 rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)] transition-all hover:shadow-[0_12px_24px_rgba(0,53,128,0.32)]"
-          >
-            <Plus className="h-4 w-4" />
-            Schedule Activity
-          </Link>
+          <Tooltip content="Set the time, place and who is invited. The same form covers an internal meeting and a public activity.">
+            <Link
+              href="/administrative/events/new"
+              className="flex shrink-0 items-center gap-2 rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)] transition-all hover:shadow-[0_12px_24px_rgba(0,53,128,0.32)]"
+            >
+              <Plus className="h-4 w-4" />
+              Schedule an activity
+            </Link>
+          </Tooltip>
         </div>
       </div>
 

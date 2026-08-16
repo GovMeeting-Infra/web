@@ -6,9 +6,11 @@ import { Building2, Plus, Power, Pencil, Copy, Check } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { PageContainer } from '@/components/ui/page-container';
+import { Modal, ConfirmDialog } from '@/components/ui/modal';
+import { Tooltip } from '@/components/ui/tooltip';
 
 const field =
-  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
+  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
 const label = 'block text-sm font-medium text-foreground/80';
 
 interface Ministry {
@@ -139,7 +141,7 @@ export function MinistriesView() {
     <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
             Platform administration
           </p>
           <h1 className="text-3xl font-bold text-primary">Ministries</h1>
@@ -171,15 +173,15 @@ export function MinistriesView() {
         <div
           className={
             invite.emailSent
-              ? 'rounded-[1.5rem] border border-[#cfe5d7] bg-[#edf8f1] p-6'
-              : 'rounded-[1.5rem] border border-[#fde8a6] bg-[#fff8e5] p-6'
+              ? 'rounded-[1.5rem] border border-stat-green-border bg-stat-green-bg p-6'
+              : 'rounded-[1.5rem] border border-stat-gold-border bg-stat-gold-bg p-6'
           }
         >
           <h2
             className={
               invite.emailSent
-                ? 'break-words font-semibold text-[#007236]'
-                : 'break-words font-semibold text-[#8d6400]'
+                ? 'break-words font-semibold text-success'
+                : 'break-words font-semibold text-stat-gold-fg'
             }
           >
             {invite.emailSent
@@ -189,8 +191,8 @@ export function MinistriesView() {
           <p
             className={
               invite.emailSent
-                ? 'mt-1 text-sm text-[#007236]/90'
-                : 'mt-1 text-sm text-[#8d6400]/90'
+                ? 'mt-1 text-sm text-success/90'
+                : 'mt-1 text-sm text-stat-gold-fg/90'
             }
           >
             {invite.emailSent
@@ -222,8 +224,8 @@ export function MinistriesView() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={label}>Name *</label>
-              <input
+              <label className={label} htmlFor="name">Name *</label>
+              <input id="name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Ministry of Health"
@@ -231,8 +233,8 @@ export function MinistriesView() {
               />
             </div>
             <div>
-              <label className={label}>Code *</label>
-              <input
+              <label className={label} htmlFor="code">Code *</label>
+              <input id="code"
                 value={form.code}
                 onChange={(e) => setForm({ ...form, code: e.target.value })}
                 placeholder="MOH"
@@ -243,8 +245,8 @@ export function MinistriesView() {
               </p>
             </div>
             <div>
-              <label className={label}>Email domain *</label>
-              <input
+              <label className={label} htmlFor="email-domain">Email domain *</label>
+              <input id="email-domain"
                 value={form.emailDomain}
                 onChange={(e) => setForm({ ...form, emailDomain: e.target.value })}
                 placeholder="moh.gov.sl"
@@ -277,8 +279,8 @@ export function MinistriesView() {
             </p>
             <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
-                <label className={label}>Full name</label>
-                <input
+                <label className={label} htmlFor="full-name">Full name</label>
+                <input id="full-name"
                   value={form.adminName}
                   onChange={(e) => setForm({ ...form, adminName: e.target.value })}
                   placeholder="Aminata Kamara"
@@ -286,8 +288,8 @@ export function MinistriesView() {
                 />
               </div>
               <div>
-                <label className={label}>Email</label>
-                <input
+                <label className={label} htmlFor="email">Email</label>
+                <input id="email"
                   type="email"
                   value={form.adminEmail}
                   onChange={(e) => setForm({ ...form, adminEmail: e.target.value })}
@@ -296,8 +298,8 @@ export function MinistriesView() {
                 />
               </div>
               <div>
-                <label className={label}>Job title</label>
-                <input
+                <label className={label} htmlFor="job-title">Job title</label>
+                <input id="job-title"
                   value={form.adminJobTitle}
                   onChange={(e) =>
                     setForm({ ...form, adminJobTitle: e.target.value })
@@ -381,7 +383,7 @@ export function MinistriesView() {
                       <span
                         className={
                           m.active
-                            ? 'rounded-full bg-[#edf8f1] px-2.5 py-1 text-xs font-medium text-[#007236]'
+                            ? 'rounded-full bg-stat-green-bg px-2.5 py-1 text-xs font-medium text-success'
                             : 'rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground'
                         }
                       >
@@ -390,20 +392,30 @@ export function MinistriesView() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
+                        <Tooltip content={`Change ${m.name}'s name, code or email domain`}>
                         <button
                           onClick={() => setEditing(m)}
-                          title="Edit"
+                          aria-label={`Edit ${m.name}`}
                           className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
+                        </Tooltip>
+                        <Tooltip
+                          content={
+                            m.active
+                              ? `Deactivate ${m.name}. Its meetings and records stay; nobody from it can sign in.`
+                              : `Let ${m.name} be used again`
+                          }
+                        >
                         <button
                           onClick={() => setToggling(m)}
-                          title={m.active ? 'Deactivate' : 'Activate'}
+                          aria-label={m.active ? `Deactivate ${m.name}` : `Activate ${m.name}`}
                           className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <Power className="h-4 w-4" />
                         </button>
+                        </Tooltip>
                       </div>
                     </td>
                   </tr>
@@ -431,7 +443,7 @@ export function MinistriesView() {
                 <span
                   className={
                     m.active
-                      ? 'shrink-0 rounded-full bg-[#edf8f1] px-2.5 py-1 text-xs font-medium text-[#007236]'
+                      ? 'shrink-0 rounded-full bg-stat-green-bg px-2.5 py-1 text-xs font-medium text-success'
                       : 'shrink-0 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground'
                   }
                 >
@@ -472,100 +484,103 @@ export function MinistriesView() {
         </ul>
       )}
 
-      {editing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[85dvh] w-full max-w-lg space-y-4 overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6">
-            <h2 className="font-semibold text-primary">Edit {editing.name}</h2>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className={label}>Name</label>
-                <input
-                  value={editing.name}
-                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                  className={field}
-                />
-              </div>
-              <div>
-                <label className={label}>Code</label>
-                <input
-                  value={editing.code}
-                  onChange={(e) => setEditing({ ...editing, code: e.target.value })}
-                  className={field}
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className={label}>Email domain</label>
-                <input
-                  value={editing.emailDomain}
-                  onChange={(e) =>
-                    setEditing({ ...editing, emailDomain: e.target.value })
-                  }
-                  className={field}
-                />
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={async () => {
-                  await handleUpdate(editing.id, {
-                    name: editing.name.trim(),
-                    code: editing.code.trim().toUpperCase(),
-                    emailDomain: editing.emailDomain.trim().toLowerCase(),
-                  });
-                  setEditing(null);
-                }}
-                className="rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
-              >
-                Save changes
-              </button>
-              <button
-                onClick={() => setEditing(null)}
-                className="rounded-[1.25rem] border border-border px-5 py-2.5 text-sm font-medium text-foreground"
-              >
-                Cancel
-              </button>
-            </div>
+      {/* Both dialogs were bare fixed divs with no role, no focus trap, no
+          Escape — and no backdrop dismiss either, so Cancel was the only way
+          out of a panel focus had never been moved into. */}
+      <Modal
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title={editing ? `Edit ${editing.name}` : 'Edit ministry'}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className="rounded-[1.25rem] border border-border px-5 py-2.5 text-sm font-medium text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!editing) return;
+                await handleUpdate(editing.id, {
+                  name: editing.name.trim(),
+                  code: editing.code.trim().toUpperCase(),
+                  emailDomain: editing.emailDomain.trim().toLowerCase(),
+                });
+                setEditing(null);
+              }}
+              className="rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground"
+            >
+              Save changes
+            </button>
+          </>
+        }
+      >
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="ministry-name" className={label}>
+              Name
+            </label>
+            <input
+              id="ministry-name"
+              value={editing?.name ?? ''}
+              onChange={(e) =>
+                editing && setEditing({ ...editing, name: e.target.value })
+              }
+              className={field}
+            />
+          </div>
+          <div>
+            <label htmlFor="ministry-code" className={label}>
+              Code
+            </label>
+            <input
+              id="ministry-code"
+              value={editing?.code ?? ''}
+              onChange={(e) =>
+                editing && setEditing({ ...editing, code: e.target.value })
+              }
+              className={field}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="ministry-domain" className={label}>
+              Email domain
+            </label>
+            <input
+              id="ministry-domain"
+              value={editing?.emailDomain ?? ''}
+              onChange={(e) =>
+                editing &&
+                setEditing({ ...editing, emailDomain: e.target.value })
+              }
+              className={field}
+            />
           </div>
         </div>
-      )}
+      </Modal>
 
       {/* Deactivating signs out an entire ministry, so it is confirmed rather
           than done on a single click. */}
-      {toggling && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[85dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6">
-            <h2 className="font-semibold text-primary">
-              {toggling.active ? 'Deactivate' : 'Activate'} {toggling.name}?
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {toggling.active
-                ? `Its ${toggling._count?.users ?? 0} user${toggling._count?.users === 1 ? '' : 's'} will not be able to sign in. Events, minutes and audit records are kept, and reactivating restores access.`
-                : 'Its users will be able to sign in again.'}
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={async () => {
-                  await handleUpdate(toggling.id, { active: !toggling.active });
-                  setToggling(null);
-                }}
-                className={
-                  toggling.active
-                    ? 'rounded-[1.25rem] bg-destructive px-5 py-2.5 text-sm font-medium text-destructive-foreground'
-                    : 'rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground'
-                }
-              >
-                {toggling.active ? 'Deactivate' : 'Activate'}
-              </button>
-              <button
-                onClick={() => setToggling(null)}
-                className="rounded-[1.25rem] border border-border px-5 py-2.5 text-sm font-medium text-foreground"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={!!toggling}
+        onClose={() => setToggling(null)}
+        onConfirm={async () => {
+          if (!toggling) return;
+          await handleUpdate(toggling.id, { active: !toggling.active });
+          setToggling(null);
+        }}
+        title={`${toggling?.active ? 'Deactivate' : 'Activate'} ${toggling?.name ?? 'this ministry'}?`}
+        description={
+          toggling?.active
+            ? `Its ${toggling._count?.users ?? 0} user${toggling._count?.users === 1 ? '' : 's'} will not be able to sign in. Events, minutes and audit records are kept, and reactivating restores access.`
+            : 'Its users will be able to sign in again.'
+        }
+        confirmLabel={toggling?.active ? 'Deactivate' : 'Activate'}
+        destructive={!!toggling?.active}
+      />
     </PageContainer>
   );
 }

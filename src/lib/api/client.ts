@@ -21,6 +21,97 @@ function normalizeMessage(message: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Messages that are true but were written for a log, not a person.
+ *
+ * Callers render `error.message` straight into the page, so a guard's
+ * "No user in request" — the single most common failure in daily use, because
+ * it is what an elapsed session looks like — appeared in a red box on a screen
+ * that still looked signed in. Replaced here rather than at each call site,
+ * because there are ten of those and there will be more.
+ *
+ * Still used as the thrown message: the redirect below is what people actually
+ * see, but a request that fails while the browser is on its way to the login
+ * page should not surface as "Request failed (401)".
+ */
+const SESSION_LOST =
+  'Your session has ended. Taking you to sign in…';
+
+/** True when the response means "nobody is signed in", not "you may not". */
+function isSessionLoss(raw: string, status: number): boolean {
+  if (status === 401) return true;
+  // 403 covers two different things: a genuinely forbidden action, and an
+  // expired session that the guard sees as "nobody is asking". Only the second
+  // one mentions a missing user, so the phrase is a reliable separator.
+  return status === 403 && /no user in request/i.test(raw);
+}
+
+/**
+ * Set once we have started navigating to the login page.
+ *
+ * A page typically has several queries in flight, so an elapsed session fails
+ * all of them within a few milliseconds. Without this, each one would kick off
+ * its own navigation and the last to land would decide the callbackUrl.
+ */
+let redirectingToLogin = false;
+
+/**
+ * Send the person to sign in rather than leave them reading about it.
+ *
+ * Telling someone their session had ended while the page they could no longer
+ * use stayed on screen behind the message left them to work out for themselves
+ * that every button was now dead. The address they were on is carried through
+ * as callbackUrl so signing in returns them to it.
+ *
+ * Only for the authenticated area. Check-in, RSVP and the public calendar all
+ * call this same helper without a session by design, and a guest who hits a 401
+ * mid-check-in must not be thrown at an administrative login screen.
+ */
+function redirectToLogin(): void {
+  if (typeof window === 'undefined' || redirectingToLogin) return;
+
+  const { pathname, search, hash } = window.location;
+  if (!pathname.startsWith('/administrative')) return;
+  if (pathname.startsWith('/administrative/login')) return;
+
+  redirectingToLogin = true;
+  const callbackUrl = `${pathname}${search}${hash}`;
+  window.location.href = `/administrative/login?reason=expired&callbackUrl=${encodeURIComponent(
+    callbackUrl,
+  )}`;
+}
+
+function humanMessage(raw: string, status: number): string {
+  if (isSessionLoss(raw, status)) {
+    redirectToLogin();
+    return SESSION_LOST;
+  }
+  if (status >= 500) {
+    return 'Something went wrong on our side. Try again in a moment.';
+  }
+  return raw;
+}
+
+/**
+ * What a failed network call should say.
+ *
+ * A dropped connection never reaches ApiError at all — fetch rejects with a
+ * TypeError whose message is "Failed to fetch" on Chrome and "Load failed" on
+ * Safari. Both were rendered verbatim, including to citizens on the public
+ * calendar and to attendees mid-check-in.
+ */
+export function isOffline(error: unknown): boolean {
+  return !(error instanceof ApiError);
+}
+
+export function messageFor(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) return error.message;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'You appear to be offline. Check your connection and try again.';
+  }
+  return fallback;
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
@@ -44,7 +135,7 @@ export async function apiFetch<T = unknown>(
     } catch {
       // response had no JSON body
     }
-    throw new ApiError(message, response.status, code);
+    throw new ApiError(humanMessage(message, response.status), response.status, code);
   }
 
   if (response.status === 204) {
@@ -82,7 +173,9 @@ export async function apiDownload(
     } catch {
       // response had no JSON body
     }
-    throw new ApiError(message, response.status);
+    // An export is usually the first thing tried after a long read, which is
+    // exactly when a session has quietly elapsed.
+    throw new ApiError(humanMessage(message, response.status), response.status);
   }
 
   const blob = await response.blob();

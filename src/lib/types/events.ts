@@ -112,6 +112,7 @@ export interface PublicEventListItem {
   type: EventType | null;
   venueName: string | null;
   bannerImage: string | null;
+  ministry: { name: string } | null;
 }
 
 export interface PublicEventDetail extends PublicEventListItem {
@@ -141,7 +142,7 @@ export interface EventListItem {
   status: EventStatus;
   colorCategory: string | null;
   organizer: { id: string; name: string } | null;
-  _count: { attendees: number };
+  _count: { attendees: number; attendances: number };
 }
 
 export interface EventListResponse {
@@ -205,8 +206,6 @@ export interface EventDetail {
   venueLng: number | null;
   geofenceRadius: number;
   allowGuestCheckIn: boolean;
-  /** Refuse to mint a check-in code unless a geofence can be anchored. */
-  requireGeofence?: boolean;
   bannerImage: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -235,7 +234,6 @@ export interface CreateEventInput {
   endAt: string;
   venueName?: string;
   allowGuestCheckIn?: boolean;
-  requireGeofence?: boolean;
   colorCategory?: string;
   coOrganizerIds?: string[];
   ministryId?: string;
@@ -252,8 +250,12 @@ export type UpdateEventInput = Partial<CreateEventInput>;
 
 /**
  * The check-in area, anchored to wherever the organizer stood when they
- * generated the code. `enabled` false means no usable location was available,
- * so attendees can check in from anywhere and are recorded as unverified.
+ * generated the code.
+ *
+ * Every code that exists is now fenced: generating one requires a fix good
+ * enough to anchor from, so `enabled` false only describes an event that has no
+ * code yet. It is no longer possible to mint a code that lets people check in
+ * from anywhere.
  */
 export interface CheckInGeofence {
   enabled: boolean;
@@ -262,7 +264,7 @@ export interface CheckInGeofence {
   anchorLng: number | null;
   anchorAccuracy: number | null;
   anchorSetAt: string | null;
-  /** Whether the event insists on a fence, so a refusal can be explained. */
+  /** Always true. Kept so a refusal to generate can still be explained. */
   required?: boolean;
 }
 
@@ -324,6 +326,12 @@ export interface Minutes {
   draftedBy?: { id: string; name: string; email: string } | null;
   publishedBy?: { id: string; name: string; email: string } | null;
   actionItems?: ActionItem[];
+  /**
+   * Server version. Already on the wire — getMinutes uses `include`, so every
+   * scalar comes back — and the editor keys its seeding on it so a refetch
+   * cannot silently replace what someone is in the middle of typing.
+   */
+  updatedAt: string;
 }
 
 export interface ActionItemAssistant {
@@ -377,8 +385,8 @@ export interface BoardActionItem extends ActionItem {
 
 /** The three columns the board shows; the enum has two further states. */
 export const BOARD_COLUMNS = [
-  { status: 'TODO' as const, label: 'To Do' },
-  { status: 'IN_PROGRESS' as const, label: 'In Progress' },
+  { status: 'TODO' as const, label: 'To do' },
+  { status: 'IN_PROGRESS' as const, label: 'In progress' },
   { status: 'COMPLETED' as const, label: 'Done' },
 ];
 
@@ -392,12 +400,66 @@ export function boardColumnFor(status: ActionItemStatus): ActionItemStatus {
   return status;
 }
 
+/**
+ * Days past due, or 0 while it is still the day itself.
+ *
+ * Due dates are written from a date-only control, so they land on midnight.
+ * Comparing against `now` therefore branded an item overdue from 00:01 on the
+ * day it was due — while the 08:00 cron was emailing the same person a reminder
+ * titled "Due today". For a full day the product told one person two different
+ * things about one task, and the person who opened the board *because* of that
+ * email is exactly who hit it. Whole days elapsed, matching how the server
+ * decides who to chase.
+ */
+export function actionItemDaysLate(item: {
+  dueDate: string;
+  status: ActionItemStatus;
+}): number {
+  if (item.status === 'COMPLETED' || item.status === 'CANCELLED') return 0;
+
+  const due = new Date(item.dueDate);
+  const dueDay = Date.UTC(
+    due.getUTCFullYear(),
+    due.getUTCMonth(),
+    due.getUTCDate(),
+  );
+  const now = new Date();
+  const today = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+
+  const days = Math.floor((today - dueDay) / 86_400_000);
+  return days > 0 ? days : 0;
+}
+
 export function isActionItemOverdue(item: {
   dueDate: string;
   status: ActionItemStatus;
 }): boolean {
-  if (item.status === 'COMPLETED' || item.status === 'CANCELLED') return false;
-  return new Date(item.dueDate).getTime() < Date.now();
+  return actionItemDaysLate(item) > 0;
+}
+
+/** "3 days late", or "Due today" on the day itself. */
+export function lateText(item: {
+  dueDate: string;
+  status: ActionItemStatus;
+}): string | null {
+  const days = actionItemDaysLate(item);
+  if (days > 0) return days === 1 ? '1 day late' : `${days} days late`;
+
+  const due = new Date(item.dueDate);
+  const now = new Date();
+  const sameDay =
+    due.getUTCFullYear() === now.getUTCFullYear() &&
+    due.getUTCMonth() === now.getUTCMonth() &&
+    due.getUTCDate() === now.getUTCDate();
+
+  if (sameDay && item.status !== 'COMPLETED' && item.status !== 'CANCELLED') {
+    return 'Due today';
+  }
+  return null;
 }
 
 export const POINT_LABELS: Record<PointType, string> = {
@@ -407,9 +469,9 @@ export const POINT_LABELS: Record<PointType, string> = {
 };
 
 export const POINT_STYLES: Record<PointType, string> = {
-  ACTION_POINT: 'border-[#d9cff2] bg-[#f3effd] text-[#4c1d95]',
+  ACTION_POINT: 'border-stat-violet-border bg-stat-violet-bg text-stat-violet-fg',
   AGREED: 'border-[#bfe4ee] bg-[#e8f7fb] text-[#0e6f85]',
-  DECISION: 'border-[#c9d9f2] bg-[#edf3fd] text-[#003580]',
+  DECISION: 'border-stat-blue-border bg-stat-blue-bg text-primary',
 };
 
 export interface CreateActionItemInput {
@@ -447,6 +509,19 @@ export interface AttendanceRecord {
    * the server on this endpoint — it is large and only needed per record.
    */
   hasSignature?: boolean;
+  /**
+   * Which of the three signature states this record is in.
+   *
+   * NONE  — nobody ever signed: an organiser recorded them at the desk.
+   * ERASED — they signed, and the signature was later removed on request.
+   * SIGNED — the drawn signature is on file.
+   *
+   * These were one boolean, so the table showed "No signature" for an erased
+   * one and told the reader an organiser had recorded them at the desk — a
+   * specific, false account of what happened, on a register meant to settle
+   * disputes.
+   */
+  signatureState?: 'NONE' | 'ERASED' | 'SIGNED';
   checkInAt: string;
   checkInMethod: CheckInMethod;
   /** null means no check-in area was set, not that the check failed. */
@@ -494,10 +569,10 @@ export const EVENT_TYPE_LABELS: Record<EventType, string> = {
 };
 
 export const ACTION_ITEM_STATUS_LABELS: Record<ActionItemStatus, string> = {
-  TODO: 'To Do',
-  IN_PROGRESS: 'In Progress',
+  TODO: 'To do',
+  IN_PROGRESS: 'In progress',
   BLOCKED: 'Blocked',
-  COMPLETED: 'Completed',
+  COMPLETED: 'Done',
   CANCELLED: 'Cancelled',
 };
 
@@ -520,30 +595,39 @@ export const ACTION_ITEM_STATUS_LABELS: Record<ActionItemStatus, string> = {
  * a purple "Action Point" badge, and two purples on one card would say less
  * than one does.
  */
+/**
+ * Red, amber, green across the three columns of the board — the traffic-light
+ * reading people already have for work that has not started, is moving, and is
+ * finished.
+ *
+ * Overdue also uses red, on the due-date line. Where both apply the card says
+ * "overdue" in words next to a warning icon, so the two are still separable.
+ */
 export const ACTION_ITEM_STATUS_STYLES: Record<ActionItemStatus, string> = {
-  TODO: 'bg-destructive/10 text-destructive',
-  IN_PROGRESS: 'bg-[#fff8e5] text-[#8d6400]',
-  COMPLETED: 'bg-[#edf8f1] text-ring',
+  // Red for to-do, amber for in progress, green for done — the scheme asked
+  // for. The text is a deeper red than --color-destructive rather than the
+  // token itself: destructive on destructive/10 measured 4.31:1, just under AA
+  // for 11px, and this reads as the same red at 6.08:1.
+  TODO: 'bg-destructive/10 text-[#9a3412]',
+  // A lighter amber than --color-stat-gold-fg (#7a5600), which read brown
+  // rather than amber. #8f6600 is about as bright as the text can go and still
+  // clear 4.5:1 on its own tint, at 4.87:1.
+  IN_PROGRESS: 'bg-stat-gold-bg text-[#8f6600]',
+  COMPLETED: 'bg-stat-green-bg text-success',
   BLOCKED: 'bg-[#eef2ff] text-[#3730a3]',
   CANCELLED: 'bg-muted text-muted-foreground',
 };
 
-/** The same five as solid fills, for dots, card edges and bar segments. */
+/** The same five as solid fills, for dots and bar segments. */
 export const ACTION_ITEM_STATUS_DOT: Record<ActionItemStatus, string> = {
   TODO: 'bg-destructive',
-  IN_PROGRESS: 'bg-[#fab700]',
-  COMPLETED: 'bg-[#007236]',
+  // Brighter than the pill's text, because a dot is a graphic and only needs
+  // 3:1 — so it can carry the amber the text cannot. It was `accent` (#fab700),
+  // a fill colour at 1.71:1 against the card, under even that.
+  IN_PROGRESS: 'bg-[#b58200]',
+  COMPLETED: 'bg-success',
   BLOCKED: 'bg-[#3730a3]',
   CANCELLED: 'bg-muted-foreground',
-};
-
-/** As a left edge on a card, where the fill classes do not apply. */
-export const ACTION_ITEM_STATUS_EDGE: Record<ActionItemStatus, string> = {
-  TODO: 'border-l-destructive',
-  IN_PROGRESS: 'border-l-[#fab700]',
-  COMPLETED: 'border-l-[#007236]',
-  BLOCKED: 'border-l-[#3730a3]',
-  CANCELLED: 'border-l-muted-foreground',
 };
 
 export type ActionItemPriority = 'low' | 'medium' | 'high';

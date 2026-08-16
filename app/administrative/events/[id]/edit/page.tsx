@@ -14,9 +14,9 @@ import { FormSkeleton } from '@/components/ui/skeletons';
 
 // Same styling constants as the create form.
 const field =
-  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
+  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
 const dateField =
-  'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground focus:outline-none focus:ring-2 focus:ring-[#d7e5fb]';
+  'w-full rounded-xl border border-border bg-background px-3 py-2.5 text-foreground';
 const label = 'block text-sm font-medium text-foreground/80';
 const dateLabel = 'block text-sm font-medium text-foreground mb-2';
 
@@ -80,7 +80,6 @@ export default function EditEventPage({
   const [description, setDescription] = useState('');
   const [venueName, setVenueName] = useState('');
   const [allowGuestCheckIn, setAllowGuestCheckIn] = useState(true);
-  const [requireGeofence, setRequireGeofence] = useState(false);
   const [type, setType] = useState<string>('MEETING');
   const [scope, setScope] = useState('');
   const [classification, setClassification] = useState('');
@@ -119,7 +118,6 @@ export default function EditEventPage({
     setExternalUrl(event.externalUrl ?? '');
     setBannerImage(event.bannerImage ?? '');
     setAllowGuestCheckIn(event.allowGuestCheckIn ?? true);
-    setRequireGeofence(event.requireGeofence ?? false);
     setSeeded(true);
   }, [event, seeded]);
 
@@ -161,7 +159,6 @@ export default function EditEventPage({
           externalUrl: externalUrl.trim() || undefined,
           bannerImage: bannerImage.trim() || undefined,
           allowGuestCheckIn,
-          requireGeofence,
         }),
       });
 
@@ -268,8 +265,8 @@ export default function EditEventPage({
         </div>
 
         <div>
-          <label className={label}>Title *</label>
-          <input
+          <label className={label} htmlFor="title">Title *</label>
+          <input id="title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className={field}
@@ -277,8 +274,8 @@ export default function EditEventPage({
         </div>
 
         <div>
-          <label className={label}>Description</label>
-          <textarea
+          <label className={label} htmlFor="description">Description</label>
+          <textarea id="description"
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -288,8 +285,8 @@ export default function EditEventPage({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Session Type</label>
-            <select
+            <label className={label} htmlFor="session-type">Session Type</label>
+            <select id="session-type"
               value={type}
               onChange={(e) => setType(e.target.value)}
               className={field}
@@ -304,8 +301,8 @@ export default function EditEventPage({
         </div>
 
         <div>
-          <label className={label}>Location</label>
-          <input
+          <label className={label} htmlFor="location">Location</label>
+          <input id="location"
             type="text"
             value={venueName}
             onChange={(e) => setVenueName(e.target.value)}
@@ -314,8 +311,8 @@ export default function EditEventPage({
         </div>
 
         <div>
-          <label className={label}>Category</label>
-          <input
+          <label className={label} htmlFor="category">Category</label>
+          <input id="category"
             type="text"
             value={colorCategory}
             onChange={(e) => setColorCategory(e.target.value)}
@@ -344,32 +341,21 @@ export default function EditEventPage({
           </label>
         </div>
 
-        <div className="rounded-xl border border-border bg-muted/30 p-4">
-          <label className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              checked={requireGeofence}
-              onChange={(e) => setRequireGeofence(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-border"
-            />
-            <span>
-              <span className="text-sm font-medium text-foreground">
-                Require location verification
-              </span>
-              <span className="mt-1 block text-xs text-muted-foreground">
-                Attendees must be within 100m of where you stand when you
-                generate the QR code, and anyone whose phone will not share a
-                location is turned away. Leave it off and location is still
-                recorded, just never used to refuse anyone.
-              </span>
-            </span>
-          </label>
+        {/* Location verification always applies; there is nothing to set. */}
+        <div className="rounded-xl border border-stat-blue-border bg-stat-blue-bg p-4">
+          <p className="text-sm font-medium text-primary">
+            Attendees must be within 100m to check in
+          </p>
+          <p className="mt-1 text-xs text-stat-blue-muted">
+            The check-in area is set from wherever you stand when you generate
+            the QR code, so generate it in the room on the day.
+          </p>
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Organizer&apos;s email</label>
-            <input
+            <label className={label} htmlFor="organizers-email">Organizer&apos;s email</label>
+            <input id="organizers-email"
               type="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
@@ -378,8 +364,8 @@ export default function EditEventPage({
             />
           </div>
           <div>
-            <label className={label}>Contact Phone (optional)</label>
-            <input
+            <label className={label} htmlFor="contact-phone-optional">Contact Phone (optional)</label>
+            <input id="contact-phone-optional"
               type="tel"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
@@ -441,8 +427,8 @@ export default function EditEventPage({
         </div>
 
         <div>
-          <label className={label}>External URL (optional)</label>
-          <input
+          <label className={label} htmlFor="external-url-optional">External URL (optional)</label>
+          <input id="external-url-optional"
             type="url"
             value={externalUrl}
             onChange={(e) => setExternalUrl(e.target.value)}
@@ -453,8 +439,8 @@ export default function EditEventPage({
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <label className={label}>Scope</label>
-            <select
+            <label className={label} htmlFor="scope">Scope</label>
+            <select id="scope"
               value={scope}
               onChange={(e) => setScope(e.target.value)}
               className={field}
@@ -468,8 +454,8 @@ export default function EditEventPage({
             </select>
           </div>
           <div>
-            <label className={label}>Classification</label>
-            <select
+            <label className={label} htmlFor="classification">Classification</label>
+            <select id="classification"
               value={classification}
               onChange={(e) => setClassification(e.target.value)}
               className={field}

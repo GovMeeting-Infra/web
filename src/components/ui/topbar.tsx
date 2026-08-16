@@ -26,7 +26,7 @@ export function Topbar({
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
-    <header className="relative flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-[#f8fbff] px-4 sm:h-20 sm:px-6">
+    <header className="relative flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:h-20 sm:px-6">
       {/* The only way to the sidebar below lg, where it is display:none. */}
       <button
         type="button"
@@ -68,7 +68,7 @@ export function Topbar({
             name="q"
             placeholder="Search events, minutes, people…"
             aria-label="Search"
-            className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary"
           />
         </form>
       </div>

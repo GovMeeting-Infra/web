@@ -33,7 +33,7 @@ function Notice({
 }) {
   const tones = {
     red: 'border-destructive/20 bg-destructive/5 text-destructive',
-    amber: 'border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]',
+    amber: 'border-stat-gold-border bg-stat-gold-bg text-stat-gold-fg',
     slate: 'border-border bg-muted/40 text-foreground',
   };
 
@@ -131,7 +131,7 @@ export default async function CheckInPage({
   return (
     <Shell>
       <header className="text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Check in
         </p>
         <h1 className="mt-1 text-xl font-bold text-primary">{event.title}</h1>

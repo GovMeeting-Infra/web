@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { UserCircle, Settings, HelpCircle, LogOut } from 'lucide-react';
+import { UserCircle, HelpCircle, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { Tooltip } from './tooltip';
 import { signOut } from '@/lib/sign-out';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { ROLE_LABELS } from '@/lib/types/account';
@@ -11,13 +12,8 @@ import { ROLE_LABELS } from '@/lib/types/account';
 const LINKS = [
   {
     href: '/administrative/profile',
-    label: 'Your profile',
+    label: 'Profile',
     icon: <UserCircle className="h-4 w-4" />,
-  },
-  {
-    href: '/administrative/settings',
-    label: 'Settings',
-    icon: <Settings className="h-4 w-4" />,
   },
   {
     href: '/administrative/help',
@@ -67,6 +63,11 @@ export function UserMenu({
 
   return (
     <div ref={containerRef} className="relative">
+      {/* Suppressed while the menu is open, or the hint would sit over it. */}
+      <Tooltip
+        disabled={open}
+        content={name ? `Signed in as ${name}` : 'Your account'}
+      >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -82,6 +83,7 @@ export function UserMenu({
           {initial}
         </span>
       </button>
+      </Tooltip>
 
       {open && (
         <div

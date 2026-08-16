@@ -13,7 +13,7 @@ import {
   ArrowRight,
   CheckCircle2,
 } from 'lucide-react';
-import { apiFetch } from '@/lib/api/client';
+import { apiFetch, messageFor } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { ListSkeleton } from '@/components/ui/skeletons';
 import type { MinutesListResponse, MinutesSummary } from '@/lib/types/events';
@@ -30,8 +30,8 @@ const ARCHIVE_READER_ROLES = ['MINISTER', 'SUPER_ADMIN'];
 
 function StatusBadge({ status }: { status: MinutesSummary['status'] }) {
   const styles: Record<string, string> = {
-    PUBLISHED: 'border-[#cfe5d7] bg-[#edf8f1] text-[#007236]',
-    DRAFT: 'border-[#c9d9f2] bg-[#edf3fd] text-[#003580]',
+    PUBLISHED: 'border-stat-green-border bg-stat-green-bg text-success',
+    DRAFT: 'border-stat-blue-border bg-stat-blue-bg text-primary',
     ARCHIVED: 'border-border bg-muted text-muted-foreground',
   };
   const labels: Record<string, string> = {
@@ -65,27 +65,36 @@ export default function MinutesPage() {
     ? [...STATUS_FILTERS, { value: 'ARCHIVED', label: 'Archived' }]
     : STATUS_FILTERS;
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['minutes-list', q, status],
+  // The list was capped at the server's default of 25 with no way to ask for
+  // more and nothing on screen saying so — it printed "312 records" above the
+  // 25 it could show. At 100+ meetings a week, a minute from three weeks ago
+  // was unreachable by browsing.
+  const [take, setTake] = useState(25);
+
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['minutes-list', q, status, take],
     queryFn: () => {
       const p = new URLSearchParams();
       if (q.trim()) p.set('q', q.trim());
       if (status) p.set('status', status);
+      p.set('take', String(take));
       return apiFetch<MinutesListResponse>(`/api/v1/minutes?${p.toString()}`);
     },
   });
 
   const minutes = data?.data ?? [];
+  const total = data?.total ?? 0;
 
   return (
     <PageContainer>
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Records
         </p>
-        <h1 className="text-3xl font-bold text-primary">Meeting Minutes</h1>
+        <h1 className="text-3xl font-bold text-primary">Meeting minutes</h1>
         <p className="mt-2 text-muted-foreground">
-          Minutes from every meeting in your ministry
+          Every meeting written up so far. Meetings with no minutes yet are on
+          the events page.
         </p>
       </div>
 
@@ -106,7 +115,7 @@ export default function MinutesPage() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by meeting or content…"
-            className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+            className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary"
           />
           {q && (
             <button
@@ -141,8 +150,18 @@ export default function MinutesPage() {
       </div>
 
       {error && (
-        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
-          {error instanceof Error ? error.message : 'Could not load minutes.'}
+        <div
+          role="alert"
+          className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive"
+        >
+          <p>{messageFor(error, "We couldn't load the minutes.")}</p>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="mt-3 rounded-md border border-destructive/30 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-destructive/10"
+          >
+            Try again
+          </button>
         </div>
       )}
 
@@ -152,11 +171,15 @@ export default function MinutesPage() {
         <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center">
           <FileText className="mx-auto h-10 w-10 text-muted-foreground" />
           <p className="mt-3 font-medium text-foreground">
-            {q.trim() || status ? 'Nothing matches those filters' : 'No minutes yet'}
+            {q.trim()
+              ? `No minutes match “${q.trim()}”`
+              : status
+                ? 'Nothing here under that status'
+                : 'No minutes yet'}
           </p>
           <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
             {q.trim() || status
-              ? 'Try a different search or clear the filter.'
+              ? 'Try fewer words, or clear the search.'
               : 'Minutes are written up on the meeting itself. Open an event and choose Minutes to start a record.'}
           </p>
           <Link
@@ -169,7 +192,9 @@ export default function MinutesPage() {
       ) : (
         <>
           <p className="text-sm text-muted-foreground">
-            {data?.total} {data?.total === 1 ? 'record' : 'records'}
+            {minutes.length < total
+              ? `Showing the ${minutes.length} most recent of ${total} — search to narrow it down.`
+              : `${total} ${total === 1 ? 'record' : 'records'}`}
           </p>
 
           <div className="overflow-hidden rounded-[1.5rem] border border-border bg-card">
@@ -235,6 +260,18 @@ export default function MinutesPage() {
               ))}
             </ul>
           </div>
+
+          {minutes.length < total && (
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={() => setTake((n) => n + 25)}
+                className="rounded-[1.25rem] border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
+              >
+                Load older minutes
+              </button>
+            </div>
+          )}
         </>
       )}
     </PageContainer>

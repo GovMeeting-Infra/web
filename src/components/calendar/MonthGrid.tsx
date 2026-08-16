@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { eventColor, toDayParam } from '@/lib/event-colors';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { EventType } from '@/lib/types/events';
+import { Tooltip } from '@/components/ui/tooltip';
+import { useIsTruncated } from '@/lib/hooks/useIsTruncated';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_CHIPS = 3;
@@ -17,14 +19,24 @@ export interface CalendarEvent {
   colorCategory?: string | null;
   type?: EventType | null;
   venueName?: string | null;
-  room?: { name: string } | null;
+  /** Who is running it. Only the public calendar sets this. */
+  ministryName?: string | null;
 }
 
 /** First and last instant of a month as a half-open [from, to) pair. */
+/**
+ * Both calendars read the year straight off a query string, and both only
+ * checked its lower bound. `?y=99999999` produced a date outside the range
+ * toISOString can represent, which threw a RangeError — on the public calendar
+ * that is the state homepage, and there is no error boundary above it. Clamped
+ * here rather than at the two call sites so a third caller cannot reintroduce
+ * it.
+ */
 export function monthRange(year: number, month: number) {
+  const safeYear = Math.min(2200, Math.max(1970, year));
   return {
-    from: new Date(year, month, 1).toISOString(),
-    to: new Date(year, month + 1, 1).toISOString(),
+    from: new Date(safeYear, month, 1).toISOString(),
+    to: new Date(safeYear, month + 1, 1).toISOString(),
   };
 }
 
@@ -43,6 +55,60 @@ function sameDay(a: Date, b: Date) {
  * `hrefForEvent` and `hrefForDay` let each caller route into its own detail and
  * day pages, and `navHref` builds the prev/today/next links.
  */
+/**
+ * One event in a day cell.
+ *
+ * Its own component so it can measure itself: the tooltip repeats the chip's
+ * own title, time and place, which at most widths are fully visible — the exact
+ * noise useIsTruncated was written to prevent, and which had gone unwired while
+ * this was the most-hovered tooltip in the product. Now it only appears when
+ * something is genuinely cut off.
+ */
+function EventChip({
+  href,
+  title,
+  detail,
+  className,
+}: {
+  href: string;
+  title: string;
+  detail: string;
+  className: string;
+}) {
+  const { ref: titleRef, isTruncated: titleClipped } =
+    useIsTruncated<HTMLSpanElement>();
+  const { ref: detailRef, isTruncated: detailClipped } =
+    useIsTruncated<HTMLSpanElement>();
+  const clipped = titleClipped || detailClipped;
+
+  return (
+    <Tooltip
+      disabled={!clipped}
+      content={
+        <>
+          <span className="font-semibold">{title}</span>
+          <span className="block opacity-80">{detail}</span>
+        </>
+      }
+    >
+      <Link
+        href={href}
+        className={`block rounded border px-2 py-1.5 text-xs font-medium transition-shadow hover:shadow-sm ${className}`}
+      >
+        <span ref={titleRef} className="block truncate">
+          {title}
+        </span>
+        <span className="mt-0.5 flex items-center gap-1 truncate opacity-75">
+          <Clock className="h-2.5 w-2.5 shrink-0" aria-hidden="true" />
+          <span ref={detailRef} className="truncate">
+            {detail}
+          </span>
+        </span>
+      </Link>
+    </Tooltip>
+  );
+}
+
 export function MonthGrid({
   year,
   month,
@@ -75,6 +141,16 @@ export function MonthGrid({
     byDay.get(key)!.push(e);
   }
 
+  // Days that actually have something on them, in order, for the phone agenda.
+  const agenda = Array.from(byDay.entries())
+    .sort((a, b) => a[0] - b[0])
+    .map(([day, dayEvents]) => ({
+      date: new Date(year, month, day).toISOString(),
+      events: [...dayEvents].sort(
+        (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+      ),
+    }));
+
   const cells: (number | null)[] = [
     ...Array.from({ length: firstWeekday }, () => null),
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
@@ -95,26 +171,29 @@ export function MonthGrid({
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold text-foreground">{monthLabel}</h2>
         <div className="flex gap-2">
-          <Link
-            href={navHref(prev)}
-            aria-label="Previous month"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Link>
-          <Link
-            href={navHref('today')}
-            className="flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
-          >
-            Today
-          </Link>
-          <Link
-            href={navHref(next)}
-            aria-label="Next month"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Link>
+                      <Link
+              href={navHref(prev)}
+              aria-label="Previous month"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Link>
+          
+                      <Link
+              href={navHref('today')}
+              className="flex h-10 items-center rounded-lg border border-border bg-muted px-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            >
+              Today
+            </Link>
+          
+                      <Link
+              href={navHref(next)}
+              aria-label="Next month"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-muted text-muted-foreground transition-colors hover:bg-border hover:text-foreground"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Link>
+          
         </div>
       </div>
 
@@ -133,12 +212,73 @@ export function MonthGrid({
         </div>
       )}
 
-      <div className="grid grid-cols-7 gap-1">
+      {/* Below sm this is an agenda, not a grid.
+          Seven columns leave about 34px a cell on a phone, which fits a date
+          and up to three featureless dots — no title, no time, no place, and a
+          day with seven events looked identical to one with three. On the
+          primary public surface of a mobile-first country, the browse
+          experience carried no information at all. The grid is the desktop
+          affordance; a list is what a phone can actually read. */}
+      <ul className="space-y-2 sm:hidden">
+        {agenda.length === 0 && !isLoading && (
+          <li className="rounded-xl border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
+            Nothing is scheduled this month. Use the arrows above to look at
+            another month.
+          </li>
+        )}
+        {agenda.map(({ date, events: dayEvents }) => (
+          <li key={date} className="rounded-xl border border-border bg-card">
+            <p className="border-b border-border px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {new Date(date).toLocaleDateString('en-GB', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+              })}
+            </p>
+            <ul className="divide-y divide-border">
+              {dayEvents.map((e) => (
+                <li key={e.id}>
+                  <Link
+                    href={hrefForDay(toDayParam(new Date(e.startAt)))}
+                    className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                  >
+                    <span
+                      aria-hidden
+                      className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border ${eventColor(
+                        e.colorCategory,
+                        e.type,
+                      )}`}
+                    />
+                    <span className="min-w-0">
+                      <span className="block font-medium break-words text-foreground">
+                        {e.title}
+                      </span>
+                      {e.ministryName && (
+                        <span className="mt-0.5 block text-sm font-medium text-stat-green-muted">
+                          {e.ministryName}
+                        </span>
+                      )}
+                      <span className="mt-0.5 block text-sm text-muted-foreground">
+                        {new Date(e.startAt).toLocaleTimeString('en-GB', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                        {e.venueName ? ` · ${e.venueName}` : ''}
+                      </span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden grid-cols-7 gap-1 sm:grid">
         {WEEKDAYS.map((w) => (
           <div key={w} className="p-1 text-center sm:p-2">
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              <span className="sm:hidden">{w.slice(0, 1)}</span>
-              <span className="hidden sm:inline">{w}</span>
+              {w}
             </p>
           </div>
         ))}
@@ -168,35 +308,6 @@ export function MonthGrid({
                     : 'border-border/30 hover:bg-muted/20'
               }`}
             >
-              {/* Seven columns leave ~34px a cell on a phone, and a chip with
-                  px-2 padding has about 2px left for its title. Below sm the
-                  day becomes one tap target showing a dot per event, and the
-                  detail lives in the day view the dots link to. */}
-              <Link
-                href={hrefForDay(dayParam)}
-                aria-label={`${day} — ${dayEvents.length} ${
-                  dayEvents.length === 1 ? 'event' : 'events'
-                }`}
-                className="flex h-full min-h-14 flex-col items-center justify-center gap-1 sm:hidden"
-              >
-                <span
-                  className={`text-sm font-semibold ${
-                    isToday ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  {day}
-                </span>
-                {dayEvents.length > 0 && (
-                  <span aria-hidden className="flex items-center gap-0.5">
-                    {dayEvents.slice(0, 3).map((e) => (
-                      <span
-                        key={e.id}
-                        className="h-1.5 w-1.5 rounded-full bg-primary"
-                      />
-                    ))}
-                  </span>
-                )}
-              </Link>
 
               <div className="mb-2 hidden items-center justify-between sm:flex">
                 <Link
@@ -220,37 +331,28 @@ export function MonthGrid({
                     hour: '2-digit',
                     minute: '2-digit',
                   });
-                  const place = e.room?.name ?? e.venueName;
+                  const place = e.venueName;
 
                   return (
-                    <Link
+                    <EventChip
                       key={e.id}
                       href={hrefForEvent(e.id)}
                       title={e.title}
-                      className={`block rounded border px-2 py-1.5 text-xs font-medium transition-shadow hover:shadow-sm ${eventColor(
-                        e.colorCategory,
-                        e.type,
-                      )}`}
-                    >
-                      <span className="block truncate">{e.title}</span>
-                      <span className="mt-0.5 flex items-center gap-1 truncate opacity-75">
-                        <Clock className="h-2.5 w-2.5 shrink-0" />
-                        <span className="truncate">
-                          {time}
-                          {place ? ` · ${place}` : ''}
-                        </span>
-                      </span>
-                    </Link>
+                      detail={`${time}${place ? ` · ${place}` : ''}`}
+                      className={eventColor(e.colorCategory, e.type)}
+                    />
                   );
                 })}
 
                 {more > 0 && (
-                  <Link
-                    href={hrefForDay(dayParam)}
-                    className="block rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                  >
-                    +{more} more
-                  </Link>
+                  <Tooltip content="Open this day on its own to see everything scheduled">
+                    <Link
+                      href={hrefForDay(dayParam)}
+                      className="block rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                    >
+                      +{more} more
+                    </Link>
+                  </Tooltip>
                 )}
               </div>
             </div>

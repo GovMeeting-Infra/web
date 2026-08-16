@@ -5,6 +5,32 @@
 const LOGIN = '/administrative/login';
 
 describe('Authentication Flow', () => {
+  describe('Protected routes without a session', () => {
+    // The administrative layout used to render its whole shell for a signed-out
+    // visitor and let the client queries fail one by one, so people sat looking
+    // at a sidebar, a header and a page where nothing worked, with a message in
+    // the middle telling them their session had ended.
+    beforeEach(() => {
+      cy.clearCookies();
+    });
+
+    ['/administrative/dashboard', '/administrative/events', '/administrative/profile'].forEach(
+      (path) => {
+        it(`sends a signed-out visitor from ${path} to sign in`, () => {
+          cy.visit(path);
+          cy.url().should('include', LOGIN);
+          cy.contains('Welcome').should('be.visible');
+        });
+      },
+    );
+
+    it('does not leave the workspace furniture on screen', () => {
+      cy.visit('/administrative/dashboard');
+      cy.url().should('include', LOGIN);
+      cy.contains('Your session has ended').should('not.exist');
+    });
+  });
+
   describe('Login', () => {
     it('should display login form', () => {
       cy.visit(LOGIN);
