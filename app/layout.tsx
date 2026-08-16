@@ -19,7 +19,15 @@ export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_WEB_URL || "http://localhost:3000",
   ),
-  title: "Smart Meeting Logger | Government of Sierra Leone",
+  // A template, so every child page keeps the issuing authority in the tab and
+  // in search results. Each child set a plain string before, which replaced the
+  // whole title — so "Meeting minutes" and "Unsubscribe" appeared on a .gov.sl
+  // domain with no government attached, at exactly the point where someone
+  // decides whether a link is genuine.
+  title: {
+    default: "Smart Meeting & Attendance Logger | Government of Sierra Leone",
+    template: "%s | Government of Sierra Leone",
+  },
   description: "Official government meeting management, attendance tracking, and documentation system for the Government of Sierra Leone.",
 };
 

@@ -21,6 +21,50 @@ function normalizeMessage(message: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Messages that are true but were written for a log, not a person.
+ *
+ * Callers render `error.message` straight into the page, so a guard's
+ * "No user in request" — the single most common failure in daily use, because
+ * it is what an elapsed session looks like — appeared in a red box on a screen
+ * that still looked signed in. Replaced here rather than at each call site,
+ * because there are ten of those and there will be more.
+ */
+const SESSION_LOST =
+  'Your session has ended. Sign in again to pick up where you left off.';
+
+function humanMessage(raw: string, status: number): string {
+  if (status === 401) return SESSION_LOST;
+  // 403 covers two different things: a genuinely forbidden action, and an
+  // expired session that the guard sees as "nobody is asking". Only the second
+  // one mentions a missing user, so the phrase is a reliable separator.
+  if (status === 403 && /no user in request/i.test(raw)) return SESSION_LOST;
+  if (status >= 500) {
+    return 'Something went wrong on our side. Try again in a moment.';
+  }
+  return raw;
+}
+
+/**
+ * What a failed network call should say.
+ *
+ * A dropped connection never reaches ApiError at all — fetch rejects with a
+ * TypeError whose message is "Failed to fetch" on Chrome and "Load failed" on
+ * Safari. Both were rendered verbatim, including to citizens on the public
+ * calendar and to attendees mid-check-in.
+ */
+export function isOffline(error: unknown): boolean {
+  return !(error instanceof ApiError);
+}
+
+export function messageFor(error: unknown, fallback: string): string {
+  if (error instanceof ApiError) return error.message;
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'You appear to be offline. Check your connection and try again.';
+  }
+  return fallback;
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
@@ -44,7 +88,7 @@ export async function apiFetch<T = unknown>(
     } catch {
       // response had no JSON body
     }
-    throw new ApiError(message, response.status, code);
+    throw new ApiError(humanMessage(message, response.status), response.status, code);
   }
 
   if (response.status === 204) {
