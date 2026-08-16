@@ -326,6 +326,12 @@ export interface Minutes {
   draftedBy?: { id: string; name: string; email: string } | null;
   publishedBy?: { id: string; name: string; email: string } | null;
   actionItems?: ActionItem[];
+  /**
+   * Server version. Already on the wire — getMinutes uses `include`, so every
+   * scalar comes back — and the editor keys its seeding on it so a refetch
+   * cannot silently replace what someone is in the middle of typing.
+   */
+  updatedAt: string;
 }
 
 export interface ActionItemAssistant {
