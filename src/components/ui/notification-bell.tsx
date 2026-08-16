@@ -7,6 +7,7 @@ import { Bell, BellOff, ArrowUpRight } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { Skeleton } from './skeleton';
 import type { Notification } from '@/lib/types/account';
+import { Tooltip } from './tooltip';
 
 const PREVIEW_LIMIT = 6;
 
@@ -81,6 +82,16 @@ export function NotificationBell() {
 
   return (
     <div ref={containerRef} className="relative">
+      {/* Suppressed while the panel is open, or the hint would float over the
+          thing it describes. */}
+      <Tooltip
+        disabled={open}
+        content={
+          unread.length
+            ? `${unread.length} unread — meetings, minutes and anything assigned to you`
+            : 'Meetings, minutes and anything assigned to you'
+        }
+      >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -98,6 +109,7 @@ export function NotificationBell() {
           </span>
         )}
       </button>
+      </Tooltip>
 
       {open && (
         <div

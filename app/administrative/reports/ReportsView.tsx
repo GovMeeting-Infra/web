@@ -13,6 +13,7 @@ import { apiFetch } from '@/lib/api/client';
 import { StatCardsSkeleton } from '@/components/ui/skeletons';
 import { CSV_EXPORTS, type AnalyticsDashboard } from '@/lib/types/reports';
 import { ACTION_ITEM_STATUS_DOT } from '@/lib/types/events';
+import { Tooltip } from '@/components/ui/tooltip';
 import { ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/session';
 import { PageContainer } from '@/components/ui/page-container';
@@ -81,12 +82,12 @@ function ProportionBar({
       <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-[#e2ecfa]">
         {segments.map((s) =>
           s.value > 0 ? (
-            <div
-              key={s.label}
-              className={s.color}
-              style={{ width: `${(s.value / total) * 100}%` }}
-              title={`${s.label}: ${s.value}`}
-            />
+            <Tooltip key={s.label} content={`${s.label}: ${s.value}`}>
+              <div
+                className={s.color}
+                style={{ width: `${(s.value / total) * 100}%` }}
+              />
+            </Tooltip>
           ) : null,
         )}
       </div>
@@ -330,14 +331,19 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 <div className="flex h-32 min-w-[28rem] items-end gap-1">
                 {data.eventsOverTime.map((m) => (
                   <div key={m.month} className="flex flex-1 flex-col items-center gap-1">
-                    <div
-                      className="w-full rounded-t bg-[#003580] transition-all"
-                      style={{
-                        height: `${Math.max(2, (m.count / maxMonth) * 100)}%`,
-                        opacity: m.count === 0 ? 0.15 : 1,
-                      }}
-                      title={`${m.month}: ${m.count}`}
-                    />
+                    <Tooltip
+                      content={`${m.month}: ${m.count} ${
+                        m.count === 1 ? 'event' : 'events'
+                      }`}
+                    >
+                      <div
+                        className="w-full rounded-t bg-[#003580] transition-all"
+                        style={{
+                          height: `${Math.max(2, (m.count / maxMonth) * 100)}%`,
+                          opacity: m.count === 0 ? 0.15 : 1,
+                        }}
+                      />
+                    </Tooltip>
                     <span className="text-[10px] text-slate-500">
                       {m.month.slice(5)}
                     </span>

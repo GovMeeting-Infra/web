@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils/cn';
 import { MobileNavDrawer } from './mobile-nav-drawer';
 import { SidebarNav } from './sidebar-nav';
 import { Topbar } from './topbar';
+import { Tooltip } from './tooltip';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -46,6 +47,14 @@ export function AdminLayout({
         )}
       >
         {/* Collapse Button */}
+        <Tooltip
+          side="right"
+          content={
+            collapsed
+              ? 'Widen the sidebar to show labels beside each icon'
+              : 'Narrow the sidebar to icons only, for more room on the page'
+          }
+        >
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
@@ -60,6 +69,7 @@ export function AdminLayout({
             )}
           </span>
         </button>
+        </Tooltip>
 
         {/* Logo Section */}
         <div

@@ -17,6 +17,7 @@ import { useCurrentUser } from '@/components/SessionProvider';
 import { KanbanBoard } from '@/components/action-items/KanbanBoard';
 import { ActionItemModal } from '@/components/action-items/ActionItemModal';
 import { PageContainer } from '@/components/ui/page-container';
+import { Tooltip } from '@/components/ui/tooltip';
 import {
   ACTION_ITEM_STATUS_LABELS,
   ACTION_ITEM_STATUS_STYLES,
@@ -135,24 +136,30 @@ export default function ActionItemsPage() {
               cancelled as done, matching boardColumnFor — three figures for
               three columns, not five for five states. */}
           <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.TODO}`}
-              />
-              {counts.todo} to do
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.IN_PROGRESS}`}
-              />
-              {counts.inProgress} in progress
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span
-                className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.COMPLETED}`}
-              />
-              {counts.done} done
-            </span>
+            <Tooltip content="Not started, plus anything blocked — a blocked task is still waiting to be done.">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.TODO}`}
+                />
+                {counts.todo} to do
+              </span>
+            </Tooltip>
+            <Tooltip content="Someone has started work on these.">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.IN_PROGRESS}`}
+                />
+                {counts.inProgress} in progress
+              </span>
+            </Tooltip>
+            <Tooltip content="Completed, plus anything cancelled — both are closed, whether or not the work happened.">
+              <span className="flex items-center gap-1.5">
+                <span
+                  className={`h-2 w-2 rounded-full ${ACTION_ITEM_STATUS_DOT.COMPLETED}`}
+                />
+                {counts.done} done
+              </span>
+            </Tooltip>
           </p>
         </div>
 
@@ -178,26 +185,30 @@ export default function ActionItemsPage() {
             )}
 
             <div className="flex gap-1 rounded-xl border border-border bg-muted/30 p-1">
-              <button
-                onClick={() => setView('table')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  view === 'table'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-secondary/50'
-                }`}
-              >
-                <Table2 className="h-3.5 w-3.5" /> Table
-              </button>
-              <button
-                onClick={() => setView('board')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  view === 'board'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:bg-secondary/50'
-                }`}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" /> Board
-              </button>
+              <Tooltip content="Every item in one list, sortable, with its meeting and owner in columns.">
+                <button
+                  onClick={() => setView('table')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    view === 'table'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-secondary/50'
+                  }`}
+                >
+                  <Table2 className="h-3.5 w-3.5" /> Table
+                </button>
+              </Tooltip>
+              <Tooltip content="Three columns by status. Drag a card between them to move the work along — the table cannot do that.">
+                <button
+                  onClick={() => setView('board')}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                    view === 'board'
+                      ? 'bg-primary text-primary-foreground shadow-sm'
+                      : 'text-muted-foreground hover:bg-secondary/50'
+                  }`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" /> Board
+                </button>
+              </Tooltip>
             </div>
           </div>
         )}

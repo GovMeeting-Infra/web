@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
 import { PageContainer } from '@/components/ui/page-container';
 import { CardGridSkeleton } from '@/components/ui/skeletons';
+import { Tooltip } from '@/components/ui/tooltip';
 import {
   EVENT_TYPE_LABELS,
   EVENT_STATUS_LABELS,
@@ -226,17 +227,30 @@ export function EventsList() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
           {(['all', 'internal', 'public'] as const).map((filter) => (
-            <button
+            // "Public" is the one that needs saying: it does not mean open to
+            // colleagues, it means listed on the calendar outside the platform,
+            // where anyone can see it.
+            <Tooltip
               key={filter}
-              onClick={() => setIsPublicFilter(filter)}
-              className={`rounded-full px-4 py-2 text-sm font-medium capitalize transition-colors ${
-                isPublicFilter === filter
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-secondary text-secondary-foreground hover:bg-muted'
-              }`}
+              content={
+                filter === 'all'
+                  ? 'Everything in your ministry, internal and public alike'
+                  : filter === 'internal'
+                    ? 'Meetings visible only inside the platform'
+                    : 'Activities listed on the public calendar, where anyone outside government can see them'
+              }
             >
-              {filter}
-            </button>
+              <button
+                onClick={() => setIsPublicFilter(filter)}
+                className={`rounded-full px-4 py-2 text-sm font-medium capitalize transition-colors ${
+                  isPublicFilter === filter
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                }`}
+              >
+                {filter}
+              </button>
+            </Tooltip>
           ))}
         </div>
 

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { UserCircle, Settings, HelpCircle, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import { Tooltip } from './tooltip';
 import { signOut } from '@/lib/sign-out';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { ROLE_LABELS } from '@/lib/types/account';
@@ -67,6 +68,11 @@ export function UserMenu({
 
   return (
     <div ref={containerRef} className="relative">
+      {/* Suppressed while the menu is open, or the hint would sit over it. */}
+      <Tooltip
+        disabled={open}
+        content={name ? `Signed in as ${name}` : 'Your account'}
+      >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -82,6 +88,7 @@ export function UserMenu({
           {initial}
         </span>
       </button>
+      </Tooltip>
 
       {open && (
         <div

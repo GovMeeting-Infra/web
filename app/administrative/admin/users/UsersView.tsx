@@ -19,6 +19,7 @@ import { TableSkeleton } from '@/components/ui/skeletons';
 import { initialsOf, ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
+import { Tooltip } from '@/components/ui/tooltip';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
@@ -243,8 +244,15 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const rowActions = (u: AdminUser) =>
     u.deletedAt ? null : (
       <div className="flex items-center gap-1 max-sm:gap-2">
+        <Tooltip
+          content={
+            u.active
+              ? `Deactivate ${u.name} — they keep their record but can no longer sign in`
+              : `Let ${u.name} sign in again`
+          }
+        >
         <button
-          title={u.active ? `Deactivate ${u.name}` : `Reactivate ${u.name}`}
+          aria-label={u.active ? `Deactivate ${u.name}` : `Reactivate ${u.name}`}
           onClick={() =>
             act(
               () =>
@@ -259,23 +267,33 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         >
           <Power className="h-4 w-4" />
         </button>
+        </Tooltip>
+        <Tooltip content={`Change ${u.name}'s name, role or ministry`}>
         <button
-          title={`Edit ${u.name}`}
+          aria-label={`Edit ${u.name}`}
           onClick={() => setEditing(u)}
           className="rounded-lg p-1.5 max-sm:p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground"
         >
           <Pencil className="h-4 w-4" />
         </button>
+        </Tooltip>
+        <Tooltip
+          content={`Send ${u.name} a fresh link to set their password. The previous link stops working.`}
+        >
         <button
-          title={`Re-send invitation to ${u.name}`}
+          aria-label={`Re-send invitation to ${u.name}`}
           disabled={isResending}
           onClick={() => resendInvite(u.id)}
           className="rounded-lg p-1.5 max-sm:p-2.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
         >
           <Mail className="h-4 w-4" />
         </button>
+        </Tooltip>
+        <Tooltip
+          content={`End every session ${u.name} has open, on every device. They can sign back in.`}
+        >
         <button
-          title={`Sign ${u.name} out on all devices`}
+          aria-label={`Sign ${u.name} out on all devices`}
           onClick={() =>
             act(
               () =>
@@ -290,12 +308,18 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         >
           <LogOut className="h-4 w-4" />
         </button>
+        </Tooltip>
         {/* Only where there is a lock to release — an Unlock
             button on every row invites clicking it as a guess
             when someone cannot sign in for an unrelated reason. */}
         {isLocked(u) && (
+          <Tooltip
+            content={`Locked after too many failed sign-ins, until ${new Date(
+              u.lockedUntil!,
+            ).toLocaleTimeString()}. Unlock to let them try now.`}
+          >
           <button
-            title={`Unlock ${u.name} — locked until ${new Date(u.lockedUntil!).toLocaleTimeString()}`}
+            aria-label={`Unlock ${u.name}`}
             onClick={() =>
               act(
                 () =>
@@ -310,9 +334,13 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           >
             <UnlockKeyhole className="h-4 w-4" />
           </button>
+          </Tooltip>
         )}
+        <Tooltip
+          content={`Permanently remove ${u.name}'s personal details. Their attendance and minutes stay, under "Anonymous". This cannot be undone.`}
+        >
         <button
-          title={`Erase ${u.name}'s personal data`}
+          aria-label={`Erase ${u.name}'s personal data`}
           onClick={() => {
             setErasing(u);
             setEraseConfirm('');
@@ -321,6 +349,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         >
           <ShieldAlert className="h-4 w-4" />
         </button>
+        </Tooltip>
       </div>
     );
 
@@ -653,12 +682,13 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                       {(() => {
                         const status = statusOf(u);
                         return (
-                          <span
-                            title={status.title}
-                            className={`rounded-full px-2 py-0.5 text-xs ${status.className}`}
-                          >
-                            {status.label}
-                          </span>
+                          <Tooltip content={status.title} disabled={!status.title}>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-xs ${status.className}`}
+                            >
+                              {status.label}
+                            </span>
+                          </Tooltip>
                         );
                       })()}
                     </td>
@@ -694,12 +724,13 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                       </span>
                     </span>
                   </span>
-                  <span
-                    title={status.title}
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${status.className}`}
-                  >
-                    {status.label}
-                  </span>
+                  <Tooltip content={status.title} disabled={!status.title}>
+                    <span
+                      className={`shrink-0 rounded-full px-2 py-0.5 text-xs ${status.className}`}
+                    >
+                      {status.label}
+                    </span>
+                  </Tooltip>
                 </div>
 
                 {u.jobTitle && (

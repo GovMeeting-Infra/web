@@ -6,6 +6,7 @@ import { Building2, Plus, Power, Pencil, Copy, Check } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { PageContainer } from '@/components/ui/page-container';
+import { Tooltip } from '@/components/ui/tooltip';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
@@ -390,20 +391,30 @@ export function MinistriesView() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-end gap-2">
+                        <Tooltip content={`Change ${m.name}'s name, code or email domain`}>
                         <button
                           onClick={() => setEditing(m)}
-                          title="Edit"
+                          aria-label={`Edit ${m.name}`}
                           className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <Pencil className="h-4 w-4" />
                         </button>
+                        </Tooltip>
+                        <Tooltip
+                          content={
+                            m.active
+                              ? `Deactivate ${m.name}. Its meetings and records stay; nobody from it can sign in.`
+                              : `Let ${m.name} be used again`
+                          }
+                        >
                         <button
                           onClick={() => setToggling(m)}
-                          title={m.active ? 'Deactivate' : 'Activate'}
+                          aria-label={m.active ? `Deactivate ${m.name}` : `Activate ${m.name}`}
                           className="rounded-lg border border-border p-2 text-muted-foreground transition-colors hover:text-foreground"
                         >
                           <Power className="h-4 w-4" />
                         </button>
+                        </Tooltip>
                       </div>
                     </td>
                   </tr>

@@ -10,6 +10,7 @@ import { requestLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
 import type { CheckInCodeResponse, EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { CardSkeleton } from '@/components/ui/skeletons';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface GeneratePayload {
   lat?: number;
@@ -285,6 +286,12 @@ export default function CheckInCodePage({
 
           <div className="space-y-6">
           <div className="flex flex-col gap-3 sm:flex-row">
+            <Tooltip
+              content={
+                blockedReason ??
+                'Replaces the code on screen. The check-in area stays where it was set, so refreshing from the corridor does not drag it with you.'
+              }
+            >
             <button
               onClick={() => {
                 setActionError(null);
@@ -297,12 +304,12 @@ export default function CheckInCodePage({
               // refusal once the meeting is over. Closing check-in below stays
               // available — tidying up after the fact is still legitimate.
               disabled={busy || cannotGenerate}
-              title={blockedReason ?? undefined}
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-muted px-4 py-3 font-medium text-foreground hover:bg-border disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-muted"
             >
               <RefreshCw className="h-4 w-4" />
               {generate.isPending ? 'Working…' : 'New code'}
             </button>
+            </Tooltip>
 
             <button
               onClick={() => {

@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 import { eventColor, toDayParam } from '@/lib/event-colors';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { EventType } from '@/lib/types/events';
+import { Tooltip } from '@/components/ui/tooltip';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MAX_CHIPS = 3;
@@ -223,10 +224,23 @@ export function MonthGrid({
                   const place = e.room?.name ?? e.venueName;
 
                   return (
-                    <Link
+                    // A chip in a calendar cell is narrow enough that most
+                    // titles clip, and the time and place clip with them — so
+                    // the hint carries all three rather than only the name.
+                    <Tooltip
                       key={e.id}
+                      content={
+                        <>
+                          <span className="font-semibold">{e.title}</span>
+                          <span className="block opacity-80">
+                            {time}
+                            {place ? ` · ${place}` : ''}
+                          </span>
+                        </>
+                      }
+                    >
+                    <Link
                       href={hrefForEvent(e.id)}
-                      title={e.title}
                       className={`block rounded border px-2 py-1.5 text-xs font-medium transition-shadow hover:shadow-sm ${eventColor(
                         e.colorCategory,
                         e.type,
@@ -241,16 +255,19 @@ export function MonthGrid({
                         </span>
                       </span>
                     </Link>
+                    </Tooltip>
                   );
                 })}
 
                 {more > 0 && (
-                  <Link
-                    href={hrefForDay(dayParam)}
-                    className="block rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                  >
-                    +{more} more
-                  </Link>
+                  <Tooltip content="Open this day on its own to see everything scheduled">
+                    <Link
+                      href={hrefForDay(dayParam)}
+                      className="block rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                    >
+                      +{more} more
+                    </Link>
+                  </Tooltip>
                 )}
               </div>
             </div>

@@ -24,6 +24,7 @@ import {
 import { apiFetch, ApiError } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
 import { PageContainer } from '@/components/ui/page-container';
+import { Tooltip } from '@/components/ui/tooltip';
 import { DetailSkeleton } from '@/components/ui/skeletons';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
@@ -400,14 +401,15 @@ export default function EventDetailPage({
                 only belongs to public ones. Internal meetings are live from
                 creation and never show this. */}
             {canAdminister && event.isPublic && event.status === 'DRAFT' && (
-              <button
-                onClick={handlePublish}
-                disabled={isBusy}
-                title="Make this activity visible on the public calendar"
-                className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" /> Publish
-              </button>
+              <Tooltip content="Lists this activity on the public calendar, where anyone outside government can see it. It stays there until cancelled.">
+                <button
+                  onClick={handlePublish}
+                  disabled={isBusy}
+                  className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" /> Publish
+                </button>
+              </Tooltip>
             )}
 
             {canCancel && !isCancelled && (
@@ -538,16 +540,19 @@ export default function EventDetailPage({
                         {co.user.name} ({co.user.email})
                       </span>
                       {canAdminister && (
+                        <Tooltip
+                          content={`${co.user.name} loses the ability to manage this meeting. They stay invited to it.`}
+                        >
                         <button
                           type="button"
                           onClick={() => handleRemoveCoOrganizer(co.userId)}
                           disabled={isBusy}
                           aria-label={`Remove ${co.user.name} as co-organizer`}
-                          title={`Remove ${co.user.name}`}
                           className="flex-shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-40"
                         >
                           <X className="h-4 w-4" />
                         </button>
+                        </Tooltip>
                       )}
                     </li>
                   ))}

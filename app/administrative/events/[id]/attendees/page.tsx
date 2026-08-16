@@ -19,6 +19,7 @@ import { apiFetch, apiDownload } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
 import { CheckedInTable } from './CheckedInTable';
+import { Tooltip } from '@/components/ui/tooltip';
 import {
   PersonPicker,
   type DirectoryPerson,
@@ -144,24 +145,31 @@ function AttendeeSection({
                 </span>
               )}
               {onResend && email && (
-                <button
-                  onClick={() => onResend(a.id)}
-                  disabled={resendingId === a.id}
-                  aria-label={`Re-send invitation to ${attendeeName(a)}`}
-                  title={`Re-send invitation to ${attendeeName(a)}`}
-                  className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                <Tooltip
+                  content={`Send the invitation to ${attendeeName(a)} again. Useful when the first one never arrived.`}
                 >
-                  <Mail className="h-4 w-4" />
-                </button>
+                  <button
+                    onClick={() => onResend(a.id)}
+                    disabled={resendingId === a.id}
+                    aria-label={`Re-send invitation to ${attendeeName(a)}`}
+                    className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
+                  >
+                    <Mail className="h-4 w-4" />
+                  </button>
+                </Tooltip>
               )}
               {onRemove && (
-                <button
-                  onClick={() => onRemove(a.id)}
-                  aria-label={`Remove ${attendeeName(a)}`}
-                  className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                <Tooltip
+                  content={`Take ${attendeeName(a)} off the invite list. If they have already checked in, that record stays.`}
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  <button
+                    onClick={() => onRemove(a.id)}
+                    aria-label={`Remove ${attendeeName(a)}`}
+                    className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </Tooltip>
               )}
             </div>
           </li>
@@ -757,24 +765,28 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               whether to offer it. */}
           {canExport && (
             <div className="flex items-center gap-2 pb-2">
-              <button
-                type="button"
-                onClick={() => handleExport('csv')}
-                disabled={downloading !== null}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-              >
-                <Download className="h-4 w-4" />
-                {downloading === 'csv' ? 'Preparing…' : 'CSV'}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleExport('pdf')}
-                disabled={downloading !== null}
-                className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
-              >
-                <Download className="h-4 w-4" />
-                {downloading === 'pdf' ? 'Preparing…' : 'PDF'}
-              </button>
+              <Tooltip content="A spreadsheet of whichever list is open, for analysis. Signatures cannot go in a cell, so each row says only whether one was given.">
+                <button
+                  type="button"
+                  onClick={() => handleExport('csv')}
+                  disabled={downloading !== null}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading === 'csv' ? 'Preparing…' : 'CSV'}
+                </button>
+              </Tooltip>
+              <Tooltip content="The signed register for whichever list is open, with each attendee's signature drawn beside their name — the paper sign-in sheet this replaces.">
+                <button
+                  type="button"
+                  onClick={() => handleExport('pdf')}
+                  disabled={downloading !== null}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading === 'pdf' ? 'Preparing…' : 'PDF'}
+                </button>
+              </Tooltip>
             </div>
           )}
         </div>
@@ -826,15 +838,18 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                       {/* Only invitees have an invitation to re-send. A walk-in
                           is an attendance record with nothing behind it. */}
                       {r.kind === 'invitee' && canInvite && r.email && (
+                        <Tooltip
+                          content={`Send the invitation to ${r.name} again. Useful when the first one never arrived.`}
+                        >
                         <button
                           onClick={() => handleResend(r.id)}
                           disabled={resendingId === r.id}
                           aria-label={`Re-send invitation to ${r.name}`}
-                          title={`Re-send invitation to ${r.name}`}
                           className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary disabled:opacity-50"
                         >
                           <Mail className="h-4 w-4" />
                         </button>
+                        </Tooltip>
                       )}
                       {/* An invitation can be withdrawn; a walk-in has none, so
                           the equivalent is removing the check-in itself. */}

@@ -25,6 +25,7 @@ import {
 import { PageContainer } from '@/components/ui/page-container';
 import { MinutesRecord, pointsOfType } from '@/components/minutes/MinutesRecord';
 import { PointList } from './PointList';
+import { Tooltip } from '@/components/ui/tooltip';
 
 export default function MinutesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -377,14 +378,20 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
               Save Minutes
             </button>
             {minutes && minutes.status === 'DRAFT' && (isOrganizer || isCoOrganizer) && (
-              <button
-                onClick={handlePublish}
-                disabled={isSaving || !canPublish}
-                title={publishBlockedReason ?? 'Publish these minutes'}
-                className="flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
+              <Tooltip
+                content={
+                  publishBlockedReason ??
+                  'Emails the record to everyone who attended, including guests. You can still correct it for two days afterwards.'
+                }
               >
-                <Send className="h-4 w-4" /> Publish
-              </button>
+                <button
+                  onClick={handlePublish}
+                  disabled={isSaving || !canPublish}
+                  className="flex items-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" /> Publish
+                </button>
+              </Tooltip>
             )}
           </div>
 

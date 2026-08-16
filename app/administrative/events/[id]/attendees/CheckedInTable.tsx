@@ -6,6 +6,7 @@ import {
   CHECK_IN_METHOD_LABELS,
   type AttendanceRecord,
 } from '@/lib/types/events';
+import { Tooltip } from '@/components/ui/tooltip';
 
 type SortKey = 'name' | 'time';
 
@@ -34,42 +35,64 @@ function checkInTime(c: AttendanceRecord): string {
   });
 }
 
-/**
- * Three states, and the middle one matters: null means no check-in area was
- * ever set for this meeting, which is not the same as a fix that failed it.
- */
 function LocationCell({ record }: { record: AttendanceRecord }) {
   const { withinGeofence, gpsAccuracy, mockLocationFlag } = record;
 
+  // Four states, and the difference between the middle two is the whole point:
+  // a reading that arrived but was too vague to settle the question is not the
+  // same as no check having taken place. That distinction used to live only in
+  // a comment here; the hints below say it to the reader instead.
   const verdict =
     withinGeofence === true
-      ? { label: 'Verified', className: 'bg-[#edf8f1] text-ring' }
+      ? {
+          label: 'Verified',
+          className: 'bg-[#edf8f1] text-ring',
+          hint: 'Their phone placed them inside the check-in area the organiser set.',
+        }
       : withinGeofence === false
-        ? { label: 'Outside area', className: 'bg-destructive/10 text-destructive' }
-        : // Null covers two different situations now. A reading that arrived
-          // but was too vague to settle the question is not the same as no
-          // check having taken place at all, and the ± figure beside this
-          // explains which one the reader is looking at.
-          typeof gpsAccuracy === 'number'
-          ? { label: 'Unconfirmed', className: 'bg-[#fff8e5] text-[#8d6400]' }
-          : { label: 'Not verified', className: 'bg-muted text-muted-foreground' };
+        ? {
+            label: 'Outside area',
+            className: 'bg-destructive/10 text-destructive',
+            hint: 'Their phone placed them outside the check-in area, even allowing for its margin of error.',
+          }
+        : typeof gpsAccuracy === 'number'
+          ? {
+              label: 'Unconfirmed',
+              className: 'bg-[#fff8e5] text-[#8d6400]',
+              hint: 'A location arrived but was too vague to prove they were inside the area. They may well have been — indoors, a phone often cannot do better.',
+            }
+          : {
+              label: 'Not verified',
+              className: 'bg-muted text-muted-foreground',
+              hint: 'No location was checked. Either no check-in area was set for this meeting, or an organiser recorded them at the desk.',
+            };
 
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${verdict.className}`}
-      >
-        <MapPin className="h-3 w-3" />
-        {verdict.label}
-      </span>
+      <Tooltip content={verdict.hint}>
+        <span
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${verdict.className}`}
+        >
+          <MapPin className="h-3 w-3" />
+          {verdict.label}
+        </span>
+      </Tooltip>
       {typeof gpsAccuracy === 'number' && (
-        <span className="text-[11px] text-muted-foreground">±{gpsAccuracy}m</span>
+        <Tooltip
+          content={`Their phone reported being accurate to about ${gpsAccuracy} metres. The smaller the number, the more certain the position.`}
+        >
+          <span className="text-[11px] text-muted-foreground">
+            ±{gpsAccuracy}m
+          </span>
+        </Tooltip>
       )}
       {mockLocationFlag && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-          <ShieldAlert className="h-3 w-3" />
-          Mock GPS
-        </span>
+        <Tooltip content="The phone reported a position no real one can produce, which is the usual signature of a location-spoofing app. Recorded rather than refused — it is a hint, not proof.">
+          <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+            <ShieldAlert className="h-3 w-3" />
+            Mock GPS
+          </span>
+        </Tooltip>
       )}
     </div>
   );
@@ -92,13 +115,16 @@ function SignatureCell({
 
   if (record.hasSignature === false || failed) {
     return (
-      <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-        No signature
-      </span>
+      <Tooltip content="Recorded by an organiser at the desk, so there was nobody to sign. People who scan the code sign for themselves.">
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+          No signature
+        </span>
+      </Tooltip>
     );
   }
 
   return (
+    <Tooltip content={`The signature ${record.signedName} drew when they checked in. Click to see it larger.`}>
     <button
       type="button"
       onClick={() => onOpen(record)}
@@ -116,6 +142,7 @@ function SignatureCell({
         className="h-8 w-[88px] object-contain"
       />
     </button>
+    </Tooltip>
   );
 }
 
@@ -214,19 +241,32 @@ export function CheckedInTable({
     );
   }
 
-  const sortButton = (key: SortKey, label: string) => (
-    <button
-      type="button"
-      onClick={() => toggleSort(key)}
-      className="inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-foreground"
-      aria-label={`Sort by ${label.toLowerCase()}`}
-    >
-      {label}
-      <ArrowUpDown
-        className={`h-3 w-3 ${sort.key === key ? 'text-foreground' : 'opacity-40'}`}
-      />
-    </button>
-  );
+  const sortButton = (key: SortKey, label: string) => {
+    const active = sort.key === key;
+    // The current direction is conveyed only by icon opacity, which tells you
+    // which column is sorted but never which way.
+    const hint = active
+      ? `Sorted by ${label.toLowerCase()}, ${
+          sort.ascending ? 'A to Z' : 'Z to A'
+        }. Click to reverse it.`
+      : `Sort by ${label.toLowerCase()}`;
+
+    return (
+      <Tooltip content={hint}>
+        <button
+          type="button"
+          onClick={() => toggleSort(key)}
+          className="inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-foreground"
+          aria-label={`Sort by ${label.toLowerCase()}`}
+        >
+          {label}
+          <ArrowUpDown
+            className={`h-3 w-3 ${active ? 'text-foreground' : 'opacity-40'}`}
+          />
+        </button>
+      </Tooltip>
+    );
+  };
 
   return (
     <>
