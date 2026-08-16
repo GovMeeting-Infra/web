@@ -42,7 +42,12 @@ export function StatCardsSkeleton({ count = 4 }: { count?: number }) {
     <Status label="Loading figures">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="rounded-[1.5rem] border border-border bg-card p-5">
+          // bg-muted/30, not bg-card: the real cards each carry a tint, so a
+          // white placeholder popped to colour the instant data landed.
+          <div
+            key={i}
+            className="rounded-[1.5rem] border border-border bg-muted/30 p-5"
+          >
             <div className="flex items-start justify-between">
               <Skeleton className="h-3 w-20" />
               <Skeleton className="h-5 w-5 rounded-full" />
@@ -172,7 +177,7 @@ export function CalendarSkeleton({ label = 'Loading calendar' }: { label?: strin
 export function AuthCardSkeleton({ label = 'Loading' }: { label?: string }) {
   return (
     <Status label={label}>
-      <div className="w-full max-w-md space-y-5 rounded-[1.75rem] border border-[#d3deef] bg-white p-6 sm:p-8">
+      <div className="w-full max-w-md space-y-5 rounded-[1.75rem] border border-border bg-white p-6 sm:p-8">
         <Skeleton className="mx-auto h-12 w-12 rounded-2xl" />
         <div className="space-y-2">
           <Skeleton className="mx-auto h-6 w-48" />
