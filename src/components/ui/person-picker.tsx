@@ -21,6 +21,7 @@ export interface DirectoryPerson {
  * be done by the staff who actually raise action items.
  */
 export function PersonPicker({
+  id,
   value,
   valueName,
   onChange,
@@ -30,6 +31,12 @@ export function PersonPicker({
   endpoint = '/api/v1/users/directory',
   excludeIds,
 }: {
+  /**
+   * Applied to the search input, so a visible <label htmlFor> outside this
+   * component actually names it. Without it the label pointed at nothing and
+   * the combobox was announced unlabelled.
+   */
+  id?: string;
   value: string | null;
   /** Display name for an already-selected person, so no lookup is needed. */
   valueName?: string | null;
@@ -156,6 +163,7 @@ export function PersonPicker({
     <div ref={containerRef} className="relative mt-1">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <input
+        id={id}
         type="text"
         role="combobox"
         aria-expanded={open}
