@@ -7,15 +7,57 @@ export interface EventStats {
 
 export interface AttendanceStats {
   totalCheckIns: number;
-  /** 0–1; multiply for a percentage. */
+  /** Invited people who turned up. The numerator behind attendanceRate. */
+  invitedWhoCame: number;
+  /** Turned up without an invitation, so outside the rate entirely. */
+  walkIns: number;
+  /** The denominator, so a rate is never shown without the counts behind it. */
+  totalInvited: number;
+  /** 0–1; multiply for a percentage. Bounded at 1: walk-ins are excluded. */
   attendanceRate: number;
+}
+
+/** How much of the attendance record would survive being challenged. */
+export interface EvidenceStats {
+  total: number;
+  signed: number;
+  insideArea: number;
+  outsideArea: number;
+  unverified: number;
+  mockFlagged: number;
+}
+
+/** The headline figures for one ministry. Super admins only. */
+export interface MinistryBreakdown {
+  ministryId: string;
+  name: string;
+  meetings: number;
+  checkIns: number;
+  invited: number;
+  attendanceRate: number;
+}
+
+/** One window's figures, for comparing against the window before it. */
+export interface TrendWindow {
+  checkIns: number;
+  walkIns: number;
+  invited: number;
+  meetings: number;
+  attendanceRate: number;
+}
+
+export interface Trend {
+  /** The last 30 days. */
+  current: TrendWindow;
+  /** The 30 days before those. */
+  previous: TrendWindow;
 }
 
 export interface UserStats {
   totalUsers: number;
   activeUsers: number;
   usersByRole: { role: string; count: number }[];
-  averageLoginFrequency: number;
+  averageDaysSinceLastLogin: number;
 }
 
 export interface ActionItemStats {
@@ -48,6 +90,12 @@ export interface AnalyticsDashboard {
   actionItemStats: ActionItemStats;
   checkInMethods: CheckInMethods;
   eventsOverTime: EventsOverTimePoint[];
+  /** Last 30 days against the 30 before, so a total has something to mean against. */
+  trend: Trend;
+  /** Signature capture and geofence outcomes across every check-in. */
+  evidence: EvidenceStats;
+  /** Present only for a super admin. */
+  byMinistry?: MinistryBreakdown[];
   scope: 'ministry' | 'all';
   generatedAt: string;
 }
