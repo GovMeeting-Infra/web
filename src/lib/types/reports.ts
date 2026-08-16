@@ -11,13 +11,6 @@ export interface AttendanceStats {
   attendanceRate: number;
 }
 
-export interface RoomStats {
-  totalRooms: number;
-  activeRooms: number;
-  bookingsThisMonth: number;
-  averageUtilization: number;
-}
-
 export interface UserStats {
   totalUsers: number;
   activeUsers: number;
@@ -51,7 +44,6 @@ export interface EventsOverTimePoint {
 export interface AnalyticsDashboard {
   eventStats: EventStats;
   attendanceStats: AttendanceStats;
-  roomStats: RoomStats;
   userStats: UserStats;
   actionItemStats: ActionItemStats;
   checkInMethods: CheckInMethods;

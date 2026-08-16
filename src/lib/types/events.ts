@@ -112,6 +112,7 @@ export interface PublicEventListItem {
   type: EventType | null;
   venueName: string | null;
   bannerImage: string | null;
+  ministry: { name: string } | null;
 }
 
 export interface PublicEventDetail extends PublicEventListItem {
@@ -141,7 +142,7 @@ export interface EventListItem {
   status: EventStatus;
   colorCategory: string | null;
   organizer: { id: string; name: string } | null;
-  _count: { attendees: number };
+  _count: { attendees: number; attendances: number };
 }
 
 export interface EventListResponse {
@@ -205,8 +206,6 @@ export interface EventDetail {
   venueLng: number | null;
   geofenceRadius: number;
   allowGuestCheckIn: boolean;
-  /** Refuse to mint a check-in code unless a geofence can be anchored. */
-  requireGeofence?: boolean;
   bannerImage: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -235,7 +234,6 @@ export interface CreateEventInput {
   endAt: string;
   venueName?: string;
   allowGuestCheckIn?: boolean;
-  requireGeofence?: boolean;
   colorCategory?: string;
   coOrganizerIds?: string[];
   ministryId?: string;
@@ -252,8 +250,12 @@ export type UpdateEventInput = Partial<CreateEventInput>;
 
 /**
  * The check-in area, anchored to wherever the organizer stood when they
- * generated the code. `enabled` false means no usable location was available,
- * so attendees can check in from anywhere and are recorded as unverified.
+ * generated the code.
+ *
+ * Every code that exists is now fenced: generating one requires a fix good
+ * enough to anchor from, so `enabled` false only describes an event that has no
+ * code yet. It is no longer possible to mint a code that lets people check in
+ * from anywhere.
  */
 export interface CheckInGeofence {
   enabled: boolean;
@@ -262,7 +264,7 @@ export interface CheckInGeofence {
   anchorLng: number | null;
   anchorAccuracy: number | null;
   anchorSetAt: string | null;
-  /** Whether the event insists on a fence, so a refusal can be explained. */
+  /** Always true. Kept so a refusal to generate can still be explained. */
   required?: boolean;
 }
 
@@ -407,9 +409,9 @@ export const POINT_LABELS: Record<PointType, string> = {
 };
 
 export const POINT_STYLES: Record<PointType, string> = {
-  ACTION_POINT: 'border-[#d9cff2] bg-[#f3effd] text-[#4c1d95]',
+  ACTION_POINT: 'border-stat-violet-border bg-stat-violet-bg text-stat-violet-fg',
   AGREED: 'border-[#bfe4ee] bg-[#e8f7fb] text-[#0e6f85]',
-  DECISION: 'border-[#c9d9f2] bg-[#edf3fd] text-[#003580]',
+  DECISION: 'border-stat-blue-border bg-stat-blue-bg text-primary',
 };
 
 export interface CreateActionItemInput {
@@ -520,30 +522,29 @@ export const ACTION_ITEM_STATUS_LABELS: Record<ActionItemStatus, string> = {
  * a purple "Action Point" badge, and two purples on one card would say less
  * than one does.
  */
+/**
+ * Red, amber, green across the three columns of the board — the traffic-light
+ * reading people already have for work that has not started, is moving, and is
+ * finished.
+ *
+ * Overdue also uses red, on the due-date line. Where both apply the card says
+ * "overdue" in words next to a warning icon, so the two are still separable.
+ */
 export const ACTION_ITEM_STATUS_STYLES: Record<ActionItemStatus, string> = {
   TODO: 'bg-destructive/10 text-destructive',
-  IN_PROGRESS: 'bg-[#fff8e5] text-[#8d6400]',
-  COMPLETED: 'bg-[#edf8f1] text-ring',
+  IN_PROGRESS: 'bg-stat-gold-bg text-stat-gold-fg',
+  COMPLETED: 'bg-stat-green-bg text-success',
   BLOCKED: 'bg-[#eef2ff] text-[#3730a3]',
   CANCELLED: 'bg-muted text-muted-foreground',
 };
 
-/** The same five as solid fills, for dots, card edges and bar segments. */
+/** The same five as solid fills, for dots and bar segments. */
 export const ACTION_ITEM_STATUS_DOT: Record<ActionItemStatus, string> = {
   TODO: 'bg-destructive',
-  IN_PROGRESS: 'bg-[#fab700]',
-  COMPLETED: 'bg-[#007236]',
+  IN_PROGRESS: 'bg-accent',
+  COMPLETED: 'bg-success',
   BLOCKED: 'bg-[#3730a3]',
   CANCELLED: 'bg-muted-foreground',
-};
-
-/** As a left edge on a card, where the fill classes do not apply. */
-export const ACTION_ITEM_STATUS_EDGE: Record<ActionItemStatus, string> = {
-  TODO: 'border-l-destructive',
-  IN_PROGRESS: 'border-l-[#fab700]',
-  COMPLETED: 'border-l-[#007236]',
-  BLOCKED: 'border-l-[#3730a3]',
-  CANCELLED: 'border-l-muted-foreground',
 };
 
 export type ActionItemPriority = 'low' | 'medium' | 'high';
