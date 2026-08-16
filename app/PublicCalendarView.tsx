@@ -3,7 +3,7 @@
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { PublicShell } from '@/components/PublicShell';
-import { apiFetch } from '@/lib/api/client';
+import { apiFetch, messageFor } from '@/lib/api/client';
 import { MonthGrid, monthRange, type CalendarEvent } from '@/components/calendar/MonthGrid';
 import type { PublicEventListItem } from '@/lib/types/events';
 
@@ -37,13 +37,14 @@ export function PublicCalendarView() {
     colorCategory: e.colorCategory,
     type: e.type,
     venueName: e.venueName,
+    ministryName: e.ministry?.name ?? null,
   }));
 
   return (
     <PublicShell>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-[#003580] sm:text-3xl">
+          <h1 className="text-2xl font-bold text-primary sm:text-3xl">
             Upcoming public activities
           </h1>
           <p className="mt-2 text-sm text-slate-600">
@@ -52,9 +53,18 @@ export function PublicCalendarView() {
           </p>
         </div>
 
+        {/* The old branch rendered error.message, and a network failure never
+            becomes an ApiError — so the Government of Sierra Leone homepage
+            showed citizens the browser's own "Failed to fetch". */}
         {error && (
-          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
-            {error instanceof Error ? error.message : 'Failed to load the calendar'}
+          <div
+            role="alert"
+            className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive"
+          >
+            {messageFor(
+              error,
+              "We can't load the calendar right now. Please try again in a few minutes.",
+            )}
           </div>
         )}
 

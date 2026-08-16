@@ -92,14 +92,14 @@ export default async function PublicEventPage({
     return (
       <PublicShell>
         <div className="mx-auto max-w-lg p-6 text-center sm:p-10">
-          <h1 className="text-xl font-bold text-[#003580]">{NOT_AVAILABLE}</h1>
+          <h1 className="text-xl font-bold text-primary">{NOT_AVAILABLE}</h1>
           <p className="mt-2 text-sm text-slate-600">
             This activity isn&apos;t published on the public calendar. It may have been
             removed, or it may not be a public event.
           </p>
           <Link
             href="/"
-            className="mt-6 inline-block rounded-xl bg-[#003580] px-5 py-2.5 text-sm font-medium text-white"
+            className="mt-6 inline-block rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-white"
           >
             Back to Calendar
           </Link>
@@ -118,12 +118,12 @@ export default async function PublicEventPage({
         // Full-bleed, with the title over the photograph rather than stacked
         // above it. The solid brand colour is the base, so an activity with no
         // banner — or a dead image URL — still gets a deliberate hero.
-        <section className="relative isolate overflow-hidden bg-[#003580]">
+        <section className="relative isolate overflow-hidden bg-primary">
           {event.bannerImage && <EventBanner src={event.bannerImage} />}
 
           {/* Darkened top and bottom so white text holds up over any
               photograph, whatever its exposure. */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#001a3d]/75 via-[#001a3d]/55 to-[#001a3d]/85" />
+          <div className="absolute inset-0 bg-gradient-to-b from-primary-deep/75 via-primary-deep/55 to-primary-deep/85" />
 
           <div className="relative mx-auto flex max-w-4xl flex-col items-center px-4 py-20 text-center sm:px-6 sm:py-24 lg:px-8">
             <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white backdrop-blur">
@@ -154,12 +154,12 @@ export default async function PublicEventPage({
         {/* The practical facts, lifted out of the body and onto a strip
             directly under the hero: date and time on the left, the one action
             this page offers on the right. */}
-        <div className="flex flex-col gap-6 rounded-2xl border border-[#d3deef] bg-white px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-col gap-6 rounded-2xl border border-border bg-white px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <dl className="flex flex-wrap gap-x-10 gap-y-3">
             <div className="flex items-center gap-3">
               <CalendarDays
                 aria-hidden
-                className="h-5 w-5 flex-none text-[#003580]"
+                className="h-5 w-5 flex-none text-primary"
               />
               <div>
                 <dt className="sr-only">Date</dt>
@@ -175,7 +175,7 @@ export default async function PublicEventPage({
             </div>
 
             <div className="flex items-center gap-3">
-              <Clock aria-hidden className="h-5 w-5 flex-none text-[#003580]" />
+              <Clock aria-hidden className="h-5 w-5 flex-none text-primary" />
               <div>
                 <dt className="sr-only">Time</dt>
                 <dd className="text-sm font-medium text-slate-900">
@@ -191,7 +191,7 @@ export default async function PublicEventPage({
               href={event.externalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 rounded-xl bg-[#003580] px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:bg-[#00296b] sm:flex-none sm:px-8"
+              className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold uppercase tracking-wide text-white transition-colors hover:bg-[#00296b] sm:flex-none sm:px-8"
             >
               <ExternalLink aria-hidden className="h-4 w-4" /> More information
             </a>
@@ -227,7 +227,7 @@ export default async function PublicEventPage({
                   {event.contactEmail && (
                     <a
                       href={`mailto:${event.contactEmail}`}
-                      className="block break-all text-[#003580] hover:underline"
+                      className="block break-all text-primary hover:underline"
                     >
                       {event.contactEmail}
                     </a>
@@ -235,7 +235,7 @@ export default async function PublicEventPage({
                   {event.contactPhone && (
                     <a
                       href={`tel:${event.contactPhone}`}
-                      className="block text-[#003580] hover:underline"
+                      className="block text-primary hover:underline"
                     >
                       {event.contactPhone}
                     </a>
@@ -250,7 +250,7 @@ export default async function PublicEventPage({
               </h2>
               <Link
                 href={`/?y=${start.getFullYear()}&m=${start.getMonth()}`}
-                className="mt-2 inline-flex items-center gap-2 text-sm text-[#003580] hover:underline"
+                className="mt-2 inline-flex items-center gap-2 text-sm text-primary hover:underline"
               >
                 <ArrowLeft aria-hidden className="h-4 w-4" /> Back to Calendar
               </Link>
