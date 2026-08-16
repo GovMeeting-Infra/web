@@ -6,10 +6,10 @@ import type { GuestActionItem } from '@/lib/guest-minutes';
 import { ACTION_ITEM_STATUS_LABELS } from '@/lib/types/events';
 
 const STATUS_PILL: Record<string, string> = {
-  TODO: 'bg-[#edf3fd] text-[#003580]',
-  IN_PROGRESS: 'bg-[#fff8e5] text-[#8d6400]',
+  TODO: 'bg-stat-blue-bg text-primary',
+  IN_PROGRESS: 'bg-stat-gold-bg text-stat-gold-fg',
   BLOCKED: 'bg-red-50 text-red-700',
-  COMPLETED: 'bg-[#edf8f1] text-[#007236]',
+  COMPLETED: 'bg-stat-green-bg text-success',
   CANCELLED: 'bg-slate-100 text-slate-500',
 };
 
@@ -71,7 +71,7 @@ export function GuestActionItemCard({
   };
 
   return (
-    <div className="rounded-2xl border border-[#d3deef] bg-white p-5">
+    <div className="rounded-2xl border border-border bg-white p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900">{item.title}</p>
@@ -104,7 +104,7 @@ export function GuestActionItemCard({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value as typeof status)}
-                className="ml-2 rounded-lg border border-[#d3deef] bg-white px-3 py-1.5 text-sm text-slate-900"
+                className="ml-2 rounded-lg border border-border bg-white px-3 py-1.5 text-sm text-slate-900"
               >
                 {Object.entries(ACTION_ITEM_STATUS_LABELS).map(([v, label]) => (
                   <option key={v} value={v}>
@@ -115,31 +115,56 @@ export function GuestActionItemCard({
             </label>
           </div>
 
-          <textarea
-            rows={2}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="What have you done so far?"
-            className="w-full rounded-xl border border-[#d3deef] bg-white px-3 py-2 text-sm text-slate-900"
-          />
-          <input
-            type="url"
-            value={link}
-            onChange={(e) => setLink(e.target.value)}
-            placeholder="Link to the work (optional)"
-            className="w-full rounded-xl border border-[#d3deef] bg-white px-3 py-2 text-sm text-slate-900"
-          />
+          {/* Real labels, not placeholders. A placeholder is not a label — it
+              is announced inconsistently, and it disappears the moment someone
+              starts typing, so a guest who pauses loses the only clue about
+              what the box is for. This surface is reached by external
+              attendees on unknown devices, who can least work around it. */}
+          <div>
+            <label
+              htmlFor={`notes-${item.id}`}
+              className="block text-xs font-medium text-slate-600"
+            >
+              Progress so far
+            </label>
+            <textarea
+              id={`notes-${item.id}`}
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-slate-900"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor={`link-${item.id}`}
+              className="block text-xs font-medium text-slate-600"
+            >
+              Link to the work (optional)
+            </label>
+            <input
+              id={`link-${item.id}`}
+              type="url"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm text-slate-900"
+            />
+          </div>
 
-          {error && <p className="text-xs text-red-700">{error}</p>}
-          {saved && !error && (
-            <p className="text-xs text-[#007236]">Update saved.</p>
-          )}
+          {/* Announced. Saving produced a visual confirmation only, so a screen
+              reader user had no way to know whether their update took. */}
+          <div role="status" aria-live="polite">
+            {error && <p className="text-xs text-red-700">{error}</p>}
+            {saved && !error && (
+              <p className="text-xs text-success">Update saved.</p>
+            )}
+          </div>
 
           <button
             type="button"
             onClick={save}
             disabled={isSaving}
-            className="rounded-xl bg-[#003580] px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
           >
             {isSaving ? 'Saving…' : 'Save update'}
           </button>
@@ -157,7 +182,7 @@ export function GuestActionItemCard({
                 href={item.progressLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block truncate text-sm text-[#003580] hover:underline"
+                className="block truncate text-sm text-primary hover:underline"
               >
                 {item.progressLink}
               </a>
