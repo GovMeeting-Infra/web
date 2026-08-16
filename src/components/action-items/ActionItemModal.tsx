@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { Modal } from '@/components/ui/modal';
 import {
   X,
   CalendarDays,
@@ -55,7 +56,8 @@ function Field({
 }
 
 /**
- * Detail view. Closes on X, Escape or backdrop click.
+ * Detail view, in the shared Modal — which owns the focus trap, Escape, focus
+ * restore and scroll lock.
  *
  * The assignee is editable when `onReassign` is supplied; the caller decides
  * whether this user may reassign, since the server is the real authority.
@@ -125,14 +127,6 @@ export function ActionItemModal({
     }
   };
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const overdue = isActionItemOverdue(item);
   const dt = (v: string) =>
     new Date(v).toLocaleString(undefined, {
@@ -141,30 +135,12 @@ export function ActionItemModal({
     });
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-      onClick={onClose}
-      role="presentation"
-    >
-      <div
-        className="max-h-[85dvh] w-full max-w-2xl overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={item.title}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h2 className="text-xl font-bold text-primary">{item.title}</h2>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    // The shared Modal, not another hand-rolled overlay. This one had no focus
+    // trap, never moved focus in, never restored it on close, and left the page
+    // behind it scrollable — the exact set of defects ui/modal.tsx was written
+    // to fix once, for every dialog. It was the fifth.
+    <Modal open onClose={onClose} title={item.title} className="max-w-2xl">
+      <div>
 
         {onEdit ? (
           <div className="mt-4">
@@ -524,9 +500,11 @@ export function ActionItemModal({
         </div>
 
         <p className="mt-4 text-xs text-muted-foreground">
-          Created {dt(item.createdAt)} · Updated {dt(item.updatedAt)}
+          Raised {dt(item.createdAt)}
+          {item.assignedBy?.name ? ` by ${item.assignedBy.name}` : ''} · Last
+          changed {dt(item.updatedAt)}
         </p>
       </div>
-    </div>
+    </Modal>
   );
 }
