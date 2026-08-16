@@ -66,6 +66,14 @@ export default function ActionItemsPage() {
   const [selected, setSelected] = useState<BoardActionItem | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // ?item= opens one item directly, so a notification about a single task can
+  // land on that task. Every action-item notification used to link at the bare
+  // board and leave the reader to find the thing they had just been told about.
+  const requestedItemId = searchParams.get('item');
+  // Consumed once: after the item has been opened, reopening it on every
+  // re-render would fight the close button.
+  const [openedFromUrl, setOpenedFromUrl] = useState(false);
+
   const isAdmin = !!currentUser && ADMIN_ROLES.includes(currentUser.systemRole);
 
   const { data: items = [], isLoading, error: loadError } = useQuery({
@@ -116,6 +124,21 @@ export default function ActionItemsPage() {
     await queryClient.invalidateQueries({ queryKey: ['action-items'] });
     return updated;
   };
+
+  /**
+   * The item the modal is showing: an explicit click, or the one named in the
+   * URL until it has been closed once.
+   *
+   * Derived at render rather than pushed into state from an effect — setting
+   * state in an effect is what react-hooks/set-state-in-effect exists to catch,
+   * and the list arrives asynchronously so an effect would need to re-run and
+   * would then reopen the modal every time the query refetched.
+   */
+  const activeItem =
+    selected ??
+    (requestedItemId && !openedFromUrl
+      ? (items.find((i) => i.id === requestedItemId) ?? null)
+      : null);
 
   const changeStatus = async (item: BoardActionItem, status: ActionItemStatus) => {
     setError(null);
@@ -471,14 +494,17 @@ export default function ActionItemsPage() {
         </div>
       )}
 
-      {selected && (
+      {activeItem && (
         <ActionItemModal
-          item={selected}
-          onClose={() => setSelected(null)}
+          item={activeItem}
+          onClose={() => {
+            setSelected(null);
+            setOpenedFromUrl(true);
+          }}
           onSaveProgress={
-            canChange(selected)
+            canChange(activeItem)
               ? async (notes, link) => {
-                  await apiFetch(`/api/v1/action-items/${selected.id}`, {
+                  await apiFetch(`/api/v1/action-items/${activeItem.id}`, {
                     method: 'PATCH',
                     body: JSON.stringify({
                       progressNotes: notes,
@@ -490,13 +516,13 @@ export default function ActionItemsPage() {
               : undefined
           }
           onReassign={
-            canChange(selected)
+            canChange(activeItem)
               ? async (person) => {
                   // A guest has no user row to point at, so they are assigned
                   // by address instead. The endpoint marks them with a guest:
                   // prefix precisely so this can tell the two apart.
                   const isGuest = person?.id.startsWith('guest:') ?? false;
-                  await apiFetch(`/api/v1/action-items/${selected.id}`, {
+                  await apiFetch(`/api/v1/action-items/${activeItem.id}`, {
                     method: 'PATCH',
                     body: JSON.stringify(
                       isGuest
@@ -515,26 +541,26 @@ export default function ActionItemsPage() {
           // status and report progress but not redefine the task, and the
           // server enforces exactly that split.
           onStatusChange={
-            canChange(selected) || isAssistant(selected)
+            canChange(activeItem) || isAssistant(activeItem)
               ? async (status) => {
-                  const updated = await patchItem(selected.id, { status });
+                  const updated = await patchItem(activeItem.id, { status });
                   setSelected(updated);
                 }
               : undefined
           }
           onEdit={
-            canChange(selected)
+            canChange(activeItem)
               ? async (patch) => {
-                  const updated = await patchItem(selected.id, patch);
+                  const updated = await patchItem(activeItem.id, patch);
                   setSelected(updated);
                 }
               : undefined
           }
           onAddAssistant={
-            canChange(selected)
+            canChange(activeItem)
               ? async (person) => {
                   const updated = await apiFetch<BoardActionItem>(
-                    `/api/v1/action-items/${selected.id}/assistants`,
+                    `/api/v1/action-items/${activeItem.id}/assistants`,
                     {
                       method: 'POST',
                       body: JSON.stringify({ userId: person.id }),
@@ -548,10 +574,10 @@ export default function ActionItemsPage() {
               : undefined
           }
           onRemoveAssistant={
-            canChange(selected)
+            canChange(activeItem)
               ? async (userId) => {
                   const updated = await apiFetch<BoardActionItem>(
-                    `/api/v1/action-items/${selected.id}/assistants/${userId}`,
+                    `/api/v1/action-items/${activeItem.id}/assistants/${userId}`,
                     { method: 'DELETE' },
                   );
                   await queryClient.invalidateQueries({
