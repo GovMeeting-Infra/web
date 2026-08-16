@@ -69,7 +69,7 @@ function coreSteps(firstName: string): TourStep[] {
       element: '[data-tour="events-create"]',
       title: 'Creating a meeting',
       description:
-        'Set the time, room and who is invited. A meeting can repeat, and each occurrence is then managed on its own.',
+        'Set the time, where it is being held and who is invited. A meeting can repeat, and each occurrence is then managed on its own.',
     },
     {
       route: EVENTS,
