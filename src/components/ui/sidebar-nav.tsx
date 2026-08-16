@@ -223,7 +223,7 @@ export function SidebarNav({
         >
           <p
             className={cn(
-              'overflow-hidden px-3 text-[11px] font-semibold uppercase tracking-widest text-sidebar-foreground/40 transition-[max-height,opacity,margin] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]',
+              'overflow-hidden px-3 text-[12px] font-semibold uppercase tracking-widest text-sidebar-muted transition-[max-height,opacity,margin] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)]',
               collapsed ? 'mb-0 max-h-0 opacity-0' : 'mb-1 max-h-6 opacity-100',
             )}
           >
@@ -248,6 +248,11 @@ export function SidebarNav({
                     href={item.href}
                     onClick={onNavigate}
                     aria-label={collapsed ? item.label : undefined}
+                    // The active item was signalled by a hue swap alone, over
+                    // backgrounds about 2% apart, and screen readers were never
+                    // told. Weight carries it without colour; aria-current
+                    // carries it without sight.
+                    aria-current={isActive ? 'page' : undefined}
                     // Anchor for the guided tour. Derived from the href so a
                     // new nav entry is reachable without remembering to label
                     // it.
@@ -257,11 +262,11 @@ export function SidebarNav({
                         : undefined
                     }
                     className={cn(
-                      'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                      'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all duration-200',
                       collapsed && 'justify-center',
                       isActive
-                        ? 'bg-sidebar-accent text-sidebar-primary'
-                        : 'text-sidebar-foreground hover:bg-muted',
+                        ? 'bg-sidebar-accent font-semibold text-sidebar-primary'
+                        : 'font-medium text-sidebar-foreground hover:bg-muted',
                     )}
                   >
                     {item.icon}

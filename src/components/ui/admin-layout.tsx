@@ -36,6 +36,18 @@ export function AdminLayout({
       className="flex h-dvh bg-background"
       data-density={compact ? 'compact' : undefined}
     >
+      {/* First focusable thing on the page. Without it a keyboard user crossed
+          the collapse control, up to fourteen nav links, sign out, the menu
+          button, search, the bell and the avatar before reaching the page
+          itself — on every navigation. WCAG 2.4.1 is Level A, below the AA bar
+          this product targets. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground"
+      >
+        Skip to content
+      </a>
+
       {/* Sidebar. Appears at lg rather than sm because it costs 288px: at the
           768px of an iPad in portrait that would leave a 416px content column
           — narrower than a large phone — for tables that ask for 896px. Below
@@ -99,9 +111,9 @@ export function AdminLayout({
               >
                 <div className="min-w-0 space-y-1">
                   <span className="block text-[19px] font-semibold leading-none tracking-[-0.02em] text-sidebar-foreground">
-                    GovMeeting
+                    Smart Meeting
                   </span>
-                  <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-sidebar-primary/80">
+                  <span className="block text-[10px] font-medium uppercase tracking-[0.16em] text-sidebar-primary">
                     Government of Sierra Leone
                   </span>
                 </div>
@@ -134,7 +146,12 @@ export function AdminLayout({
             height on the parent, and this wrapper's is content-driven, so it
             resolved to nothing. flex-1 has no such dependency, and still lets
             taller content grow past the viewport and scroll. */}
-        <main className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          aria-label="Page content"
+          className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden"
+        >
           <div className="flex min-w-0 flex-1 flex-col bg-background">
             {children}
           </div>

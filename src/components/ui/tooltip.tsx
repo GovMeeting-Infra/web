@@ -145,13 +145,13 @@ export function Tooltip({
           // Above the z-50 the modals and drawers use, so a tooltip on a
           // control inside a dialog is not hidden behind it.
           className={cn(
-            'z-[60] max-w-[16rem] rounded-lg bg-[#11243d] px-2.5 py-1.5',
+            'z-[60] max-w-[16rem] rounded-lg bg-foreground px-2.5 py-1.5',
             'text-xs leading-relaxed text-white shadow-lg',
             'animate-fade-in',
           )}
         >
           {content}
-          <RadixTooltip.Arrow className="fill-[#11243d]" />
+          <RadixTooltip.Arrow className="fill-foreground" />
         </RadixTooltip.Content>
       </RadixTooltip.Portal>
     </RadixTooltip.Root>

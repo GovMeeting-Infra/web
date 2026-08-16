@@ -24,12 +24,72 @@
   --color-sidebar-foreground: #003580;
   --color-sidebar-primary: #007236;
   --color-sidebar-primary-foreground: #ffffff;
-  --color-sidebar-accent: #eaf2fc;
+  /* Deepened from #eaf2fc. The active nav item sat about 2% luminance away
+     from the rail behind it, so "where am I" was carried almost entirely by a
+     navy-to-green hue swap — invisible to a deuteranope and announced to
+     nobody. */
+  --color-sidebar-accent: #dbe9fb;
   --color-sidebar-accent-foreground: #003580;
   --color-sidebar-border: #d8e1ee;
+  /* Group headings were --color-sidebar-foreground at 40%, which lands near
+     2.25:1 on the rail. The headings are the entire argument for grouped
+     navigation over a flat list; at that ratio they were decoration. */
+  --color-sidebar-muted: #4a6a96;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius: 0.875rem;
+
+  /* Stat tints.
+     Previously written inline as hex literals at each call site, where the
+     label and hint were then knocked back with opacity-80 — which pushed the
+     gold and green pairs to ~3.1:1 and ~3.7:1 against their own backgrounds.
+     The card carrying "N overdue" was the least readable text on the page.
+     Each tint now names its own muted foreground at full opacity, chosen to
+     clear 4.5:1 on that tint, so secondary text is dimmed by hue rather than
+     by transparency. */
+  --color-stat-blue-bg: #edf3fd;
+  --color-stat-blue-border: #c9d9f2;
+  --color-stat-blue-fg: #003580;
+  --color-stat-blue-muted: #2c5490;
+
+  --color-stat-green-bg: #edf8f1;
+  --color-stat-green-border: #cfe5d7;
+  --color-stat-green-fg: #007236;
+  --color-stat-green-muted: #00532a;
+
+  --color-stat-violet-bg: #f3effd;
+  --color-stat-violet-border: #d9cff2;
+  --color-stat-violet-fg: #4c1d95;
+  --color-stat-violet-muted: #593592;
+
+  --color-stat-gold-bg: #fff8e5;
+  --color-stat-gold-border: #fde8a6;
+  --color-stat-gold-fg: #7a5600;
+  --color-stat-gold-muted: #6b4a00;
+
+  /* Overdue and other "you are late" surfaces. Distinct from --color-destructive,
+     which is a control colour for actions that destroy something; this is a
+     state colour for work that has slipped. */
+  --color-alert-bg: #fef4ef;
+  --color-alert-border: #f2cbb5;
+  --color-alert-fg: #8f3111;
+
+  /* Sierra Leone green as a semantic colour rather than a focus ring.
+     --color-ring holds the same value, but it means "this control has focus";
+     using text-ring for a success message worked and read as a mistake. */
+  --color-success: #007236;
+
+  /* Pale surfaces that sat inline in 13 places: the public masthead and footer,
+     the auth cards, the sidebar collapse tab. */
+  --color-surface: #f8fbff;
+  --color-surface-raised: #fafdff;
+
+  /* Overlay behind a modal or drawer. Four different scrims were in use —
+     bg-black/40, #0b1f3a/50, the tour's own #0b1f3a and a tooltip navy. */
+  --color-scrim: #0b1f3a;
+
+  /* The deep end of the sign-in hero gradient. */
+  --color-primary-deep: #001a3d;
 
   /* Mobile navigation drawer. No exit animation — the drawer unmounts on
      close, so there is nothing left to animate out. */
@@ -125,6 +185,42 @@
   select {
     font-size: 16px;
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Keyboard focus.
+
+   47 places across 24 files set `focus:outline-none` and replaced the browser
+   ring with a pale tint — 1.3:1 to 1.5:1 against a white card, well under the
+   3:1 WCAG 1.4.11 needs, and on the sign-in form that meant a keyboard user
+   could not tell which of two password fields they were in. Other elements had
+   no focus style at all.
+
+   Deliberately unlayered, for the same reason the compact-mode and 16px-input
+   rules below and above are: Tailwind emits `outline-none` into
+   @layer utilities, and unlayered CSS outranks every layer no matter how the
+   utility is written. One rule therefore repairs all 47 without touching them,
+   and covers anything added later that forgets.
+
+   :focus-visible, not :focus, so a mouse click on a button does not leave a
+   ring behind — the reason people reach for outline-none in the first place.
+   --------------------------------------------------------------------------- */
+:focus-visible {
+  /* Navy, not the brand green. Green reads as a state — "this is right" — and
+     on a twenty-field form every focused input looked like a validation pass.
+     Navy is the interface's own colour, so it says "you are here" and nothing
+     more. 10.5:1 on the page background, well clear of the 3:1 an indicator
+     needs. */
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* The green ring is 6:1 on the light surfaces that carry most of the app, and
+   1.9:1 on the navy ones — below the 3:1 a focus indicator needs. Anything
+   sitting on a primary-coloured surface asks for the white ring instead. */
+.on-dark:focus-visible {
+  outline-color: #ffffff;
 }
 
 ::-webkit-scrollbar {

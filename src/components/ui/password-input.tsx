@@ -44,7 +44,7 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
             disabled={disabled}
             aria-label={action}
             aria-pressed={isVisible}
-            className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground  disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Icon className="h-4 w-4" aria-hidden="true" />
           </button>
