@@ -12,12 +12,29 @@ export interface CurrentUser {
   ministryId: string | null;
 }
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+/**
+ * Why there is no user, which is not always the same question as whether there
+ * is one.
+ *
+ * `anonymous` means the API answered and said nobody is signed in. `unavailable`
+ * means we could not ask — the API is down, unreachable, or erroring. Both used
+ * to collapse into `null`, which is the right answer for a public page deciding
+ * whether to show a guest form, and the wrong one for the administrative layout:
+ * treating an outage as a signed-out session would send every working user to a
+ * login page, blaming an expired session for a server being down and sending
+ * them to sign in again against the same dead API.
+ */
+export type SessionState =
+  | { status: 'authenticated'; user: CurrentUser }
+  | { status: 'anonymous' }
+  | { status: 'unavailable' };
+
+export async function getSessionState(): Promise<SessionState> {
   const cookieStore = await cookies();
   const authToken = cookieStore.get('authToken')?.value;
 
   if (!authToken) {
-    return null;
+    return { status: 'anonymous' };
   }
 
   try {
@@ -26,19 +43,36 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       cache: 'no-store',
     });
 
+    // 401/403 is an answer: the token is no longer good. A 5xx is not.
+    if (response.status >= 500) {
+      return { status: 'unavailable' };
+    }
     if (!response.ok) {
-      return null;
+      return { status: 'anonymous' };
     }
 
     const data = await response.json();
     if (!data.authenticated) {
-      return null;
+      return { status: 'anonymous' };
     }
 
-    return data.user as CurrentUser;
+    return { status: 'authenticated', user: data.user as CurrentUser };
   } catch {
-    return null;
+    // Never reached the API at all.
+    return { status: 'unavailable' };
   }
+}
+
+/**
+ * The user, or null for any reason at all.
+ *
+ * Kept for the public surfaces — check-in, RSVP, the public calendar — where
+ * "we could not confirm a session" and "there is no session" both correctly
+ * mean "treat this person as a guest".
+ */
+export async function getCurrentUser(): Promise<CurrentUser | null> {
+  const state = await getSessionState();
+  return state.status === 'authenticated' ? state.user : null;
 }
 
 export interface MyPreferences {
