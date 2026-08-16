@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,6 +32,25 @@ function safeDestination(raw: string | null): string {
   if (!raw) return DEFAULT_DESTINATION;
   if (!raw.startsWith('/') || raw.startsWith('//')) return DEFAULT_DESTINATION;
   return raw;
+}
+
+/**
+ * Why you are looking at this page again.
+ *
+ * Its own component so useSearchParams sits inside a Suspense boundary rather
+ * than opting the whole sign-in page out of static rendering. Being signed out
+ * by a timer is not a failure, so this is a plain notice, not the destructive
+ * red the sign-in errors use.
+ */
+function ExpiredNotice() {
+  const params = useSearchParams();
+  if (params.get('reason') !== 'expired') return null;
+  return (
+    <div className="rounded-lg border border-border bg-secondary/60 p-4 text-sm text-secondary-foreground">
+      You were signed out after a period without activity. Sign in again to
+      carry on where you left off.
+    </div>
+  );
 }
 
 export default function LoginPage() {
@@ -182,7 +201,7 @@ export default function LoginPage() {
           <div className="space-y-8">
             {/* Form Header */}
             <div className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+              <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
                 Administrative Portal
               </p>
               <h2 className="text-3xl font-bold tracking-tight text-foreground">
@@ -195,43 +214,85 @@ export default function LoginPage() {
 
             {/* Form */}
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+              {/* Arriving here because a session ended is not a failure, and
+                  painting it in destructive red as though the user did
+                  something wrong is how "you were signed out" reads as "you
+                  were rejected". */}
+              {!error && (
+                <Suspense fallback={null}>
+                  <ExpiredNotice />
+                </Suspense>
+              )}
+
+              {/* role="alert", because a failed sign-in previously produced no
+                  announcement at all — a screen reader user pressed the button
+                  and heard nothing. */}
               {error && (
-                <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+                <div
+                  role="alert"
+                  className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive"
+                >
                   {error}
                 </div>
               )}
 
+              {/* htmlFor/id pairs and autocomplete tokens. Without them the
+                  fields announced as unlabelled edit boxes, and no password
+                  manager would fill the most-used form in the product — so
+                  every sign-in was hand-typed, which is how people burn through
+                  the five attempts before a fifteen-minute lockout. */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Email Address
+                <label
+                  htmlFor="email"
+                  className="text-sm font-medium text-foreground"
+                >
+                  Email address
                 </label>
                 <div className="relative">
                   <input
+                    id="email"
                     type="email"
                     inputMode="email"
+                    autoComplete="username email"
+                    autoFocus
+                    aria-invalid={errors.email ? true : undefined}
+                    aria-describedby={errors.email ? 'email-error' : undefined}
                     placeholder="your.email@gov.sl"
-                    className="w-full rounded-2xl border border-border bg-input px-4 py-3 pl-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="w-full rounded-2xl border border-border bg-input px-4 py-3 pl-4 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary"
                     {...register('email')}
                     required
                   />
                 </div>
                 {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email.message}</p>
+                  <p id="email-error" className="text-sm text-destructive">
+                    {errors.email.message}
+                  </p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
+                <label
+                  htmlFor="password"
+                  className="text-sm font-medium text-foreground"
+                >
                   Password
                 </label>
                 <PasswordInput
+                  id="password"
+                  autoComplete="current-password"
+                  aria-invalid={errors.password ? true : undefined}
+                  aria-describedby={
+                    errors.password ? 'password-error' : undefined
+                  }
                   placeholder="••••••••"
-                  className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full rounded-2xl border border-border bg-input px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-colors focus:border-primary"
                   {...register('password')}
                   required
                 />
                 {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password.message}</p>
+                  <p id="password-error" className="text-sm text-destructive">
+                    {errors.password.message}
+                  </p>
                 )}
               </div>
 
@@ -240,8 +301,19 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground shadow-[0_16px_32px_rgba(0,53,128,0.18)] transition-all hover:shadow-[0_20px_40px_rgba(0,53,128,0.24)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Signing in...' : 'Sign In'}
+                {isLoading ? 'Signing in…' : 'Sign in'}
               </button>
+
+              {/* A standing line, not an error. "Invalid credentials" covers a
+                  deactivated account and a deactivated ministry as well as a
+                  wrong password, so someone locked out for the first two spends
+                  days certain they are mistyping. Saying this once, calmly, up
+                  front costs nothing and is the only route out for them. */}
+              <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                Accounts are created by your ministry administrator, so there is
+                no way to sign yourself up. If you are sure your password is
+                right, ask them whether your account is still active.
+              </p>
 
               <p className="text-center text-sm">
                 <Link
@@ -263,8 +335,12 @@ export default function LoginPage() {
                   ← Return to the public calendar
                 </Link>
               </div>
-              <p className="text-center text-xs text-muted-foreground leading-relaxed">
-                This portal is restricted to government officials only. Unauthorized access is prohibited by law. All activity is monitored and logged for security purposes.
+              {/* Was three sentences of legal warning sitting directly under
+                  the error box, which turned a mistyped password into what read
+                  as an accusation. The substance is kept; the pile-on is not. */}
+              <p className="text-center text-xs leading-relaxed text-muted-foreground">
+                Access is restricted to government officials, and all activity
+                is logged.
               </p>
             </div>
           </div>

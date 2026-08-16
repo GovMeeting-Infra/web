@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { AdminLayout } from '@/components/ui/admin-layout';
 import { SessionProvider } from '@/components/SessionProvider';
 import { PlatformTour } from '@/components/tour/PlatformTour';
+import { SessionTimeoutWarning } from '@/components/ui/session-timeout-warning';
 import {
   getCurrentUser,
   getMinistryName,
@@ -28,6 +29,9 @@ export default async function AdministrativeLayout({
         compact={preferences?.compactMode ?? false}
       >
         {children}
+        {/* Same reasoning as the tour: the clock has to survive navigation,
+            and an inactivity sign-out can land on any page. */}
+        {user && <SessionTimeoutWarning />}
         {/* Mounted in the layout, not on a page: the tour walks between pages,
             so it has to survive each navigation. It renders nothing until it
             has a reason to run. */}
