@@ -64,6 +64,32 @@ export async function getSessionState(): Promise<SessionState> {
 }
 
 /**
+ * The support address a super admin has configured, or an empty string.
+ *
+ * Rides on the session endpoint, which already carries the other platform
+ * setting the app needs (the inactivity window). Empty is a real answer, not a
+ * failure: the help page renders a different, honest ending when there is no
+ * address rather than printing one that bounces.
+ */
+export async function getSupportEmail(): Promise<string> {
+  const cookieStore = await cookies();
+  const authToken = cookieStore.get('authToken')?.value;
+  if (!authToken) return '';
+
+  try {
+    const response = await fetch(`${API_BASE}/api/v1/auth/session`, {
+      headers: { Cookie: `authToken=${authToken}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) return '';
+    const data = await response.json();
+    return typeof data.supportEmail === 'string' ? data.supportEmail : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
  * The user, or null for any reason at all.
  *
  * Kept for the public surfaces — check-in, RSVP, the public calendar — where
