@@ -57,7 +57,7 @@ export function LocationNotice({
     <div
       className={`mt-5 flex items-start gap-3 rounded-xl border p-3 text-left ${
         required
-          ? 'border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]'
+          ? 'border-stat-gold-border bg-stat-gold-bg text-stat-gold-fg'
           : 'border-border bg-muted/40 text-muted-foreground'
       }`}
     >

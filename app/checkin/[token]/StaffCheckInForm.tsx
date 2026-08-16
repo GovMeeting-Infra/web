@@ -11,7 +11,7 @@ import { LocationNotice } from './LocationNotice';
 import { LocationHelp } from './LocationHelp';
 
 const field =
-  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
+  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
 
 export function StaffCheckInForm({
   token,
@@ -73,7 +73,7 @@ export function StaffCheckInForm({
   return (
     <form onSubmit={handleSubmit}>
       <header className="text-center">
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Check in
         </p>
         <h1 className="mt-1 text-xl font-bold text-primary">{eventTitle}</h1>

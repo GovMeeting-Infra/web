@@ -122,7 +122,7 @@ export function LocationHelp({
   const webview = inAppAdvice(inApp, platform);
 
   return (
-    <div className="mt-4 rounded-xl border border-[#fde8a6] bg-[#fff8e5] p-4 text-left text-[#8d6400]">
+    <div className="mt-4 rounded-xl border border-stat-gold-border bg-stat-gold-bg p-4 text-left text-stat-gold-fg">
       <div className="flex items-start gap-3">
         <MapPinOff aria-hidden className="mt-0.5 h-4 w-4 flex-shrink-0" />
         <div className="min-w-0 flex-1">
@@ -169,7 +169,7 @@ export function LocationHelp({
               type="button"
               onClick={onRetry}
               disabled={busy}
-              className="mt-3 flex items-center gap-2 rounded-lg bg-[#8d6400] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+              className="mt-3 flex items-center gap-2 rounded-lg bg-stat-gold-fg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${busy ? 'animate-spin' : ''}`} />
               {busy ? 'Trying…' : 'Try again'}
