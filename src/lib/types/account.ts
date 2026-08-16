@@ -13,6 +13,8 @@ export interface MyProfile {
   name: string;
   image: string | null;
   jobTitle: string | null;
+  /** Work phone. Stamped onto attendance records at check-in. */
+  phone: string | null;
   systemRole: SystemRole;
   ministryId: string | null;
   active: boolean;
@@ -70,12 +72,18 @@ export const ROLE_LABELS: Record<SystemRole, string> = {
   STAFF: 'Staff',
 };
 
-export const SESSION_TIMEOUTS = [
-  { value: 1800, label: '30 minutes' },
-  { value: 3600, label: '1 hour' },
-  { value: 7200, label: '2 hours' },
-  { value: -1, label: 'Never' },
-];
+/**
+ * What each role can actually do, for the person whose account it is.
+ *
+ * The role was rendered as a bare word beside a free-text job title, which told
+ * someone in their first week nothing about the difference between the two.
+ */
+export const ROLE_DESCRIPTIONS: Record<SystemRole, string> = {
+  SUPER_ADMIN: 'You can see and administer every ministry on the platform.',
+  MINISTER: 'You can see everything in your ministry and manage its people.',
+  MINISTRY_ADMIN: 'You can manage meetings, people and reports for your ministry.',
+  STAFF: 'You can run your own meetings, check in, and keep minutes.',
+};
 
 export function initialsOf(name?: string | null): string {
   if (!name) return '?';

@@ -8,7 +8,6 @@ import {
   Users,
   UserCircle,
   HelpCircle,
-  Settings,
   LayoutDashboard,
   CalendarDays,
   KanbanSquare,
@@ -143,14 +142,12 @@ const NAV_GROUPS: NavGroup[] = [
         icon: <Bell className="h-4 w-4" />,
       },
       {
+        // One entry, not the Profile/Settings pair this used to be. Your
+        // details, your password and your data are one subject, and splitting
+        // them meant remembering which page a thing was on.
         href: '/administrative/profile',
         label: 'Profile',
         icon: <UserCircle className="h-4 w-4" />,
-      },
-      {
-        href: '/administrative/settings',
-        label: 'Settings',
-        icon: <Settings className="h-4 w-4" />,
       },
       {
         href: '/administrative/help',
