@@ -81,14 +81,18 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
   return (
     <PageContainer>
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Oversight
         </p>
-        <h1 className="text-3xl font-bold text-primary">Activity Log</h1>
+        <h1 className="text-3xl font-bold text-primary">Activity log</h1>
+        {/* The append-only guarantee is what makes this evidence rather than a
+            table, and it was stated only inside a tour step most people never
+            see. One line turns the page into something you can rely on. */}
         <p className="mt-2 text-muted-foreground">
           {isPlatformWide
-            ? 'Every recorded action across all ministries'
-            : 'Every recorded action in your ministry'}
+            ? 'Every recorded action across all ministries.'
+            : 'Every recorded action in your ministry.'}{' '}
+          Entries are append-only — never edited, never removed.
         </p>
       </div>
 
@@ -105,7 +109,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
               value={q}
               onChange={(e) => reset(() => setQ(e.target.value))}
               placeholder="Search action, description or record…"
-              className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none"
+              className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary"
             />
             {q && (
               <button
@@ -122,7 +126,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
             value={category}
             onChange={(e) => reset(() => setCategory(e.target.value))}
             aria-label="Filter by category"
-            className="min-w-0 max-w-full truncate rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none sm:max-w-[14rem]"
+            className="min-w-0 max-w-full truncate rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-primary sm:max-w-[14rem]"
           >
             <option value="">All categories</option>
             {categories.map((c) => (
@@ -143,7 +147,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
               // pushed out of the filter card. min-w-0 lets it give way,
               // max-w caps it before it crowds the search box, and truncate
               // ellipsises the closed label rather than letting it overflow.
-              className="min-w-0 max-w-full truncate rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-ring focus:outline-none sm:max-w-[14rem]"
+              className="min-w-0 max-w-full truncate rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground focus:border-primary sm:max-w-[14rem]"
             >
               <option value="">All ministries</option>
               {ministries.map((m) => (
@@ -181,7 +185,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
               type="date"
               value={from}
               onChange={(e) => reset(() => setFrom(e.target.value))}
-              className="rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-foreground focus:border-ring focus:outline-none"
+              className="rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-foreground focus:border-primary"
             />
           </label>
           <label className="flex items-center gap-2 text-muted-foreground">
@@ -190,7 +194,7 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
               type="date"
               value={to}
               onChange={(e) => reset(() => setTo(e.target.value))}
-              className="rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-foreground focus:border-ring focus:outline-none"
+              className="rounded-lg border border-border bg-muted/40 px-2 py-1.5 text-foreground focus:border-primary"
             />
           </label>
           {hasFilters && (
@@ -226,10 +230,41 @@ export function ActivityLogView({ isPlatformWide }: { isPlatformWide: boolean })
         <TableSkeleton rows={8} columns={isPlatformWide ? 6 : 5} label="Loading activity" />
       ) : entries.length === 0 ? (
         <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center">
-          <ScrollText className="mx-auto h-10 w-10 text-muted-foreground" />
+          <ScrollText
+            className="mx-auto h-10 w-10 text-muted-foreground"
+            aria-hidden
+          />
           <p className="mt-3 font-medium text-foreground">
-            {hasFilters ? 'Nothing matches those filters' : 'No activity recorded yet'}
+            {hasFilters
+              ? 'Nothing matches those filters'
+              : 'No activity recorded yet'}
           </p>
+          {/* The state named filters as the cause and then left the control
+              that undoes them in a different card, above the fold. */}
+          {hasFilters ? (
+            <button
+              type="button"
+              onClick={() =>
+                reset(() => {
+                  setQ('');
+                  setCategory('');
+                  setStatus('');
+                  setFrom('');
+                  setTo('');
+                  setMinistryId('');
+                })
+              }
+              className="mt-4 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+            >
+              Clear all filters
+            </button>
+          ) : (
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Entries appear here as people sign in, run meetings and publish
+              records. The log is append-only: nothing is ever edited or
+              removed.
+            </p>
+          )}
         </div>
       ) : (
         <>

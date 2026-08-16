@@ -54,7 +54,7 @@ export function SearchResultsView() {
   return (
     <PageContainer>
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Global search
         </p>
         <h1 className="text-3xl font-bold text-primary">
@@ -85,8 +85,19 @@ export function SearchResultsView() {
 
       {data && !data.tooShort && total === 0 && !isLoading && (
         <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center">
-          <SearchX className="mx-auto h-10 w-10 text-muted-foreground" />
-          <p className="mt-4 font-medium text-foreground">No results found</p>
+          <SearchX className="mx-auto h-10 w-10 text-muted-foreground" aria-hidden />
+          <p className="mt-4 font-medium text-foreground">
+            Nothing matches &ldquo;{data.query}&rdquo;
+          </p>
+          {/* Says where it looked. Ministry isolation is absolute, so "not
+              found" and "not visible to you" are different facts — and someone
+              searching for a colleague in another ministry could not tell which
+              had happened. */}
+          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            Search covers meeting titles, published minutes and people in your
+            own ministry. Records belonging to other ministries are never
+            included.
+          </p>
         </div>
       )}
 

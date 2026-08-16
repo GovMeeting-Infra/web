@@ -40,6 +40,19 @@ export function NotificationBell() {
     refetchInterval: 60_000,
   });
 
+  // The real total, separate from the preview. The badge used to count the
+  // preview array, which is capped at PREVIEW_LIMIT — so it stopped at 6 no
+  // matter how many were waiting, and said so out loud to screen readers.
+  const { data: counts } = useQuery({
+    queryKey: ['notifications-unread-count'],
+    queryFn: () => apiFetch<{ unread: number }>('/api/v1/notifications/unread-count'),
+    refetchInterval: 60_000,
+  });
+
+  // Falls back to the preview length while the count is in flight, so the badge
+  // never blinks out on a slow connection.
+  const unreadTotal = counts?.unread ?? unread.length;
+
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -58,6 +71,7 @@ export function NotificationBell() {
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['notifications-unread'] });
+    queryClient.invalidateQueries({ queryKey: ['notifications-unread-count'] });
     queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
@@ -96,16 +110,16 @@ export function NotificationBell() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={
-          unread.length ? `Notifications, ${unread.length} unread` : 'Notifications'
+          unreadTotal ? `Notifications, ${unreadTotal} unread` : 'Notifications'
         }
         aria-expanded={open}
         aria-haspopup="menu"
         className="relative flex h-10 w-10 items-center justify-center rounded-lg border border-border bg-card transition-colors hover:bg-muted"
       >
         <Bell className="h-5 w-5 text-foreground" />
-        {unread.length > 0 && (
+        {unreadTotal > 0 && (
           <span className="absolute -right-1 -top-1 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
-            {unread.length > 9 ? '9+' : unread.length}
+            {unreadTotal > 9 ? '9+' : unreadTotal}
           </span>
         )}
       </button>

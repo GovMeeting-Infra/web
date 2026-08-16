@@ -29,7 +29,7 @@ const GROUPS: Group[] = [
   {
     title: 'Getting started',
     icon: <LogIn className="h-5 w-5" />,
-    tint: 'border-[#c9d9f2] bg-[#edf3fd] text-[#003580]',
+    tint: 'border-stat-blue-border bg-stat-blue-bg text-primary',
     faqs: [
       {
         q: 'How do I get an account?',
@@ -48,7 +48,7 @@ const GROUPS: Group[] = [
   {
     title: 'Meetings and events',
     icon: <CalendarDays className="h-5 w-5" />,
-    tint: 'border-[#cfe5d7] bg-[#edf8f1] text-[#007236]',
+    tint: 'border-stat-green-border bg-stat-green-bg text-success',
     faqs: [
       {
         q: 'How do I schedule a meeting?',
@@ -75,7 +75,7 @@ const GROUPS: Group[] = [
   {
     title: 'Check-in and attendance',
     icon: <QrCode className="h-5 w-5" />,
-    tint: 'border-[#fde8a6] bg-[#fff8e5] text-[#8d6400]',
+    tint: 'border-stat-gold-border bg-stat-gold-bg text-stat-gold-fg',
     faqs: [
       {
         q: 'How do attendees check in?',
@@ -102,7 +102,7 @@ const GROUPS: Group[] = [
   {
     title: 'Minutes and action items',
     icon: <ClipboardList className="h-5 w-5" />,
-    tint: 'border-[#d9cff2] bg-[#f3effd] text-[#4c1d95]',
+    tint: 'border-stat-violet-border bg-stat-violet-bg text-stat-violet-fg',
     faqs: [
       {
         q: 'What goes into the minutes?',
@@ -129,11 +129,11 @@ const GROUPS: Group[] = [
   {
     title: 'Your account',
     icon: <UserCircle className="h-5 w-5" />,
-    tint: 'border-[#cfe5d7] bg-[#edf8f1] text-[#007236]',
+    tint: 'border-stat-green-border bg-stat-green-bg text-success',
     faqs: [
       {
         q: 'Why was I signed out?',
-        a: 'You are signed out after 12 hours of inactivity. Sign in again to carry on — nothing you had already saved is lost. If you are working on a shared or public computer, use Sign Out in the sidebar when you finish rather than simply closing the window.',
+        a: 'You are signed out after a period without activity, and you will see a warning shortly before it happens with the option to stay signed in. The exact length is set for the whole platform by a super admin, so it can differ between deployments. Anything you had already saved is safe. If you are working on a shared or public computer, use Sign Out in the sidebar when you finish rather than simply closing the window.',
       },
       {
         q: 'How do I change my name, photo or password?',
@@ -183,7 +183,7 @@ export function HelpBrowser({ supportEmail }: { supportEmail: string }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search help — try “check in”, “minutes” or “RSVP”"
-            className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring/20"
+            className="w-full rounded-xl border border-border bg-muted/40 py-2.5 pl-9 pr-9 text-sm text-foreground placeholder-muted-foreground focus:border-primary"
           />
           {query && (
             <button

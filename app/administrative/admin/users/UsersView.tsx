@@ -19,11 +19,30 @@ import { TableSkeleton } from '@/components/ui/skeletons';
 import { initialsOf, ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
+import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
 
 const field =
-  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-ring focus:outline-none';
+  'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary';
 const label = 'block text-sm font-medium text-foreground/80';
+
+/**
+ * What each role actually lets someone do, in the confirmation.
+ *
+ * "Promote to Ministry Admin" means nothing to an administrator who has not
+ * memorised the permission matrix; naming the consequence is the whole point of
+ * asking.
+ */
+const ROLE_GRANTS: Record<SystemRole, string> = {
+  SUPER_ADMIN:
+    'They will be able to administer every ministry on the platform and read all audit records.',
+  MINISTER:
+    'They will be able to manage users, settings and records for their ministry. Only one minister is allowed per ministry.',
+  MINISTRY_ADMIN:
+    'They will be able to add and remove users, and manage settings and records, for their ministry.',
+  STAFF:
+    'They will be able to run meetings, take minutes and manage action items, but not administer users.',
+};
 
 interface AdminUser {
   id: string;
@@ -83,7 +102,7 @@ function statusOf(u: AdminUser): {
       // the re-send button on this row is the fix.
       return {
         label: 'Invitation expired',
-        className: 'bg-[#fff8e5] font-medium text-[#8d6400]',
+        className: 'bg-stat-gold-bg font-medium text-stat-gold-fg',
         title: `Invitation lapsed on ${expiry.toLocaleDateString()} — re-send it`,
       };
     }
@@ -99,7 +118,7 @@ function statusOf(u: AdminUser): {
 
   return {
     label: 'Active',
-    className: 'bg-[#edf8f1] font-medium text-ring',
+    className: 'bg-stat-green-bg font-medium text-success',
   };
 }
 
@@ -136,6 +155,17 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [erasing, setErasing] = useState<AdminUser | null>(null);
   const [eraseConfirm, setEraseConfirm] = useState('');
+  /**
+   * Promoting someone is the largest grant of power in this product, and it
+   * used to happen on a bare select's onChange — a mis-click, or a scroll wheel
+   * over a focused control, handed someone an entire ministry's user list.
+   * Erasing a user, which the audit log fully records, already demanded a typed
+   * email. The risk gradient was inverted.
+   */
+  const [roleChange, setRoleChange] = useState<{
+    user: AdminUser;
+    next: SystemRole;
+  } | null>(null);
 
   // A ministry admin must not be able to mint a peer above themselves; the
   // server enforces this too.
@@ -330,7 +360,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                 'Could not unlock the account.',
               )
             }
-            className="rounded-lg p-1.5 max-sm:p-2.5 text-[#8d6400] hover:bg-[#8d6400]/10"
+            className="rounded-lg p-1.5 max-sm:p-2.5 text-stat-gold-fg hover:bg-stat-gold-fg/10"
           >
             <UnlockKeyhole className="h-4 w-4" />
           </button>
@@ -357,7 +387,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
     <PageContainer>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
             Platform administration
           </p>
           <h1 className="text-3xl font-bold text-primary">Users</h1>
@@ -393,8 +423,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         <div
           className={
             invite.emailSent
-              ? 'rounded-[1.5rem] border border-[#cfe5d7] bg-[#edf8f1] p-6'
-              : 'rounded-[1.5rem] border border-[#fde8a6] bg-[#fff8e5] p-6'
+              ? 'rounded-[1.5rem] border border-stat-green-border bg-stat-green-bg p-6'
+              : 'rounded-[1.5rem] border border-stat-gold-border bg-stat-gold-bg p-6'
           }
         >
           {/* break-words: the heading interpolates an email, which has no
@@ -403,8 +433,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           <h2
             className={
               invite.emailSent
-                ? 'break-words font-semibold text-[#007236]'
-                : 'break-words font-semibold text-[#8d6400]'
+                ? 'break-words font-semibold text-success'
+                : 'break-words font-semibold text-stat-gold-fg'
             }
           >
             {invite.emailSent
@@ -414,8 +444,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           <p
             className={
               invite.emailSent
-                ? 'mt-1 text-sm text-[#007236]/90'
-                : 'mt-1 text-sm text-[#8d6400]/90'
+                ? 'mt-1 text-sm text-success/90'
+                : 'mt-1 text-sm text-stat-gold-fg/90'
             }
           >
             {invite.emailSent
@@ -426,8 +456,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             <code
               className={
                 invite.emailSent
-                  ? 'min-w-0 flex-1 truncate rounded-lg border border-[#cfe5d7] bg-white px-3 py-2 text-xs text-slate-700'
-                  : 'min-w-0 flex-1 truncate rounded-lg border border-[#fde8a6] bg-white px-3 py-2 text-xs text-slate-700'
+                  ? 'min-w-0 flex-1 truncate rounded-lg border border-stat-green-border bg-white px-3 py-2 text-xs text-slate-700'
+                  : 'min-w-0 flex-1 truncate rounded-lg border border-stat-gold-border bg-white px-3 py-2 text-xs text-slate-700'
               }
             >
               {invite.link}
@@ -440,8 +470,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               }}
               className={
                 invite.emailSent
-                  ? 'flex items-center gap-1.5 rounded-lg bg-[#007236] px-3 py-2 text-xs font-medium text-white'
-                  : 'flex items-center gap-1.5 rounded-lg bg-[#8d6400] px-3 py-2 text-xs font-medium text-white'
+                  ? 'flex items-center gap-1.5 rounded-lg bg-success px-3 py-2 text-xs font-medium text-white'
+                  : 'flex items-center gap-1.5 rounded-lg bg-stat-gold-fg px-3 py-2 text-xs font-medium text-white'
               }
             >
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
@@ -451,7 +481,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               <button
                 onClick={() => resendInvite(invite.userId)}
                 disabled={isResending}
-                className="flex items-center gap-1.5 rounded-lg border border-[#8d6400]/40 px-3 py-2 text-xs font-medium text-[#8d6400] transition-colors hover:bg-[#8d6400]/10 disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-lg border border-stat-gold-fg/40 px-3 py-2 text-xs font-medium text-stat-gold-fg transition-colors hover:bg-stat-gold-fg/10 disabled:opacity-60"
               >
                 <Mail className="h-3.5 w-3.5" />
                 {isResending ? 'Sending…' : 'Try sending again'}
@@ -459,7 +489,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             )}
           </div>
           {!invite.emailSent && (
-            <p className="mt-3 text-xs text-[#8d6400]/80">
+            <p className="mt-3 text-xs text-stat-gold-fg/80">
               Sending again issues a fresh link and invalidates the one above.
             </p>
           )}
@@ -477,8 +507,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className={label}>Full name *</label>
-              <input
+              <label className={label} htmlFor="full-name">Full name *</label>
+              <input id="full-name"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Aminata Kamara"
@@ -486,8 +516,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               />
             </div>
             <div>
-              <label className={label}>Email *</label>
-              <input
+              <label className={label} htmlFor="email">Email *</label>
+              <input id="email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -499,8 +529,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               </p>
             </div>
             <div>
-              <label className={label}>System role *</label>
-              <select
+              <label className={label} htmlFor="system-role">System role *</label>
+              <select id="system-role"
                 value={form.systemRole}
                 onChange={(e) => setForm({ ...form, systemRole: e.target.value })}
                 className={field}
@@ -513,8 +543,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               </select>
             </div>
             <div>
-              <label className={label}>Job title</label>
-              <input
+              <label className={label} htmlFor="job-title">Job title</label>
+              <input id="job-title"
                 value={form.jobTitle}
                 onChange={(e) => setForm({ ...form, jobTitle: e.target.value })}
                 placeholder="e.g. Director"
@@ -523,8 +553,8 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             </div>
             {isSuperAdmin && (
               <div className="sm:col-span-2">
-                <label className={label}>Ministry *</label>
-                <select
+                <label className={label} htmlFor="ministry">Ministry *</label>
+                <select id="ministry"
                   value={form.ministryId}
                   onChange={(e) => setForm({ ...form, ministryId: e.target.value })}
                   className={field}
@@ -571,7 +601,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search name or email…"
-            className="w-full rounded-xl border border-border bg-input py-2 pl-9 pr-3 text-sm focus:border-primary focus:outline-none"
+            className="w-full rounded-xl border border-border bg-input py-2 pl-9 pr-3 text-sm focus:border-primary"
           />
         </div>
         <select
@@ -618,8 +648,34 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       )}
 
       {!isLoading && users.length === 0 && (
-        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center text-muted-foreground">
-          No users found
+        <div className="rounded-[1.5rem] border border-border bg-card p-12 text-center">
+          <p className="font-medium text-foreground">
+            {q || roleFilter || ministryFilter
+              ? 'No users match those filters'
+              : 'No users yet'}
+          </p>
+          {/* The action was 400px above this and never referenced from it. */}
+          {q || roleFilter || ministryFilter ? (
+            <button
+              type="button"
+              onClick={() => {
+                setQ('');
+                setRoleFilter('');
+                setMinistryFilter('');
+              }}
+              className="mt-4 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted"
+            >
+              Clear filters
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowCreate(true)}
+              className="mt-4 rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+            >
+              Add the first user
+            </button>
+          )}
         </div>
       )}
 
@@ -659,14 +715,7 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                         value={u.systemRole}
                         disabled={!!u.deletedAt}
                         onChange={(e) =>
-                          act(
-                            () =>
-                              apiFetch(`/api/v1/admin/users/${u.id}/role`, {
-                                method: 'PATCH',
-                                body: JSON.stringify({ systemRole: e.target.value }),
-                              }),
-                            'Could not change the role.',
-                          )
+                          setRoleChange({ user: u, next: e.target.value as SystemRole })
                         }
                         className="rounded-lg border border-border bg-input px-2 py-1 text-xs disabled:opacity-50"
                       >
@@ -747,14 +796,10 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
                     disabled={!!u.deletedAt}
                     aria-label={`Role for ${u.name}`}
                     onChange={(e) =>
-                      act(
-                        () =>
-                          apiFetch(`/api/v1/admin/users/${u.id}/role`, {
-                            method: 'PATCH',
-                            body: JSON.stringify({ systemRole: e.target.value }),
-                          }),
-                        'Could not change the role.',
-                      )
+                      setRoleChange({
+                        user: u,
+                        next: e.target.value as SystemRole,
+                      })
                     }
                     className="rounded-lg border border-border bg-input px-2 py-1.5 text-base disabled:opacity-50"
                   >
@@ -773,127 +818,161 @@ export function UsersView({ isSuperAdmin }: { isSuperAdmin: boolean }) {
         </ul>
       )}
 
-      {/* Edit dialog */}
-      {editing && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setEditing(null)}
-        >
-          <div
-            className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-[1.5rem] border border-border bg-card p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="break-all font-semibold text-primary">
-              Edit {editing.email}
-            </h2>
-            <div className="mt-4 space-y-4">
-              <div>
-                <label className={label}>Full name</label>
-                <input
-                  defaultValue={editing.name}
-                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                  className={field}
-                />
-              </div>
-              <div>
-                <label className={label}>Job title</label>
-                <input
-                  defaultValue={editing.jobTitle ?? ''}
-                  onChange={(e) =>
-                    setEditing({ ...editing, jobTitle: e.target.value })
-                  }
-                  className={field}
-                />
-              </div>
-            </div>
-            <div className="mt-5 flex gap-2">
-              <button
-                onClick={async () => {
-                  await act(
-                    () =>
-                      apiFetch(`/api/v1/admin/users/${editing.id}`, {
-                        method: 'PATCH',
-                        body: JSON.stringify({
-                          name: editing.name,
-                          jobTitle: editing.jobTitle ?? '',
-                        }),
+      <Modal
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title={editing ? `Edit ${editing.email}` : 'Edit user'}
+        className="max-w-md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!editing) return;
+                await act(
+                  () =>
+                    apiFetch(`/api/v1/admin/users/${editing.id}`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({
+                        name: editing.name,
+                        jobTitle: editing.jobTitle ?? '',
                       }),
-                    'Could not save.',
-                  );
-                  setEditing(null);
-                }}
-                className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background"
-              >
-                Save
-              </button>
-              <button
-                onClick={() => setEditing(null)}
-                className="rounded-md border border-border bg-muted/50 px-4 py-2 text-sm font-medium"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Erase dialog — irreversible, so it demands the email be typed. */}
-      {erasing && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-          onClick={() => setErasing(null)}
-        >
-          <div
-            className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-[1.5rem] border border-destructive/30 bg-card p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="flex items-center gap-2 font-semibold text-destructive">
-              <ShieldAlert className="h-5 w-5" /> Erase personal data
-            </h2>
-            <p className="mt-3 text-sm text-muted-foreground">
-              This permanently replaces {erasing.name}&apos;s name and email with
-              anonymous values and revokes their access. Their historical records
-              stay, but they can never be identified or restored.{' '}
-              <span className="font-medium text-foreground">
-                This cannot be undone.
-              </span>
-            </p>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Type <span className="break-all font-mono text-foreground">{erasing.email}</span>{' '}
-              to confirm:
-            </p>
+                    }),
+                  'Could not save.',
+                );
+                setEditing(null);
+              }}
+              className="rounded-full bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground"
+            >
+              Save
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div>
+            <label htmlFor="edit-user-name" className={label}>
+              Full name
+            </label>
             <input
-              value={eraseConfirm}
-              onChange={(e) => setEraseConfirm(e.target.value)}
+              id="edit-user-name"
+              value={editing?.name ?? ''}
+              onChange={(e) =>
+                editing && setEditing({ ...editing, name: e.target.value })
+              }
               className={field}
             />
-            <div className="mt-5 flex gap-2">
-              <button
-                disabled={eraseConfirm !== erasing.email}
-                onClick={async () => {
-                  await act(
-                    () =>
-                      apiFetch(`/api/v1/admin/users/${erasing.id}`, {
-                        method: 'DELETE',
-                      }),
-                    'Could not erase this user.',
-                  );
-                  setErasing(null);
-                }}
-                className="rounded-md bg-destructive px-4 py-2 text-sm font-medium text-destructive-foreground disabled:opacity-40"
-              >
-                Erase permanently
-              </button>
-              <button
-                onClick={() => setErasing(null)}
-                className="rounded-md border border-border bg-muted/50 px-4 py-2 text-sm font-medium"
-              >
-                Cancel
-              </button>
-            </div>
+          </div>
+          <div>
+            <label htmlFor="edit-user-title" className={label}>
+              Job title
+            </label>
+            <input
+              id="edit-user-title"
+              value={editing?.jobTitle ?? ''}
+              onChange={(e) =>
+                editing && setEditing({ ...editing, jobTitle: e.target.value })
+              }
+              className={field}
+            />
           </div>
         </div>
-      )}
+      </Modal>
+
+      <ConfirmDialog
+        open={!!roleChange}
+        onClose={() => setRoleChange(null)}
+        onConfirm={async () => {
+          if (!roleChange) return;
+          await act(
+            () =>
+              apiFetch(`/api/v1/admin/users/${roleChange.user.id}/role`, {
+                method: 'PATCH',
+                body: JSON.stringify({ systemRole: roleChange.next }),
+              }),
+            'Could not change the role.',
+          );
+          setRoleChange(null);
+        }}
+        title="Change this person's role?"
+        description={
+          roleChange
+            ? `${roleChange.user.name} moves from ${ROLE_LABELS[roleChange.user.systemRole]} to ${ROLE_LABELS[roleChange.next]}. ${ROLE_GRANTS[roleChange.next]}`
+            : ''
+        }
+        confirmLabel="Change role"
+      />
+
+      {/* Erase dialog — irreversible, so it demands the email be typed.
+          Previously a bare fixed div: no role, no focus move, no trap, no
+          Escape and no restore, on the most destructive action in the product. */}
+      <Modal
+        open={!!erasing}
+        onClose={() => setErasing(null)}
+        title="Erase personal data"
+        className="max-w-md border-alert-border"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setErasing(null)}
+              className="rounded-full border border-border bg-card px-4 py-2.5 text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!erasing || eraseConfirm !== erasing.email}
+              onClick={async () => {
+                if (!erasing) return;
+                await act(
+                  () =>
+                    apiFetch(`/api/v1/admin/users/${erasing.id}`, {
+                      method: 'DELETE',
+                    }),
+                  'Could not erase this user.',
+                );
+                setErasing(null);
+              }}
+              className="rounded-full bg-alert-fg px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              Erase permanently
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          This permanently replaces {erasing?.name}&apos;s name and email with
+          anonymous values and revokes their access. Their historical records
+          stay, but they can never be identified or restored.{' '}
+          <span className="font-medium text-foreground">
+            This cannot be undone.
+          </span>
+        </p>
+        <label
+          htmlFor="erase-confirm"
+          className="mt-4 block text-sm text-muted-foreground"
+        >
+          Type{' '}
+          <span className="font-mono break-all text-foreground">
+            {erasing?.email}
+          </span>{' '}
+          to confirm
+        </label>
+        <input
+          id="erase-confirm"
+          value={eraseConfirm}
+          onChange={(e) => setEraseConfirm(e.target.value)}
+          className={field}
+        />
+      </Modal>
     </PageContainer>
   );
 }

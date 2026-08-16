@@ -198,7 +198,7 @@ export default function SettingsPage() {
   return (
     <PageContainer>
       <div>
-        <p className="text-xs font-bold uppercase tracking-[0.15em] text-ring">
+        <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
           Workspace
         </p>
         <h1 className="text-3xl font-bold text-primary">Settings</h1>
@@ -211,7 +211,7 @@ export default function SettingsPage() {
         <div
           className={`rounded-lg border p-4 text-sm ${
             message.ok
-              ? 'border-ring/20 bg-[#edf8f1] text-ring'
+              ? 'border-ring/20 bg-stat-green-bg text-success'
               : 'border-destructive/20 bg-destructive/5 text-destructive'
           }`}
         >
@@ -244,7 +244,7 @@ export default function SettingsPage() {
         <div className="mt-4">
           <Row
             title="Compact mode"
-            description="Preference is saved, but layout density is not yet applied"
+            description="Tightens spacing across the admin pages, so more fits on screen"
             control={
               <Toggle
                 checked={prefs.compactMode}
@@ -293,8 +293,9 @@ export default function SettingsPage() {
         />
         <div className="border-t border-border pt-4">
           <p className="text-xs text-muted-foreground">
-            Sessions end after 12 hours without activity. Signing out from the
-            sidebar ends yours immediately.
+            You are warned before an inactivity sign-out and can choose to stay
+            signed in. Signing out from the sidebar ends your session
+            immediately.
           </p>
         </div>
       </Section>
