@@ -31,6 +31,7 @@ import {
   type BoardActionItem,
   type CoOrganizerCandidate,
 } from '@/lib/types/events';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 /** Roles that may move any item; everyone else only their own. */
 const ADMIN_ROLES = ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'];
@@ -122,7 +123,7 @@ export default function ActionItemsPage() {
   // next render threw. Deriving from the list keeps one source of truth and
   // makes the open item update itself when the query refetches.
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   /** Narrowing, not searching: the two questions people actually arrive with. */
   const [onlyLate, setOnlyLate] = useState(false);
   const [onlyBlocked, setOnlyBlocked] = useState(false);

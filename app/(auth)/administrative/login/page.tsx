@@ -10,6 +10,7 @@ import Image from 'next/image';
 import { ShieldCheck, CalendarCheck2, LockKeyhole } from 'lucide-react';
 import { SierraLeoneFlag } from '@/components/SierraLeoneFlag';
 import { PasswordInput } from '@/components/ui/password-input';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -55,7 +56,7 @@ function ExpiredNotice() {
 
 export default function LoginPage() {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [isLoading, setIsLoading] = useState(false);
 
   const {

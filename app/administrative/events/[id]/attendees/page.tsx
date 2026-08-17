@@ -36,6 +36,7 @@ import {
   type AttendanceRecord,
   type ResendInviteResult,
 } from '@/lib/types/events';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const STATUS_PILL: Record<AttendeeStatus, string> = {
   CONFIRMED: 'bg-stat-green-bg text-success',
@@ -193,8 +194,8 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const [guests, setGuests] = useState<{ name: string; email: string }[]>([]);
   const [guestName, setGuestName] = useState('');
   const [guestEmail, setGuestEmail] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
+  const [notice, setNotice] = useTransientMessage();
   const [isSaving, setIsSaving] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
   // Per-row rather than a single boolean, so only the button that was pressed

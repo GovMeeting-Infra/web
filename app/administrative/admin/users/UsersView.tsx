@@ -22,6 +22,7 @@ import type { SystemRole } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary';
@@ -260,7 +261,7 @@ export function UsersView({
   // button at the same time.
   const [resendingId, setResendingId] = useState<string | null>(null);
   const isResending = resendingId !== null;
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [isSaving, setIsSaving] = useState(false);
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [erasing, setErasing] = useState<AdminUser | null>(null);
@@ -371,7 +372,7 @@ export function UsersView({
    * indistinguishable from a dead button, and administrators pressed it again.
    * Nothing was announced to assistive tech either.
    */
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useTransientMessage();
   /** Which row is mid-request, so its control can show it and not double-fire. */
   const [pending, setPending] = useState<string | null>(null);
 

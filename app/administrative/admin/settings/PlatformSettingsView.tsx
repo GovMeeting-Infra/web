@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ShieldAlert, Clock, AtSign } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { PageContainer } from '@/components/ui/page-container';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
@@ -43,8 +44,8 @@ export function PlatformSettingsView() {
   const [timeoutEdit, setTimeoutEdit] = useState<string | null>(null);
   const [domainEdit, setDomainEdit] = useState<string | null>(null);
   const [domainConfirm, setDomainConfirm] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
+  const [saved, setSaved] = useTransientMessage();
   const [isSaving, setIsSaving] = useState(false);
 
   const { data: settings = [], isLoading } = useQuery({

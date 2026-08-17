@@ -11,6 +11,7 @@ import { useCurrentUser } from '@/components/SessionProvider';
 import type { EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { FormSkeleton } from '@/components/ui/skeletons';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 // Same styling constants as the create form.
 const field =
@@ -53,10 +54,10 @@ export default function EditEventPage({
   const router = useRouter();
   const currentUser = useCurrentUser();
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useTransientMessage();
   const [seeded, setSeeded] = useState(false);
 
   const handleBannerFile = async (e: React.ChangeEvent<HTMLInputElement>) => {

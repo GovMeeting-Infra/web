@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { KeyRound, MailCheck, ArrowLeft } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const field =
   'mt-1 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-primary';
@@ -38,7 +39,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, Clock, MapPin, Check, X } from 'lucide-react';
 import { apiFetch, messageFor } from '@/lib/api/client';
 import { PublicShell } from '@/components/PublicShell';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 /**
  * The RSVP page.
@@ -64,7 +65,7 @@ export default function RSVPPage({
     null,
   );
   const [saving, setSaving] = useState<'CONFIRMED' | 'DECLINED' | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
 
   const {
     data: invitation,

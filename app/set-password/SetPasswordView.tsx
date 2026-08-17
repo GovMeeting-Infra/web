@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { KeyRound, CheckCircle2 } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { PasswordInput } from '@/components/ui/password-input';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const field =
   'mt-1 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm text-slate-900 focus:border-primary';
@@ -44,7 +45,7 @@ export function SetPasswordView() {
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [isSaving, setIsSaving] = useState(false);
   const [done, setDone] = useState(false);
 
