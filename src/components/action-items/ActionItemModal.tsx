@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Modal } from '@/components/ui/modal';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 import {
   X,
   CalendarDays,
@@ -89,13 +90,13 @@ export function ActionItemModal({
   onRemoveAssistant?: (userId: string) => Promise<void>;
 }) {
   const [isReassigning, setIsReassigning] = useState(false);
-  const [reassignError, setReassignError] = useState<string | null>(null);
+  const [reassignError, setReassignError] = useTransientMessage();
   const [notes, setNotes] = useState(item.progressNotes ?? '');
   const [link, setLink] = useState(item.progressLink ?? '');
   const [isSavingProgress, setIsSavingProgress] = useState(false);
-  const [progressError, setProgressError] = useState<string | null>(null);
+  const [progressError, setProgressError] = useTransientMessage();
   const [description, setDescription] = useState(item.description ?? '');
-  const [editError, setEditError] = useState<string | null>(null);
+  const [editError, setEditError] = useTransientMessage();
   const [isAddingHelper, setIsAddingHelper] = useState(false);
 
   /**

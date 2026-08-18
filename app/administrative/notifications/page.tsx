@@ -24,6 +24,7 @@ import type {
   NotificationType,
 } from '@/lib/types/account';
 import { PageContainer } from '@/components/ui/page-container';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const PAGE_SIZE = 25;
 
@@ -154,7 +155,7 @@ function whenText(iso: string): string {
 
 export default function NotificationsPage() {
   const queryClient = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [isMarking, setIsMarking] = useState(false);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [limit, setLimit] = useState(PAGE_SIZE);

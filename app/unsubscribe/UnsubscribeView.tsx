@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { BellOff, Check } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -47,7 +48,7 @@ export function UnsubscribeView() {
 
   const [done, setDone] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
 
   if (!email || !token) {
     return (

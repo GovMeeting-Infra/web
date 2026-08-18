@@ -31,6 +31,7 @@ import {
   type MyProfile,
   type UserPreferences,
 } from '@/lib/types/account';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
@@ -284,10 +285,10 @@ function AccountLoaded({
   const [phone, setPhone] = useState(profile.phone ?? '');
   const [image, setImage] = useState(profile.image ?? '');
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useTransientMessage();
   const [detailsSaving, setDetailsSaving] = useState(false);
-  const [detailsError, setDetailsError] = useState<string | null>(null);
-  const [detailsNotice, setDetailsNotice] = useState<string | null>(null);
+  const [detailsError, setDetailsError] = useTransientMessage();
+  const [detailsNotice, setDetailsNotice] = useTransientMessage();
 
   const detailsDirty =
     name !== profile.name ||
@@ -300,19 +301,19 @@ function AccountLoaded({
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
-  const [pwError, setPwError] = useState<string | null>(null);
-  const [pwNotice, setPwNotice] = useState<string | null>(null);
+  const [pwError, setPwError] = useTransientMessage();
+  const [pwNotice, setPwNotice] = useTransientMessage();
 
   const pwDirty = Boolean(currentPassword || newPassword || confirmPassword);
 
   // ---- Display ------------------------------------------------------------
   const [compact, setCompact] = useState(prefs?.compactMode ?? false);
   const [displaySaving, setDisplaySaving] = useState(false);
-  const [displayNotice, setDisplayNotice] = useState<string | null>(null);
+  const [displayNotice, setDisplayNotice] = useTransientMessage();
 
   // ---- Your data ----------------------------------------------------------
   const [isExporting, setIsExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportError, setExportError] = useTransientMessage();
 
   useUnsavedWarning(detailsDirty || pwDirty);
 

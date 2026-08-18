@@ -20,6 +20,7 @@ import type {
   Frequency,
   EndType,
 } from '@/lib/types/events';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 // Reference form styling (src/app/(app)/events/new/EventForm.tsx).
 const field =
@@ -84,10 +85,10 @@ export default function NewEventPage() {
   const currentUser = useCurrentUser();
   const isSuperAdmin = currentUser?.systemRole === 'SUPER_ADMIN';
 
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useTransientMessage();
 
   const [isPublic, setIsPublic] = useState(false);
   const [title, setTitle] = useState('');
@@ -118,7 +119,7 @@ export default function NewEventPage() {
   const [invites, setInvites] = useState<Invite[]>([]);
   const [inviteName, setInviteName] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteError, setInviteError] = useState('');
+  const [inviteError, setInviteError] = useTransientMessage();
 
   const [recurrenceFreq, setRecurrenceFreq] = useState('');
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
@@ -204,7 +205,7 @@ export default function NewEventPage() {
     setInvites((prev) => [...prev, { name, email }]);
     setInviteName('');
     setInviteEmail('');
-  }, [inviteEmail, inviteName, invites]);
+  }, [inviteEmail, inviteName, invites, setInviteError]);
 
   const handleInviteKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {

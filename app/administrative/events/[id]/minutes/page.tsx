@@ -35,6 +35,7 @@ import { PageContainer } from '@/components/ui/page-container';
 import { CardSkeleton } from '@/components/ui/skeletons';
 import { MinutesRecord, pointsOfType } from '@/components/minutes/MinutesRecord';
 import { PointList } from './PointList';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 /**
  * The heading used to print the raw enum — "Status: PUBLISHED" — while the
@@ -88,7 +89,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const [decisions, setDecisions] = useState<string[]>([]);
   const [nextSteps, setNextSteps] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [newActionItem, setNewActionItem] = useState<{
     title: string;
     description: string;

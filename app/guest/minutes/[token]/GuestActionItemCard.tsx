@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { GuestActionItem } from '@/lib/guest-minutes';
 import { ACTION_ITEM_STATUS_LABELS } from '@/lib/types/events';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const STATUS_PILL: Record<string, string> = {
   TODO: 'bg-stat-blue-bg text-primary',
@@ -33,13 +34,13 @@ export function GuestActionItemCard({
   const [notes, setNotes] = useState(item.progressNotes ?? '');
   const [link, setLink] = useState(item.progressLink ?? '');
   const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [error, setError] = useTransientMessage();
+  const [saved, setSaved] = useTransientMessage<boolean>();
 
   const save = async () => {
     setIsSaving(true);
     setError(null);
-    setSaved(false);
+    setSaved(null);
     try {
       const response = await fetch(
         `/api/v1/guest/minutes/${encodeURIComponent(token)}/action-items/${item.id}`,

@@ -38,6 +38,7 @@ import {
   type EventDetail,
   type EventStatus,
 } from '@/lib/types/events';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const STATUS_PILL: Record<EventStatus, string> = {
   PUBLISHED: 'bg-stat-green-bg text-success',
@@ -128,7 +129,7 @@ export default function EventDetailPage({
   const router = useRouter();
   const queryClient = useQueryClient();
   const currentUser = useCurrentUser();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [coOrganizer, setCoOrganizer] = useState<DirectoryPerson | null>(null);

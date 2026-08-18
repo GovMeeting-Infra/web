@@ -11,6 +11,7 @@ import type { CheckInCodeResponse, EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { CardSkeleton } from '@/components/ui/skeletons';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 interface GeneratePayload {
   lat?: number;
@@ -31,8 +32,8 @@ export default function CheckInCodePage({
   // null until the first tick, so the code is never painted as expired during
   // the frame before the timer has run.
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useTransientMessage();
+  const [actionError, setActionError] = useTransientMessage();
 
   const {
     data: qrCode,

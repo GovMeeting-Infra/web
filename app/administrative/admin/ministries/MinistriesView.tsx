@@ -8,6 +8,7 @@ import { TableSkeleton } from '@/components/ui/skeletons';
 import { PageContainer } from '@/components/ui/page-container';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
@@ -51,7 +52,7 @@ export function MinistriesView() {
   const [toggling, setToggling] = useState<Ministry | null>(null);
   const [invite, setInvite] = useState<Invite | null>(null);
   const [copied, setCopied] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useTransientMessage();
   const [isSaving, setIsSaving] = useState(false);
 
   const {

@@ -20,6 +20,7 @@ import { ACTION_ITEM_STATUS_DOT } from '@/lib/types/events';
 import { ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/session';
 import { PageContainer } from '@/components/ui/page-container';
+import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 /** Keeps the existing card shape; only the numbers are real now. */
 function ReportCard({
@@ -225,7 +226,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
   });
 
   const [downloading, setDownloading] = useState<string | null>(null);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useTransientMessage();
 
   const download = async (dataset: string, label: string) => {
     setDownloadError(null);
