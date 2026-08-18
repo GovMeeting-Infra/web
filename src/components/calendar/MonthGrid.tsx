@@ -212,14 +212,142 @@ export function MonthGrid({
         </div>
       )}
 
-      {/* Below sm this is an agenda, not a grid.
-          Seven columns leave about 34px a cell on a phone, which fits a date
-          and up to three featureless dots — no title, no time, no place, and a
-          day with seven events looked identical to one with three. On the
-          primary public surface of a mobile-first country, the browse
-          experience carried no information at all. The grid is the desktop
-          affordance; a list is what a phone can actually read. */}
-      <ul className="space-y-2 sm:hidden">
+
+      <div className="grid grid-cols-7 gap-1">
+        {WEEKDAYS.map((w) => (
+          <div key={w} className="p-1 text-center sm:p-2">
+            {/* "Wed" in a 34px column sits hard against its neighbours, so the
+                phone gets two letters. Not one: Sun/Sat and Tue/Thu would both
+                read as the same letter. */}
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground sm:text-xs sm:tracking-wider">
+              <span className="sm:hidden">{w.slice(0, 2)}</span>
+              <span className="hidden sm:inline">{w}</span>
+            </p>
+          </div>
+        ))}
+
+        {cells.map((day, i) => {
+          if (day === null) {
+            return (
+              <div key={`pad-${i}`} className="min-h-11 rounded-lg sm:min-h-32" />
+            );
+          }
+
+          const cellDate = new Date(year, month, day);
+          const isToday = sameDay(cellDate, today);
+          const dayEvents = byDay.get(day) ?? [];
+          const chips = dayEvents.slice(0, MAX_CHIPS);
+          const more = dayEvents.length - chips.length;
+          const dayParam = toDayParam(cellDate);
+
+          return (
+            <div
+              key={day}
+              className={`min-h-11 rounded-lg border p-1 transition-colors sm:min-h-32 sm:p-2 ${
+                isToday
+                  ? 'border-primary/40 bg-primary/5'
+                  : dayEvents.length > 0
+                    ? 'border-border/80 bg-muted/30'
+                    : 'border-border/30 hover:bg-muted/20'
+              }`}
+            >
+              {/* The whole cell, because 34px leaves no room for a separate
+                  hit area — and an empty day is still worth opening, since the
+                  day page says so in words. Hidden above sm, where the date
+                  and the chips are their own links. */}
+              <Link
+                href={hrefForDay(dayParam)}
+                aria-label={`${cellDate.toLocaleDateString('en-GB', {
+                  weekday: 'long',
+                  day: 'numeric',
+                  month: 'long',
+                })}, ${
+                  dayEvents.length === 0
+                    ? 'nothing scheduled'
+                    : `${dayEvents.length} event${dayEvents.length === 1 ? '' : 's'}`
+                }`}
+                className="flex h-full min-h-9 flex-col items-center justify-center gap-1 sm:hidden"
+              >
+                <span
+                  className={`text-xs font-semibold ${
+                    isToday ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  {day}
+                </span>
+                {dayEvents.length > 0 && (
+                  <span className="flex items-center gap-0.5" aria-hidden>
+                    {dayEvents.slice(0, MAX_CHIPS).map((e) => (
+                      <span
+                        key={e.id}
+                        className={`h-2 w-2 rounded-full border ${eventColor(
+                          e.colorCategory,
+                          e.type,
+                        )}`}
+                      />
+                    ))}
+                  </span>
+                )}
+              </Link>
+
+              <div className="mb-2 hidden items-center justify-between sm:flex">
+                <Link
+                  href={hrefForDay(dayParam)}
+                  className={`text-sm font-semibold transition-colors hover:text-primary ${
+                    isToday ? 'text-primary' : 'text-muted-foreground'
+                  }`}
+                >
+                  {day}
+                </Link>
+                {dayEvents.length > 0 && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1 text-xs font-medium text-primary">
+                    {dayEvents.length}
+                  </span>
+                )}
+              </div>
+
+              <div className="hidden space-y-1 sm:block">
+                {chips.map((e) => {
+                  const time = new Date(e.startAt).toLocaleTimeString(undefined, {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
+                  const place = e.venueName;
+
+                  return (
+                    <EventChip
+                      key={e.id}
+                      href={hrefForEvent(e.id)}
+                      title={e.title}
+                      detail={`${time}${place ? ` · ${place}` : ''}`}
+                      className={eventColor(e.colorCategory, e.type)}
+                    />
+                  );
+                })}
+
+                {more > 0 && (
+                  <Tooltip content="Open this day on its own to see everything scheduled">
+                    <Link
+                      href={hrefForDay(dayParam)}
+                      className="block rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+                    >
+                      +{more} more
+                    </Link>
+                  </Tooltip>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Under the grid on a phone, replacing it below sm.
+          Seven columns leave about 34px a cell, which fits a date and a dot
+          per event — enough to see the shape of the month and tap into a day,
+          but no title, no time and no place. The list carries what the cell
+          cannot, so the phone gets both: the grid to orient by, this to read.
+          Above sm the cells are wide enough for the chips and this is dropped. */}
+      <ul className="mt-4 space-y-2 border-t border-border/60 pt-4 sm:hidden">
         {agenda.length === 0 && !isLoading && (
           <li className="rounded-xl border border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground">
             Nothing is scheduled this month. Use the arrows above to look at
@@ -274,91 +402,6 @@ export function MonthGrid({
         ))}
       </ul>
 
-      <div className="hidden grid-cols-7 gap-1 sm:grid">
-        {WEEKDAYS.map((w) => (
-          <div key={w} className="p-1 text-center sm:p-2">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {w}
-            </p>
-          </div>
-        ))}
-
-        {cells.map((day, i) => {
-          if (day === null) {
-            return (
-              <div key={`pad-${i}`} className="min-h-16 rounded-lg sm:min-h-32" />
-            );
-          }
-
-          const cellDate = new Date(year, month, day);
-          const isToday = sameDay(cellDate, today);
-          const dayEvents = byDay.get(day) ?? [];
-          const chips = dayEvents.slice(0, MAX_CHIPS);
-          const more = dayEvents.length - chips.length;
-          const dayParam = toDayParam(cellDate);
-
-          return (
-            <div
-              key={day}
-              className={`min-h-16 rounded-lg border p-1 transition-colors sm:min-h-32 sm:p-2 ${
-                isToday
-                  ? 'border-primary/40 bg-primary/5'
-                  : dayEvents.length > 0
-                    ? 'border-border/80 bg-muted/30'
-                    : 'border-border/30 hover:bg-muted/20'
-              }`}
-            >
-
-              <div className="mb-2 hidden items-center justify-between sm:flex">
-                <Link
-                  href={hrefForDay(dayParam)}
-                  className={`text-sm font-semibold transition-colors hover:text-primary ${
-                    isToday ? 'text-primary' : 'text-muted-foreground'
-                  }`}
-                >
-                  {day}
-                </Link>
-                {dayEvents.length > 0 && (
-                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/15 px-1 text-xs font-medium text-primary">
-                    {dayEvents.length}
-                  </span>
-                )}
-              </div>
-
-              <div className="hidden space-y-1 sm:block">
-                {chips.map((e) => {
-                  const time = new Date(e.startAt).toLocaleTimeString(undefined, {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  });
-                  const place = e.venueName;
-
-                  return (
-                    <EventChip
-                      key={e.id}
-                      href={hrefForEvent(e.id)}
-                      title={e.title}
-                      detail={`${time}${place ? ` · ${place}` : ''}`}
-                      className={eventColor(e.colorCategory, e.type)}
-                    />
-                  );
-                })}
-
-                {more > 0 && (
-                  <Tooltip content="Open this day on its own to see everything scheduled">
-                    <Link
-                      href={hrefForDay(dayParam)}
-                      className="block rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
-                    >
-                      +{more} more
-                    </Link>
-                  </Tooltip>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
     </div>
   );
 }
