@@ -47,52 +47,71 @@ function LocationCell({ record }: { record: AttendanceRecord }) {
 
   // Four states, and the difference between the middle two is the whole point:
   // a reading that arrived but was too vague to settle the question is not the
-  // same as no check having taken place. What each verdict means is spelled out
-  // under Help, in "What does the location column on the attendance list mean?".
-  // The `hint` strings that used to sit here went with the tooltips below and
-  // were never rendered again.
+  // same as no check having taken place. That is what the hints say out loud.
   const verdict =
     withinGeofence === true
-      ? { label: 'Verified', className: 'bg-stat-green-bg text-success' }
+      ? {
+          label: 'Verified',
+          className: 'bg-stat-green-bg text-success',
+          hint: 'Their phone placed them inside the check-in area the organiser set.',
+        }
       : withinGeofence === false
         ? {
             label: 'Outside area',
             className: 'bg-destructive/10 text-destructive',
+            hint: 'Their phone placed them outside the check-in area, even allowing for its margin of error. The check-in still counts; the location is recorded for the audit log.',
           }
         : typeof gpsAccuracy === 'number'
           ? {
               label: 'Unconfirmed',
               className: 'bg-stat-gold-bg text-stat-gold-fg',
+              hint: 'A location arrived but was too vague to prove they were inside the area. They may well have been — indoors, a phone often cannot do better.',
             }
           : {
               label: 'Not verified',
               className: 'bg-muted text-muted-foreground',
+              hint: 'No location was checked. Either no check-in area was set for this meeting, or an organiser recorded them at the desk.',
             };
 
-  // No tooltips here any more. These four verdicts, the accuracy figure and the
-  // mock-location flag are the evidence this product exists to produce, and all
-  // of them sat on a bare <span> — unfocusable, so a keyboard or screen-reader
-  // user could never reach the explanation, and on a phone reachable only by a
-  // 500ms hold nothing advertises. The definitions live under Help now, where
-  // they are reachable by everyone rather than by hover.
+  // Tooltips again, but focusable ones this time. Hints sat on these badges
+  // before and were taken off for a real fault: a bare <span> cannot be
+  // focused, so a keyboard or screen-reader user could never reach the
+  // explanation at all. tabIndex={0} is the fix — Radix opens on focus and
+  // hangs the text off aria-describedby, and the unlayered :focus-visible rule
+  // in globals.css draws the ring without anything being added here.
+  //
+  // It costs one tab stop per row. Worth paying: these verdicts are the
+  // evidence this product exists to produce, and whether "Unconfirmed" means
+  // "was elsewhere" or "we could not tell" decides whether somebody trusts an
+  // attendance record. The same wording is in Help, under "What does the
+  // location column on the attendance list mean?", for anyone who would rather
+  // read all four together than hover them one at a time.
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span
-        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${verdict.className}`}
-      >
-        <MapPin className="h-3 w-3" aria-hidden="true" />
-        {verdict.label}
-      </span>
+      <Tooltip content={verdict.hint}>
+        <span
+          tabIndex={0}
+          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${verdict.className}`}
+        >
+          <MapPin className="h-3 w-3" aria-hidden="true" />
+          {verdict.label}
+        </span>
+      </Tooltip>
       {typeof gpsAccuracy === 'number' && (
         <span className="text-[11px] text-muted-foreground">
           ±{gpsAccuracy}m
         </span>
       )}
       {mockLocationFlag && (
-        <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-          <ShieldAlert className="h-3 w-3" aria-hidden="true" />
-          Mock GPS
-        </span>
+        <Tooltip content="The phone reported a position a real one cannot produce, usually a location-spoofing app. Recorded as a flag, not as proof — check the audit log for the record before acting on it.">
+          <span
+            tabIndex={0}
+            className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive"
+          >
+            <ShieldAlert className="h-3 w-3" aria-hidden="true" />
+            Mock GPS
+          </span>
+        </Tooltip>
       )}
     </div>
   );
