@@ -125,6 +125,14 @@ const GROUPS: Group[] = [
         // OUTSIDE_AREA.
         a: 'Most often the phone never sent a location at all, because the browser asked permission and the person said no or dismissed it. Ask them to allow location and scan again. The other reasons are standing outside the 100-metre area, a location reading too vague to judge, or a code that has expired. Check-in also closes when the meeting ends, and nobody can check in twice. If someone truly cannot, record them yourself from the attendees screen.',
       },
+      {
+        q: 'What does the location column on the attendance list mean?',
+        // The four verdicts LocationCell renders (CheckedInTable.tsx), plus the
+        // accuracy figure and the mock-GPS flag. This was a legend under the
+        // table itself until it moved here, so keep it in step with that
+        // component.
+        a: 'It reports where the phone said the person was when they checked in, as one of four verdicts. Verified means the phone placed them inside the check-in area the organiser set. Outside area means it placed them outside it, even allowing for the margin of error — the check-in still counts, and the location is kept for the audit log. Unconfirmed means a location arrived but was too vague to settle it either way, which indoors is common and is not evidence of anything. Not verified means no location was checked at all, either because no area was set for that meeting or because an organiser recorded them at the desk. A figure such as ±40m is how accurate the phone said its position was, and the smaller the number the more certain it is. A Mock GPS flag means the phone reported a position a real one cannot produce, usually a location-spoofing app; it is recorded as a flag and not as proof, so check the audit log before acting on it.',
+      },
     ],
   },
   {

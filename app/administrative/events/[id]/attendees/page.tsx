@@ -18,7 +18,7 @@ import {
 import { apiFetch, apiDownload } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
-import { CheckedInTable, LocationLegend } from './CheckedInTable';
+import { CheckedInTable } from './CheckedInTable';
 import { ConfirmDialog } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
@@ -931,18 +931,14 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           )}
 
           {activeTab === 'checkedIn' && !checkInsError && (
-            <>
-              <CheckedInTable
-                checkIns={checkIns}
-                eventId={id}
-                canRemove={canDoWalkIn}
-                onRemove={(attendanceId, name) =>
-                  setPendingRemoval({ id: attendanceId, name })
-                }
-              />
-              {/* Under the table it explains, and only when there is one. */}
-              {checkIns.length > 0 && <LocationLegend />}
-            </>
+            <CheckedInTable
+              checkIns={checkIns}
+              eventId={id}
+              canRemove={canDoWalkIn}
+              onRemove={(attendanceId, name) =>
+                setPendingRemoval({ id: attendanceId, name })
+              }
+            />
           )}
 
           {activeTab === 'confirmed' && (
