@@ -47,39 +47,34 @@ function LocationCell({ record }: { record: AttendanceRecord }) {
 
   // Four states, and the difference between the middle two is the whole point:
   // a reading that arrived but was too vague to settle the question is not the
-  // same as no check having taken place. That distinction used to live only in
-  // a comment here; the hints below say it to the reader instead.
+  // same as no check having taken place. What each verdict means is spelled out
+  // under Help, in "What does the location column on the attendance list mean?".
+  // The `hint` strings that used to sit here went with the tooltips below and
+  // were never rendered again.
   const verdict =
     withinGeofence === true
-      ? {
-          label: 'Verified',
-          className: 'bg-stat-green-bg text-success',
-          hint: 'Their phone placed them inside the check-in area the organiser set.',
-        }
+      ? { label: 'Verified', className: 'bg-stat-green-bg text-success' }
       : withinGeofence === false
         ? {
             label: 'Outside area',
             className: 'bg-destructive/10 text-destructive',
-            hint: 'Their phone placed them outside the check-in area, even allowing for its margin of error.',
           }
         : typeof gpsAccuracy === 'number'
           ? {
               label: 'Unconfirmed',
               className: 'bg-stat-gold-bg text-stat-gold-fg',
-              hint: 'A location arrived but was too vague to prove they were inside the area. They may well have been — indoors, a phone often cannot do better.',
             }
           : {
               label: 'Not verified',
               className: 'bg-muted text-muted-foreground',
-              hint: 'No location was checked. Either no check-in area was set for this meeting, or an organiser recorded them at the desk.',
             };
 
   // No tooltips here any more. These four verdicts, the accuracy figure and the
   // mock-location flag are the evidence this product exists to produce, and all
   // of them sat on a bare <span> — unfocusable, so a keyboard or screen-reader
   // user could never reach the explanation, and on a phone reachable only by a
-  // 500ms hold nothing advertises. The legend below the table says the same
-  // things to everyone, once, permanently.
+  // 500ms hold nothing advertises. The definitions live under Help now, where
+  // they are reachable by everyone rather than by hover.
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span
@@ -100,81 +95,6 @@ function LocationCell({ record }: { record: AttendanceRecord }) {
         </span>
       )}
     </div>
-  );
-}
-
-/**
- * What the location column means, on the page rather than behind a hover.
- *
- * Written once under the table: it is read when somebody is working out whether
- * an attendance record will survive being questioned, which is not a moment to
- * be discovering that a word had a definition you had to hover to find.
- */
-export function LocationLegend() {
-  const rows: { label: string; className: string; text: string }[] = [
-    {
-      label: 'Verified',
-      className: 'bg-stat-green-bg text-success',
-      text: 'Their phone placed them inside the check-in area the organiser set.',
-    },
-    {
-      label: 'Outside area',
-      className: 'bg-destructive/10 text-destructive',
-      text: 'Their phone placed them outside it, even allowing for its margin of error. The check-in still counts; the location is recorded for the audit log.',
-    },
-    {
-      label: 'Unconfirmed',
-      className: 'bg-stat-gold-bg text-stat-gold-fg',
-      text: 'A location arrived, but too vague to settle it either way. Indoors, phones often cannot do better.',
-    },
-    {
-      label: 'Not verified',
-      className: 'bg-muted text-muted-foreground',
-      text: 'No location was checked — either no area was set for this meeting, or an organiser recorded them at the desk.',
-    },
-  ];
-
-  return (
-    <section className="rounded-[1.5rem] border border-border bg-card p-5">
-      <h3 className="text-sm font-semibold text-primary">
-        What the location column means
-      </h3>
-      <dl className="mt-3 space-y-2">
-        {rows.map((r) => (
-          <div key={r.label} className="flex flex-wrap items-baseline gap-2">
-            <dt>
-              <span
-                className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${r.className}`}
-              >
-                {r.label}
-              </span>
-            </dt>
-            <dd className="min-w-0 flex-1 text-xs text-muted-foreground">
-              {r.text}
-            </dd>
-          </div>
-        ))}
-        <div className="flex flex-wrap items-baseline gap-2">
-          <dt className="text-[11px] font-medium text-muted-foreground">±40m</dt>
-          <dd className="min-w-0 flex-1 text-xs text-muted-foreground">
-            How accurate the phone said its position was. The smaller the number,
-            the more certain it is.
-          </dd>
-        </div>
-        <div className="flex flex-wrap items-baseline gap-2">
-          <dt>
-            <span className="inline-flex shrink-0 items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-              Mock GPS
-            </span>
-          </dt>
-          <dd className="min-w-0 flex-1 text-xs text-muted-foreground">
-            The phone reported a position a real one cannot produce, usually a
-            location-spoofing app. Recorded as a flag, not as proof — check the
-            audit log for the record before acting on it.
-          </dd>
-        </div>
-      </dl>
-    </section>
   );
 }
 
