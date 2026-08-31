@@ -23,6 +23,7 @@ import { PageContainer } from '@/components/ui/page-container';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+import { PersonPicker } from '@/components/ui/person-picker';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary';
@@ -775,6 +776,36 @@ export function UsersView({
             and you get a copy of the link in case the email doesn&apos;t
             arrive.
           </p>
+
+          {/* Staff only. Somebody who already holds an account is not someone
+              you can invite, so the roster endpoint drops them — which also
+              means this list gets shorter every time you use it. The fields
+              below stay editable: the roster is a convenience, not the only
+              way to name a person. */}
+          <div>
+            <label className={label} htmlFor="staff-lookup">
+              Find them on the staff list
+            </label>
+            <PersonPicker
+              id="staff-lookup"
+              value={null}
+              onChange={(person) => {
+                if (!person) return;
+                setForm((prev) => ({
+                  ...prev,
+                  name: person.name,
+                  email: person.email,
+                }));
+              }}
+              placeholder="Search staff not yet on the platform…"
+              endpoint="/api/v1/users/directory/people?sources=staff"
+              allowUnassign={false}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Optional. Fills in the name and email below, both of which you can
+              still change.
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>

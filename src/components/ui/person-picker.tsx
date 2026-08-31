@@ -11,6 +11,13 @@ export interface DirectoryPerson {
   name: string;
   email: string;
   jobTitle: string | null;
+  /**
+   * Which list the person came from. `staff` means they are on the ministry's
+   * roster but hold no account — so their id is a StaffDirectoryEntry id, not
+   * a User id, and must never be sent as ownerId/userId. Absent on the
+   * account-only endpoints, which predate the roster.
+   */
+  kind?: 'account' | 'staff';
 }
 
 /**
@@ -244,9 +251,21 @@ export function PersonPicker({
                   }`}
                 >
                   <UserCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm text-foreground">
-                      {p.name}
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate text-sm text-foreground">
+                        {p.name}
+                      </span>
+                      {/* Says why this person has no job title and will not
+                          appear in their colleagues' lists: they are on the
+                          roster, not on the platform. Picking them is still
+                          correct — it fills in the address — so this informs
+                          rather than warns. */}
+                      {p.kind === 'staff' && (
+                        <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                          No account
+                        </span>
+                      )}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {p.jobTitle ? `${p.jobTitle} · ` : ''}

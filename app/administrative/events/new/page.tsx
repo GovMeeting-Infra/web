@@ -14,6 +14,7 @@ import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PersonPicker } from '@/components/ui/person-picker';
 import type {
   EventDetail,
   CoOrganizerCandidate,
@@ -977,6 +978,33 @@ export default function NewEventPage() {
                   {inviteError}
                 </div>
               )}
+              {/* Colleagues and the wider staff roster in one box. An invitee
+                  is reached only through the address recorded here, so picking
+                  one beats retyping it — a slip does not bounce, it invites
+                  somebody who does not exist. */}
+              <div className="mb-2">
+                <label
+                  htmlFor="inviteLookup"
+                  className="text-xs font-medium text-foreground/80"
+                >
+                  Find someone
+                </label>
+                <PersonPicker
+                  id="inviteLookup"
+                  value={null}
+                  onChange={(person) => {
+                    if (!person) return;
+                    // Name and address only. A roster id is not a User id, and
+                    // these people are added as externals either way.
+                    setInviteName(person.name);
+                    setInviteEmail(person.email);
+                  }}
+                  placeholder="Search colleagues and staff…"
+                  endpoint="/api/v1/users/directory/people?sources=accounts,staff"
+                  allowUnassign={false}
+                />
+              </div>
+
               {/* Grid rather than flex: the shared `field` class already sets
                   w-full, so adding w-1/3 or flex-1 put two width utilities on
                   one element and overflowed the row. Grid cells size the
