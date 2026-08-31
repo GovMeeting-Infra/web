@@ -43,7 +43,7 @@ describe('Authentication Flow', () => {
     it('should successfully login with valid credentials', () => {
       cy.visit(LOGIN);
       cy.get('input[type="email"]').type('staff@moh.gov.sl');
-      cy.get('input[type="password"]').type('Password@123');
+      cy.get('input[type="password"]').type('not-a-real-password');
       cy.get('button[type="submit"]').click();
       cy.url().should('include', '/administrative/dashboard');
     });
@@ -59,7 +59,7 @@ describe('Authentication Flow', () => {
     it('should show error with invalid email format', () => {
       cy.visit(LOGIN);
       cy.get('input[type="email"]').type('invalid-email');
-      cy.get('input[type="password"]').type('Password@123');
+      cy.get('input[type="password"]').type('not-a-real-password');
       cy.get('button[type="submit"]').click();
       cy.contains('Invalid email').should('be.visible');
     });
@@ -120,7 +120,7 @@ describe('Authentication Flow', () => {
 
   describe('Session Management', () => {
     beforeEach(() => {
-      cy.login('staff@moh.gov.sl', 'Password@123');
+      cy.login('staff@moh.gov.sl', 'not-a-real-password');
     });
 
     it('should maintain session after navigation', () => {

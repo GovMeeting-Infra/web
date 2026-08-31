@@ -11,9 +11,9 @@
  * cookie.
  */
 
-const ORGANIZER = { email: 'staff@moh.gov.sl', password: 'Password@123' };
+const ORGANIZER = { email: 'staff@moh.gov.sl', password: 'not-a-real-password' };
 /** A ministry admin, but of a different ministry. */
-const OUTSIDER = { email: 'admin@med.gov.sl', password: 'Password@123' };
+const OUTSIDER = { email: 'admin@med.gov.sl', password: 'not-a-real-password' };
 
 const WALK_IN = {
   name: 'Register Test Attendee',
