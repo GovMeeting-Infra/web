@@ -1,9 +1,11 @@
-import { requireRole } from '@/lib/session';
+import { requireRole, PLATFORM_ROLES } from '@/lib/session';
 import { PlatformSettingsView } from './PlatformSettingsView';
 
 // Distinct from /administrative/settings, which is a user's own preferences.
-// These two values apply to everyone on the platform, so super-admin only.
+// These values apply to everyone on the platform, so they are limited to the
+// roles that answer for the whole of it. The sign-in domain within the page is
+// narrower still — see PlatformSettingsView.
 export default async function PlatformSettingsPage() {
-  await requireRole(['SUPER_ADMIN']);
+  await requireRole(PLATFORM_ROLES);
   return <PlatformSettingsView />;
 }

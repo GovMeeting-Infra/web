@@ -494,7 +494,7 @@ export default function DashboardPage() {
               </span>
               <div>
                 {/* Keyed off the role, not the response: scope only arrives
-                    with the data, and a super admin has no ministry to name in
+                    with the data, and a platform-wide viewer has no ministry to name in
                     the meantime. */}
                 <h2 className="font-semibold text-primary">
                   {currentUser?.systemRole === 'SUPER_ADMIN'

@@ -6,6 +6,7 @@ import { ShieldAlert, Clock, AtSign, LifeBuoy } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { PageContainer } from '@/components/ui/page-container';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+import { useCurrentUser } from '@/components/SessionProvider';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
@@ -37,6 +38,14 @@ function humanDuration(seconds: number): string {
 
 export function PlatformSettingsView() {
   const queryClient = useQueryClient();
+  const currentUser = useCurrentUser();
+
+  // The sign-in domain is the one setting whose blast radius is the whole
+  // platform: a wrong value locks every user out of every ministry, including
+  // whoever would have to put it back. So it is shown to everyone who can reach
+  // this page and changeable by fewer — the server refuses it either way, and
+  // this keeps the form from inviting an edit it would reject.
+  const canEditDomain = currentUser?.systemRole === 'SUPER_ADMIN';
 
   // null means "not edited yet", so the field shows whatever the server holds
   // and follows it after a save. Seeding state from the query in an effect
@@ -185,17 +194,22 @@ export function PlatformSettingsView() {
                 value={domain}
                 onChange={(e) => setDomainEdit(e.target.value)}
                 placeholder=".gov.sl"
-                className={field}
+                disabled={!canEditDomain}
+                className={`${field} disabled:cursor-not-allowed disabled:opacity-60`}
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                {domainSetting ? SOURCE_LABEL[domainSetting.source] : ''}
+                {canEditDomain
+                  ? domainSetting
+                    ? SOURCE_LABEL[domainSetting.source]
+                    : ''
+                  : 'Changing this is limited to the platform owner, because a wrong value signs everyone out of every ministry.'}
               </p>
             </div>
 
             {/* Typed confirmation, like the anonymise flow: getting this wrong
                 locks out everyone whose address no longer matches, including
                 the person making the change. */}
-            {domainChanged && (
+            {canEditDomain && domainChanged && (
               <div className="space-y-3 rounded-[1rem] border border-stat-gold-border bg-stat-gold-bg p-4">
                 <div className="flex items-start gap-2">
                   <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-stat-gold-fg" />
@@ -223,6 +237,7 @@ export function PlatformSettingsView() {
                 )
               }
               disabled={
+                !canEditDomain ||
                 isSaving ||
                 !domainChanged ||
                 domainConfirm.trim() !== domain.trim()

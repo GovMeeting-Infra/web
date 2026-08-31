@@ -37,9 +37,11 @@ const label = 'block text-sm font-medium text-foreground/80';
  * asking.
  */
 const ROLE_GRANTS: Record<SystemRole, string> = {
-  // Never rendered — SUPER_ADMIN is not assignable by anyone. Kept so the map
-  // stays total against SystemRole rather than needing a cast.
+  // Never rendered — the owner role is not assignable by anyone. Kept so the
+  // map stays total against SystemRole rather than needing a cast.
   SUPER_ADMIN: 'They will be able to administer every ministry on the platform.',
+  PLATFORM_ADMIN:
+    "They'll be able to set up ministries and accounts across the platform, and see whether it is running. They won't be able to open anyone's meetings, minutes or attendance.",
   MINISTER:
     "They'll be able to manage everyone and everything in their ministry. A ministry has one minister, so the current one has to change first.",
   MINISTRY_ADMIN:
@@ -189,7 +191,7 @@ function RoleCell({
   if (!assignableRoles.includes(user.systemRole)) {
     return (
       <Tooltip
-        content={`Only a super admin can change a ${ROLE_LABELS[user.systemRole].toLowerCase()}'s role.`}
+        content={`You cannot change a ${ROLE_LABELS[user.systemRole].toLowerCase()}'s role.`}
       >
         <span
           className={`inline-block rounded-lg border border-transparent px-2 py-1 font-medium text-foreground ${
@@ -232,10 +234,14 @@ interface Invite {
 }
 
 export function UsersView({
-  isSuperAdmin,
+  isPlatformRole,
+  isOwner,
   currentUserId,
 }: {
-  isSuperAdmin: boolean;
+  /** Viewer belongs to no ministry, so the UI works across all of them. */
+  isPlatformRole: boolean;
+  /** Only the owner may appoint a platform admin. */
+  isOwner: boolean;
   currentUserId: string;
 }) {
   const queryClient = useQueryClient();
@@ -296,11 +302,14 @@ export function UsersView({
     !!erasing &&
     eraseConfirm.trim().toLowerCase() === erasing.email.trim().toLowerCase();
 
-  // A ministry admin must not be able to mint a peer above themselves; the
-  // server enforces this too.
-  const assignableRoles: SystemRole[] = isSuperAdmin
-    ? ['MINISTER', 'MINISTRY_ADMIN', 'STAFF']
-    : ['MINISTRY_ADMIN', 'STAFF'];
+  // A ministry admin must not be able to mint a peer above themselves, and a
+  // platform admin must not be able to mint another of itself. The server
+  // enforces both; this only keeps the form from offering what it would refuse.
+  const assignableRoles: SystemRole[] = isOwner
+    ? ['PLATFORM_ADMIN', 'MINISTER', 'MINISTRY_ADMIN', 'STAFF']
+    : isPlatformRole
+      ? ['MINISTER', 'MINISTRY_ADMIN', 'STAFF']
+      : ['MINISTRY_ADMIN', 'STAFF'];
 
   /**
    * The search term the query actually uses.
@@ -360,7 +369,7 @@ export function UsersView({
     queryKey: ['ministry-options'],
     queryFn: () =>
       apiFetch<{ id: string; name: string }[]>('/api/v1/events/ministry-options'),
-    enabled: isSuperAdmin,
+    enabled: isPlatformRole,
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -443,7 +452,7 @@ export function UsersView({
     // round trip and keeps the form filled in.
     // A super admin has no ministry of their own to fall back on, and every
     // creatable role belongs to one — SUPER_ADMIN is not among them.
-    if (isSuperAdmin && !form.ministryId) {
+    if (isPlatformRole && !form.ministryId) {
       setError('Choose which ministry this user belongs to.');
       return;
     }
@@ -456,7 +465,7 @@ export function UsersView({
           email: form.email.trim().toLowerCase(),
           systemRole: form.systemRole,
           jobTitle: form.jobTitle.trim() || undefined,
-          ...(isSuperAdmin && form.ministryId
+          ...(isPlatformRole && form.ministryId
             ? { ministryId: form.ministryId }
             : {}),
         }),
@@ -619,7 +628,7 @@ export function UsersView({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
-            {isSuperAdmin ? 'Platform administration' : 'Your ministry'}
+            {isPlatformRole ? 'Platform administration' : 'Your ministry'}
           </p>
           <h1 className="text-3xl font-bold text-primary">Users</h1>
           {/* Says what the page holds, and how many. The count was nowhere on
@@ -630,7 +639,7 @@ export function UsersView({
             {isLoading
               ? 'Everyone who can sign in, and anyone still waiting on an invitation.'
               : `${users.length} ${users.length === 1 ? 'person' : 'people'} ${
-                  isSuperAdmin ? 'across all ministries' : 'in your ministry'
+                  isPlatformRole ? 'across all ministries' : 'in your ministry'
                 }, including anyone still waiting on an invitation.`}
           </p>
         </div>
@@ -853,7 +862,7 @@ export function UsersView({
                 className={field}
               />
             </div>
-            {isSuperAdmin && (
+            {isPlatformRole && (
               <div className="sm:col-span-2">
                 <label className={label} htmlFor="ministry">Ministry *</label>
                 <select id="ministry"
@@ -861,7 +870,7 @@ export function UsersView({
                   onChange={(e) => setForm({ ...form, ministryId: e.target.value })}
                   className={field}
                 >
-                  {/* No "my own ministry" option: a super admin does not have
+                  {/* No "my own ministry" option: a platform-wide viewer does not have
                       one, and picking it produced a user with no ministry. */}
                   <option value="">Select a ministry…</option>
                   {ministries.map((m) => (
@@ -931,7 +940,7 @@ export function UsersView({
             </option>
           ))}
         </select>
-        {isSuperAdmin && (
+        {isPlatformRole && (
           <select
             value={ministryFilter}
             onChange={(e) => setMinistryFilter(e.target.value)}

@@ -176,7 +176,7 @@ const GROUPS: Group[] = [
     faqs: [
       {
         q: 'Why was I signed out?',
-        a: 'After a stretch without activity. You get a warning shortly before it happens with the option to stay signed in, and anything already saved is safe. A super admin sets the length for the whole platform, so it can differ between deployments. On a shared or public computer, use Sign Out in the sidebar rather than just closing the window.',
+        a: 'After a stretch without activity. You get a warning shortly before it happens with the option to stay signed in, and anything already saved is safe. The length is set for the whole platform, so it can differ between deployments. On a shared or public computer, use Sign Out in the sidebar rather than just closing the window.',
       },
       {
         q: 'How do I change my name, photo, phone number or password?',

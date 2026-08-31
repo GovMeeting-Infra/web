@@ -17,11 +17,12 @@ import {
   Bell,
   ScrollText,
   SlidersHorizontal,
+  Activity,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useCurrentUser } from '@/components/SessionProvider';
-import { ADMIN_ROLES } from '@/lib/roles';
+import { ADMIN_ROLES, PLATFORM_ROLES, USER_ADMIN_ROLES } from '@/lib/roles';
 import { signOut } from '@/lib/sign-out';
 import { Tooltip } from './tooltip';
 
@@ -91,29 +92,38 @@ const NAV_GROUPS: NavGroup[] = [
     title: 'Administration',
     items: [
       {
-        // requireRole(ADMIN_ROLES) in app/administrative/admin/users/page.tsx.
+        // requireRole(USER_ADMIN_ROLES) in admin/users/page.tsx. Wider than
+        // ADMIN_ROLES because provisioning accounts is an engineer's job while
+        // reading a ministry's reports is not.
         href: '/administrative/admin/users',
         label: 'Users',
         icon: <Users className="h-4 w-4" />,
-        roles: ADMIN_ROLES,
+        roles: USER_ADMIN_ROLES,
       },
       {
-        // Super-admin only, unlike Users: the API lets a ministry admin read
-        // ministries but not change one, so the page would be inert for them.
-        // requireRole(['SUPER_ADMIN']) in admin/ministries/page.tsx.
+        // Narrower than Users: the API lets a ministry admin read ministries
+        // but not change one, so the page would be inert for them.
+        // requireRole(PLATFORM_ROLES) in admin/ministries/page.tsx.
         href: '/administrative/admin/ministries',
         label: 'Ministries',
         icon: <Building2 className="h-4 w-4" />,
-        roles: ['SUPER_ADMIN'],
+        roles: PLATFORM_ROLES,
       },
       {
         // Platform-wide values, as opposed to /administrative/settings, which
         // is each user's own preferences.
-        // requireRole(['SUPER_ADMIN']) in admin/settings/page.tsx.
+        // requireRole(PLATFORM_ROLES) in admin/settings/page.tsx.
         href: '/administrative/admin/settings',
         label: 'Platform settings',
         icon: <SlidersHorizontal className="h-4 w-4" />,
-        roles: ['SUPER_ADMIN'],
+        roles: PLATFORM_ROLES,
+      },
+      {
+        // requireRole(PLATFORM_ROLES) in administrative/platform/page.tsx.
+        href: '/administrative/platform',
+        label: 'Platform health',
+        icon: <Activity className="h-4 w-4" />,
+        roles: PLATFORM_ROLES,
       },
       {
         // requireRole(ADMIN_ROLES) in app/administrative/reports/page.tsx.
