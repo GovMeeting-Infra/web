@@ -62,6 +62,7 @@ interface Overview {
     emailFrom: string | null;
     uploadsConfigured: boolean;
     webUrl: string | null;
+    webUrlLooksRight: boolean;
     supportEmail: string | null;
     sessionTimeoutSeconds: number;
     governmentEmailDomain: string;
@@ -495,7 +496,12 @@ export function PlatformHealthView() {
             {[
               ['Mail provider', config.mailConfigured ? 'Configured' : 'Not configured'],
               ['Sends as', config.emailFrom ?? 'not set'],
-              ['Emailed links point at', config.webUrl ?? 'not set'],
+              [
+                'Emailed links point at',
+                config.webUrl
+                  ? `${config.webUrl}${config.webUrlLooksRight ? '' : ' — wrong for this environment'}`
+                  : 'not set',
+              ],
               ['Support address', config.supportEmail ?? 'not set'],
               ['Image uploads', config.uploadsConfigured ? 'Configured' : 'Not configured'],
               ['Sign-in domain', config.governmentEmailDomain],
