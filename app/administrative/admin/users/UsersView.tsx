@@ -245,11 +245,12 @@ export function UsersView({
   isOwner: boolean;
   /**
    * Whether the viewer administers accounts day to day — deactivating,
-   * unlocking, signing out, erasing, editing details.
+   * unlocking, signing out, erasing.
    *
    * A platform admin provisions and does not administer: it creates accounts,
-   * re-sends invitations and sets roles, and the API refuses it all five of
-   * the rest. Rendering them anyway would offer five buttons that answer 403.
+   * corrects their details, re-sends invitations and sets roles, and the API
+   * refuses it all four of the rest. Rendering them anyway would offer four
+   * buttons that answer 403.
    */
   canAdministerAccounts: boolean;
   currentUserId: string;
@@ -531,7 +532,10 @@ export function UsersView({
         </button>
         </Tooltip>
         )}
-        {canAdministerAccounts && (
+        {/* Not gated. A platform admin may correct a name or job title — the
+            service still refuses it an email or ministry change, which are the
+            two fields on this form that decide who someone is and what they
+            can see. */}
         <Tooltip content={`Change ${u.name}'s name or job title`}>
         <button
           aria-label={`Edit ${u.name}`}
@@ -541,7 +545,6 @@ export function UsersView({
           <Pencil className="h-4 w-4" />
         </button>
         </Tooltip>
-        )}
         <Tooltip
           content={`Send ${u.name} a fresh link to set their password. Any link they are already holding stops working.`}
         >
