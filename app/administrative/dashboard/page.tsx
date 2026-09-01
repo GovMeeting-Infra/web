@@ -1,25 +1,16 @@
-import { redirect } from 'next/navigation';
-import { getCurrentUser } from '@/lib/session';
 import { DashboardView } from './DashboardView';
 
 /**
- * The dashboard is a meeting participant's home: upcoming events, their action
- * items, pending RSVPs. An operations account has none of those and the API
- * refuses it all three, so the page rendered three "couldn't load" panels and
- * blamed the connection.
+ * One dashboard, read two ways.
  *
- * Sending them to their own overview instead, rather than /forbidden — this is
- * the default destination after signing in, and being bounced to a refusal on
- * arrival is a poor welcome for an account that is working correctly.
+ * For a meeting participant it answers "what do I have to do": what is on
+ * today, my action items, meetings I organise. A platform admin has none of
+ * those, so the same page answers "what is happening" instead — everything
+ * scheduled across every ministry, and the aggregate figures. The personal
+ * panels are not shown to them rather than shown empty, and none of it is
+ * editable: the API admits that role to reading events and to the analytics
+ * totals, and to nothing else here.
  */
-export default async function DashboardPage() {
-  const user = await getCurrentUser();
-
-  // Only the operations role. The owner has no ministry either, but the API
-  // answers it everywhere and the page already has branches for that case.
-  if (user?.systemRole === 'PLATFORM_ADMIN') {
-    redirect('/administrative/platform');
-  }
-
+export default function DashboardPage() {
   return <DashboardView />;
 }

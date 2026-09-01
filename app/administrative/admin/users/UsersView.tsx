@@ -236,12 +236,22 @@ interface Invite {
 export function UsersView({
   isPlatformRole,
   isOwner,
+  canAdministerAccounts,
   currentUserId,
 }: {
   /** Viewer belongs to no ministry, so the UI works across all of them. */
   isPlatformRole: boolean;
   /** Only the owner may appoint a platform admin. */
   isOwner: boolean;
+  /**
+   * Whether the viewer administers accounts day to day — deactivating,
+   * unlocking, signing out, erasing, editing details.
+   *
+   * A platform admin provisions and does not administer: it creates accounts,
+   * re-sends invitations and sets roles, and the API refuses it all five of
+   * the rest. Rendering them anyway would offer five buttons that answer 403.
+   */
+  canAdministerAccounts: boolean;
   currentUserId: string;
 }) {
   const queryClient = useQueryClient();
@@ -494,7 +504,7 @@ export function UsersView({
 
     return u.deletedAt ? null : (
       <div className="flex items-center gap-1 max-sm:gap-2">
-        {!isSelf && (
+        {!isSelf && canAdministerAccounts && (
         <Tooltip
           content={
             u.active
@@ -521,6 +531,7 @@ export function UsersView({
         </button>
         </Tooltip>
         )}
+        {canAdministerAccounts && (
         <Tooltip content={`Change ${u.name}'s name or job title`}>
         <button
           aria-label={`Edit ${u.name}`}
@@ -530,6 +541,7 @@ export function UsersView({
           <Pencil className="h-4 w-4" />
         </button>
         </Tooltip>
+        )}
         <Tooltip
           content={`Send ${u.name} a fresh link to set their password. Any link they are already holding stops working.`}
         >
@@ -542,6 +554,7 @@ export function UsersView({
           <Mail className="h-4 w-4" />
         </button>
         </Tooltip>
+        {canAdministerAccounts && (
         <Tooltip
           content={`End every session ${u.name} has open, on every device. They can sign back in straight away.`}
         >
@@ -567,10 +580,11 @@ export function UsersView({
           <LogOut className="h-4 w-4" />
         </button>
         </Tooltip>
+        )}
         {/* Only where there is a lock to release — an Unlock
             button on every row invites clicking it as a guess
             when someone cannot sign in for an unrelated reason. */}
-        {isLocked(u) && (
+        {canAdministerAccounts && isLocked(u) && (
           <Tooltip
             content={`Locked after five failed sign-ins. Clears at ${new Date(
               u.lockedUntil!,
@@ -601,7 +615,7 @@ export function UsersView({
         )}
         {/* Separated from the group. Erase sat immediately beside "sign out
             everywhere" — one reversible, one permanent, 8px apart, on a phone. */}
-        {!isSelf && (
+        {!isSelf && canAdministerAccounts && (
         <span className="ml-1 border-l border-border pl-1 max-sm:ml-2 max-sm:pl-2">
         <Tooltip
           content={`Permanently erase ${u.name}'s personal details, including the signature on every attendance record they signed. This cannot be undone.`}

@@ -46,6 +46,23 @@ export const ADMIN_ROLES: SystemRole[] = [
 export const PLATFORM_ROLES: SystemRole[] = ['SUPER_ADMIN', 'PLATFORM_ADMIN'];
 
 /**
+ * Everyone who may look at the schedule — every role, since a platform admin
+ * oversees every ministry's calendar without belonging to one.
+ *
+ * Distinct from STAFF_ROLES, which gates the surfaces where a meeting is
+ * actually run: creating and editing events, minutes, action items, check-in.
+ * Looking is not the same permission as touching, and this is the pair of
+ * lists that says so.
+ */
+export const SCHEDULE_VIEWERS: SystemRole[] = [
+  'SUPER_ADMIN',
+  'PLATFORM_ADMIN',
+  'MINISTER',
+  'MINISTRY_ADMIN',
+  'STAFF',
+];
+
+/**
  * Who may reach the user list. Deliberately not ADMIN_ROLES: provisioning
  * accounts is part of an engineer's job, reading a ministry's reports is not,
  * and the two were the same list until there was a role that needed one

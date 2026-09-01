@@ -25,6 +25,7 @@ import { useCurrentUser } from '@/components/SessionProvider';
 import {
   ADMIN_ROLES,
   PLATFORM_ROLES,
+  SCHEDULE_VIEWERS,
   STAFF_ROLES,
   USER_ADMIN_ROLES,
 } from '@/lib/roles';
@@ -64,7 +65,7 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/administrative/dashboard',
         label: 'Dashboard',
         icon: <LayoutDashboard className="h-4 w-4" />,
-        roles: STAFF_ROLES,
+        roles: SCHEDULE_VIEWERS,
       },
       {
         // Sits here rather than under Administration because for an operations
@@ -87,10 +88,12 @@ const NAV_GROUPS: NavGroup[] = [
         roles: STAFF_ROLES,
       },
       {
+        // Looking, not running. The Events list beside it is where a meeting
+        // gets created and edited, so it stays with the people who hold one.
         href: '/administrative/calendar',
         label: 'Calendar',
         icon: <CalendarRange className="h-4 w-4" />,
-        roles: STAFF_ROLES,
+        roles: SCHEDULE_VIEWERS,
       },
     ],
   },

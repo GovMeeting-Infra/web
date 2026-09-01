@@ -200,6 +200,15 @@ function startsInLabel(mins: number) {
 export function DashboardView() {
   const currentUser = useCurrentUser();
 
+  /**
+   * A platform admin has no meetings of its own, so the halves of this page
+   * that ask "what do I have to do" would be empty at best and a 403 at worst.
+   * It gets the same page read the other way round: not mine, but everyone's —
+   * what is scheduled across every ministry, and the aggregate figures. It can
+   * open none of it.
+   */
+  const isPlatformAdmin = currentUser?.systemRole === 'PLATFORM_ADMIN';
+
   const {
     data: profile,
     isLoading: loadingProfile,
@@ -223,6 +232,9 @@ export function DashboardView() {
       apiFetch<EventListResponse>(
         '/api/v1/events?timeframe=now&mine=true&sortBy=startAt&order=asc',
       ),
+    // The band exists to put a check-in code within reach of whoever is running
+    // the meeting. Nobody here is.
+    enabled: !isPlatformAdmin,
     // The band goes stale on its own as a meeting starts or ends; nothing else
     // on the page would trigger a refetch while someone watches it.
     refetchInterval: 60_000,
@@ -234,10 +246,12 @@ export function DashboardView() {
     error: eventsError,
     refetch: refetchEvents,
   } = useQuery({
-    queryKey: ['dashboard-upcoming'],
+    queryKey: ['dashboard-upcoming', isPlatformAdmin],
     queryFn: () =>
       apiFetch<EventListResponse>(
-        '/api/v1/events?timeframe=upcoming&mine=true&sortBy=startAt&order=asc',
+        `/api/v1/events?timeframe=upcoming${
+          isPlatformAdmin ? '' : '&mine=true'
+        }&sortBy=startAt&order=asc`,
       ),
   });
 
@@ -254,14 +268,18 @@ export function DashboardView() {
       apiFetch<BoardActionItem[]>(
         `/api/v1/action-items?owner=${encodeURIComponent(currentUser!.id)}`,
       ),
-    enabled: !!currentUser?.id,
+    // Action items belong to the meetings they came out of, which is a door
+    // this role does not have a key to. Asking would 403.
+    enabled: !!currentUser?.id && !isPlatformAdmin,
   });
 
-  // The analytics endpoint is restricted to ministry-level roles, so this is
-  // gated rather than merely hidden — asking as a staff member would 403.
+  // The analytics endpoint is restricted, so this is gated rather than merely
+  // hidden — asking as a staff member would 403. It returns aggregates only;
+  // the exports beside it, which are rows about people, remain closed to the
+  // platform admin included here.
   const isAdmin =
     !!currentUser &&
-    ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'].includes(
+    ['SUPER_ADMIN', 'PLATFORM_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'].includes(
       currentUser.systemRole,
     );
 
@@ -597,7 +615,9 @@ export function DashboardView() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section className="rounded-[1.5rem] border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
-            <h2 className="font-semibold text-primary">Coming up</h2>
+            <h2 className="font-semibold text-primary">
+              {isPlatformAdmin ? 'Across the platform' : 'Coming up'}
+            </h2>
             <Link
               href="/administrative/calendar"
               className={`flex items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium text-primary underline-offset-4 hover:underline ${FOCUS}`}
@@ -610,7 +630,11 @@ export function DashboardView() {
             <RowsSkeleton rows={5} />
           ) : eventsError ? (
             <PanelError
-              message="Couldn't load your meetings."
+              message={
+                isPlatformAdmin
+                  ? "Couldn't load the schedule."
+                  : "Couldn't load your meetings."
+              }
               onRetry={() => {
                 void refetchEvents();
                 void refetchLive();
@@ -670,6 +694,7 @@ export function DashboardView() {
           )}
         </section>
 
+        {!isPlatformAdmin && (
         <section className="rounded-[1.5rem] border border-border bg-card">
           <div className="flex items-center justify-between border-b border-border px-6 py-4">
             <h2 className="font-semibold text-primary">Your action items</h2>
@@ -742,6 +767,7 @@ export function DashboardView() {
             </ul>
           )}
         </section>
+        )}
       </div>
     </PageContainer>
   );

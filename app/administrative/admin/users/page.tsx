@@ -10,6 +10,10 @@ export default async function AdminUsersPage() {
       // which one rather than assuming their own.
       isPlatformRole={PLATFORM_ROLES.includes(user.systemRole)}
       isOwner={user.systemRole === 'SUPER_ADMIN'}
+      // Platform admins provision accounts; they do not administer them. The
+      // API refuses them deactivate, unlock, sign-out, erase and detail edits,
+      // so the buttons for those must not render.
+      canAdministerAccounts={user.systemRole !== 'PLATFORM_ADMIN'}
       // So the list can recognise the viewer's own row. Deactivating or
       // erasing yourself signs you out mid-request, and if you are your
       // ministry's only administrator it locks the ministry.

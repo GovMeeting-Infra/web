@@ -5,6 +5,7 @@ import {
   ADMIN_ROLES,
   PLATFORM_ROLES,
   USER_ADMIN_ROLES,
+  SCHEDULE_VIEWERS,
   type SystemRole,
 } from './roles';
 import { API_BASE } from './api-base';
@@ -151,7 +152,13 @@ export async function getMyPreferences(): Promise<MyPreferences | null> {
 // live in lib/roles.ts because this module imports next/headers, which makes it
 // unusable from a client component.
 export type { SystemRole };
-export { STAFF_ROLES, ADMIN_ROLES, PLATFORM_ROLES, USER_ADMIN_ROLES };
+export {
+  STAFF_ROLES,
+  ADMIN_ROLES,
+  PLATFORM_ROLES,
+  USER_ADMIN_ROLES,
+  SCHEDULE_VIEWERS,
+};
 
 /**
  * Page-level role gate for server components. Redirects to /forbidden rather
