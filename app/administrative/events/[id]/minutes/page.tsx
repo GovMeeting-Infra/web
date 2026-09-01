@@ -244,7 +244,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
     if (
       !restoring &&
       !window.confirm(
-        'Archive these minutes? The record becomes permanent — nobody will be able to edit it, and only ministers and super admins will be able to read it.',
+        'Archive these minutes? The record becomes permanent — nobody will be able to edit it, and only ministers will be able to read it.',
       )
     ) {
       return;

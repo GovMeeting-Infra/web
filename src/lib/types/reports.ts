@@ -27,7 +27,7 @@ export interface EvidenceStats {
   mockFlagged: number;
 }
 
-/** The headline figures for one ministry. Super admins only. */
+/** The headline figures for one ministry. Platform-wide viewers only. */
 export interface MinistryBreakdown {
   ministryId: string;
   name: string;
@@ -94,7 +94,7 @@ export interface AnalyticsDashboard {
   trend: Trend;
   /** Signature capture and geofence outcomes across every check-in. */
   evidence: EvidenceStats;
-  /** Present only for a super admin. */
+  /** Present only for a platform-wide viewer. */
   byMinistry?: MinistryBreakdown[];
   scope: 'ministry' | 'all';
   generatedAt: string;

@@ -93,8 +93,23 @@ export interface SearchResults {
   people: { id: string; name: string; email: string; jobTitle: string | null }[];
 }
 
+/**
+ * The super-admin label is named plainly, because the only person who ever
+ * reads it is the super admin.
+ *
+ * That is a property of where it renders, not of the string. Of the seven
+ * places this map is used, five take the role from a list row or from the set
+ * an administrator may assign — and a super admin appears in neither, being
+ * filtered out of the user list server-side and grantable by nobody. The other
+ * two are the viewer's own menu and their own profile.
+ *
+ * So: keep it out of anything driven by a role that is not the viewer's own. A
+ * dropdown built from every SystemRole value would put it in front of a
+ * ministry admin, which is the one outcome this has to avoid.
+ */
 export const ROLE_LABELS: Record<SystemRole, string> = {
   SUPER_ADMIN: 'Super Admin',
+  PLATFORM_ADMIN: 'Platform Admin',
   MINISTER: 'Minister',
   MINISTRY_ADMIN: 'Ministry Admin',
   STAFF: 'Staff',
@@ -107,7 +122,10 @@ export const ROLE_LABELS: Record<SystemRole, string> = {
  * someone in their first week nothing about the difference between the two.
  */
 export const ROLE_DESCRIPTIONS: Record<SystemRole, string> = {
-  SUPER_ADMIN: 'You can see and administer every ministry on the platform.',
+  SUPER_ADMIN:
+    'You administer every ministry on the platform, and you alone appoint platform administrators.',
+  PLATFORM_ADMIN:
+    'You keep the platform running and set up ministries and accounts. Meetings and their records belong to the ministries.',
   MINISTER: 'You can see everything in your ministry and manage its people.',
   MINISTRY_ADMIN: 'You can manage meetings, people and reports for your ministry.',
   STAFF: 'You can run your own meetings, check in, and keep minutes.',

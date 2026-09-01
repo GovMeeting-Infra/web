@@ -1,13 +1,20 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { STAFF_ROLES, ADMIN_ROLES, type SystemRole } from './roles';
+import {
+  STAFF_ROLES,
+  ADMIN_ROLES,
+  PLATFORM_ROLES,
+  USER_ADMIN_ROLES,
+  SCHEDULE_VIEWERS,
+  type SystemRole,
+} from './roles';
 import { API_BASE } from './api-base';
 
 export interface CurrentUser {
   id: string;
   email: string;
   name: string;
-  systemRole: 'SUPER_ADMIN' | 'MINISTER' | 'MINISTRY_ADMIN' | 'STAFF';
+  systemRole: SystemRole;
   jobTitle: string | null;
   ministryId: string | null;
 }
@@ -145,14 +152,20 @@ export async function getMyPreferences(): Promise<MyPreferences | null> {
 // live in lib/roles.ts because this module imports next/headers, which makes it
 // unusable from a client component.
 export type { SystemRole };
-export { STAFF_ROLES, ADMIN_ROLES };
+export {
+  STAFF_ROLES,
+  ADMIN_ROLES,
+  PLATFORM_ROLES,
+  USER_ADMIN_ROLES,
+  SCHEDULE_VIEWERS,
+};
 
 /**
  * Page-level role gate for server components. Redirects to /forbidden rather
  * than rendering an empty page when the API would refuse anyway.
  *
- * Note: with the current four roles, STAFF_ROLES covers every signed-in user,
- * so requireRole(STAFF_ROLES) only ever catches a missing session. It becomes
+ * Note: STAFF_ROLES no longer covers every signed-in user — PLATFORM_ADMIN is
+ * outside it on purpose — so requireRole(STAFF_ROLES) is a real check. It
  * meaningful if a lower-privilege role is ever added.
  */
 export async function requireRole(allowed: SystemRole[]): Promise<CurrentUser> {

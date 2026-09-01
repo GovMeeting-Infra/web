@@ -9,8 +9,16 @@ import { MonthGrid, monthRange, type CalendarEvent } from '@/components/calendar
 import type { EventListResponse } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useCurrentUser } from '@/components/SessionProvider';
+import { STAFF_ROLES } from '@/lib/roles';
 
 export default function CalendarPage() {
+  const currentUser = useCurrentUser();
+
+  // A platform admin oversees every ministry's calendar and runs none of it, so
+  // it reads this page and cannot start anything from it.
+  const canSchedule = !!currentUser && STAFF_ROLES.includes(currentUser.systemRole);
+
   const params = useSearchParams();
   const today = new Date();
 
@@ -105,6 +113,7 @@ export default function CalendarPage() {
             </Tooltip>
           </div>
 
+          {canSchedule && (
           <Tooltip content="Set the time, place and who is invited. The same form covers an internal meeting and a public activity.">
             <Link
               href="/administrative/events/new"
@@ -114,6 +123,7 @@ export default function CalendarPage() {
               Schedule an activity
             </Link>
           </Tooltip>
+          )}
         </div>
       </div>
 

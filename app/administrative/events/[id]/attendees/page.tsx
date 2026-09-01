@@ -625,6 +625,21 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             <label className="text-sm font-medium text-foreground">
               Guests <span className="text-muted-foreground">(no account)</span>
             </label>
+            {/* The roster covers most of the people typed in here — ministry
+                staff who simply have not been onboarded. Picking one fills
+                both fields; anyone genuinely external is still typed by hand. */}
+            <PersonPicker
+              id="guestLookup"
+              value={null}
+              onChange={(person) => {
+                if (!person) return;
+                setGuestName(person.name);
+                setGuestEmail(person.email);
+              }}
+              placeholder="Search colleagues and staff…"
+              endpoint="/api/v1/users/directory/people?sources=accounts,staff"
+              allowUnassign={false}
+            />
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
               <input
                 type="text"
@@ -716,6 +731,23 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               themselves use the QR code.
             </p>
           </div>
+
+          {/* Worth the extra control here more than anywhere else: attendance
+              is unique on (eventId, guestEmail), so a slip at a desk with a
+              queue behind it does not misfile the record — it creates a second
+              attendee who was never in the room. */}
+          <PersonPicker
+            id="walkInLookup"
+            value={null}
+            onChange={(person) => {
+              if (!person) return;
+              setWalkInName(person.name);
+              setWalkInEmail(person.email);
+            }}
+            placeholder="Search colleagues and staff…"
+            endpoint="/api/v1/users/directory/people?sources=accounts,staff"
+            allowUnassign={false}
+          />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <input

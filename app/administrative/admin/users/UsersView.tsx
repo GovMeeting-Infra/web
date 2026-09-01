@@ -23,6 +23,7 @@ import { PageContainer } from '@/components/ui/page-container';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+import { PersonPicker } from '@/components/ui/person-picker';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary';
@@ -36,9 +37,11 @@ const label = 'block text-sm font-medium text-foreground/80';
  * asking.
  */
 const ROLE_GRANTS: Record<SystemRole, string> = {
-  // Never rendered — SUPER_ADMIN is not assignable by anyone. Kept so the map
-  // stays total against SystemRole rather than needing a cast.
+  // Never rendered — the owner role is not assignable by anyone. Kept so the
+  // map stays total against SystemRole rather than needing a cast.
   SUPER_ADMIN: 'They will be able to administer every ministry on the platform.',
+  PLATFORM_ADMIN:
+    "They'll be able to set up ministries and accounts across the platform, and see whether it is running. They won't be able to open anyone's meetings, minutes or attendance.",
   MINISTER:
     "They'll be able to manage everyone and everything in their ministry. A ministry has one minister, so the current one has to change first.",
   MINISTRY_ADMIN:
@@ -188,7 +191,7 @@ function RoleCell({
   if (!assignableRoles.includes(user.systemRole)) {
     return (
       <Tooltip
-        content={`Only a super admin can change a ${ROLE_LABELS[user.systemRole].toLowerCase()}'s role.`}
+        content={`You cannot change a ${ROLE_LABELS[user.systemRole].toLowerCase()}'s role.`}
       >
         <span
           className={`inline-block rounded-lg border border-transparent px-2 py-1 font-medium text-foreground ${
@@ -231,10 +234,25 @@ interface Invite {
 }
 
 export function UsersView({
-  isSuperAdmin,
+  isPlatformRole,
+  isOwner,
+  canAdministerAccounts,
   currentUserId,
 }: {
-  isSuperAdmin: boolean;
+  /** Viewer belongs to no ministry, so the UI works across all of them. */
+  isPlatformRole: boolean;
+  /** Only the owner may appoint a platform admin. */
+  isOwner: boolean;
+  /**
+   * Whether the viewer administers accounts day to day — deactivating,
+   * unlocking, signing out, erasing.
+   *
+   * A platform admin provisions and does not administer: it creates accounts,
+   * corrects their details, re-sends invitations and sets roles, and the API
+   * refuses it all four of the rest. Rendering them anyway would offer four
+   * buttons that answer 403.
+   */
+  canAdministerAccounts: boolean;
   currentUserId: string;
 }) {
   const queryClient = useQueryClient();
@@ -295,11 +313,14 @@ export function UsersView({
     !!erasing &&
     eraseConfirm.trim().toLowerCase() === erasing.email.trim().toLowerCase();
 
-  // A ministry admin must not be able to mint a peer above themselves; the
-  // server enforces this too.
-  const assignableRoles: SystemRole[] = isSuperAdmin
-    ? ['MINISTER', 'MINISTRY_ADMIN', 'STAFF']
-    : ['MINISTRY_ADMIN', 'STAFF'];
+  // A ministry admin must not be able to mint a peer above themselves, and a
+  // platform admin must not be able to mint another of itself. The server
+  // enforces both; this only keeps the form from offering what it would refuse.
+  const assignableRoles: SystemRole[] = isOwner
+    ? ['PLATFORM_ADMIN', 'MINISTER', 'MINISTRY_ADMIN', 'STAFF']
+    : isPlatformRole
+      ? ['MINISTER', 'MINISTRY_ADMIN', 'STAFF']
+      : ['MINISTRY_ADMIN', 'STAFF'];
 
   /**
    * The search term the query actually uses.
@@ -359,7 +380,7 @@ export function UsersView({
     queryKey: ['ministry-options'],
     queryFn: () =>
       apiFetch<{ id: string; name: string }[]>('/api/v1/events/ministry-options'),
-    enabled: isSuperAdmin,
+    enabled: isPlatformRole,
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -442,7 +463,7 @@ export function UsersView({
     // round trip and keeps the form filled in.
     // A super admin has no ministry of their own to fall back on, and every
     // creatable role belongs to one — SUPER_ADMIN is not among them.
-    if (isSuperAdmin && !form.ministryId) {
+    if (isPlatformRole && !form.ministryId) {
       setError('Choose which ministry this user belongs to.');
       return;
     }
@@ -455,7 +476,7 @@ export function UsersView({
           email: form.email.trim().toLowerCase(),
           systemRole: form.systemRole,
           jobTitle: form.jobTitle.trim() || undefined,
-          ...(isSuperAdmin && form.ministryId
+          ...(isPlatformRole && form.ministryId
             ? { ministryId: form.ministryId }
             : {}),
         }),
@@ -484,7 +505,7 @@ export function UsersView({
 
     return u.deletedAt ? null : (
       <div className="flex items-center gap-1 max-sm:gap-2">
-        {!isSelf && (
+        {!isSelf && canAdministerAccounts && (
         <Tooltip
           content={
             u.active
@@ -511,6 +532,10 @@ export function UsersView({
         </button>
         </Tooltip>
         )}
+        {/* Not gated. A platform admin may correct a name or job title — the
+            service still refuses it an email or ministry change, which are the
+            two fields on this form that decide who someone is and what they
+            can see. */}
         <Tooltip content={`Change ${u.name}'s name or job title`}>
         <button
           aria-label={`Edit ${u.name}`}
@@ -532,6 +557,7 @@ export function UsersView({
           <Mail className="h-4 w-4" />
         </button>
         </Tooltip>
+        {canAdministerAccounts && (
         <Tooltip
           content={`End every session ${u.name} has open, on every device. They can sign back in straight away.`}
         >
@@ -557,10 +583,11 @@ export function UsersView({
           <LogOut className="h-4 w-4" />
         </button>
         </Tooltip>
+        )}
         {/* Only where there is a lock to release — an Unlock
             button on every row invites clicking it as a guess
             when someone cannot sign in for an unrelated reason. */}
-        {isLocked(u) && (
+        {canAdministerAccounts && isLocked(u) && (
           <Tooltip
             content={`Locked after five failed sign-ins. Clears at ${new Date(
               u.lockedUntil!,
@@ -591,7 +618,7 @@ export function UsersView({
         )}
         {/* Separated from the group. Erase sat immediately beside "sign out
             everywhere" — one reversible, one permanent, 8px apart, on a phone. */}
-        {!isSelf && (
+        {!isSelf && canAdministerAccounts && (
         <span className="ml-1 border-l border-border pl-1 max-sm:ml-2 max-sm:pl-2">
         <Tooltip
           content={`Permanently erase ${u.name}'s personal details, including the signature on every attendance record they signed. This cannot be undone.`}
@@ -618,7 +645,7 @@ export function UsersView({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.15em] text-success">
-            {isSuperAdmin ? 'Platform administration' : 'Your ministry'}
+            {isPlatformRole ? 'Platform administration' : 'Your ministry'}
           </p>
           <h1 className="text-3xl font-bold text-primary">Users</h1>
           {/* Says what the page holds, and how many. The count was nowhere on
@@ -629,7 +656,7 @@ export function UsersView({
             {isLoading
               ? 'Everyone who can sign in, and anyone still waiting on an invitation.'
               : `${users.length} ${users.length === 1 ? 'person' : 'people'} ${
-                  isSuperAdmin ? 'across all ministries' : 'in your ministry'
+                  isPlatformRole ? 'across all ministries' : 'in your ministry'
                 }, including anyone still waiting on an invitation.`}
           </p>
         </div>
@@ -776,6 +803,36 @@ export function UsersView({
             arrive.
           </p>
 
+          {/* Staff only. Somebody who already holds an account is not someone
+              you can invite, so the roster endpoint drops them — which also
+              means this list gets shorter every time you use it. The fields
+              below stay editable: the roster is a convenience, not the only
+              way to name a person. */}
+          <div>
+            <label className={label} htmlFor="staff-lookup">
+              Find them on the staff list
+            </label>
+            <PersonPicker
+              id="staff-lookup"
+              value={null}
+              onChange={(person) => {
+                if (!person) return;
+                setForm((prev) => ({
+                  ...prev,
+                  name: person.name,
+                  email: person.email,
+                }));
+              }}
+              placeholder="Search staff not yet on the platform…"
+              endpoint="/api/v1/users/directory/people?sources=staff"
+              allowUnassign={false}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Optional. Fills in the name and email below, both of which you can
+              still change.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={label} htmlFor="full-name">Full name *</label>
@@ -822,7 +879,7 @@ export function UsersView({
                 className={field}
               />
             </div>
-            {isSuperAdmin && (
+            {isPlatformRole && (
               <div className="sm:col-span-2">
                 <label className={label} htmlFor="ministry">Ministry *</label>
                 <select id="ministry"
@@ -830,7 +887,7 @@ export function UsersView({
                   onChange={(e) => setForm({ ...form, ministryId: e.target.value })}
                   className={field}
                 >
-                  {/* No "my own ministry" option: a super admin does not have
+                  {/* No "my own ministry" option: a platform-wide viewer does not have
                       one, and picking it produced a user with no ministry. */}
                   <option value="">Select a ministry…</option>
                   {ministries.map((m) => (
@@ -900,7 +957,7 @@ export function UsersView({
             </option>
           ))}
         </select>
-        {isSuperAdmin && (
+        {isPlatformRole && (
           <select
             value={ministryFilter}
             onChange={(e) => setMinistryFilter(e.target.value)}

@@ -1,6 +1,6 @@
 describe('Events Management', () => {
   beforeEach(() => {
-    cy.login('staff@moh.gov.sl', 'Password@123');
+    cy.login('staff@moh.gov.sl', 'not-a-real-password');
     cy.visit('/administrative/events');
   });
 

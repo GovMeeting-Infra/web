@@ -739,7 +739,7 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
             </section>
           </div>
 
-          {/* Super admins only. The cross-ministry view was a single aggregate
+          {/* Platform-wide viewers only. The cross-ministry view was a single aggregate
               — the one number a platform operator could already guess, and the
               one they cannot act on. Ranked, because the point of this table is
               which ministry to call. */}

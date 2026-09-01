@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Building2, Plus, Power, Pencil, Copy, Check } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { useCurrentUser } from '@/components/SessionProvider';
 import { TableSkeleton } from '@/components/ui/skeletons';
 import { PageContainer } from '@/components/ui/page-container';
 import { Modal, ConfirmDialog } from '@/components/ui/modal';
@@ -45,6 +46,13 @@ const CHECKIN_RADIUS_METERS = 100;
 
 export function MinistriesView() {
   const queryClient = useQueryClient();
+  const currentUser = useCurrentUser();
+
+  // Deactivating a ministry signs out everyone in it at once. A platform admin
+  // stands ministries up and corrects their details; taking one out of service
+  // is the owner's call. The API agrees — PATCH carries `active`, so hiding the
+  // control is a courtesy, not the rule.
+  const canDeactivate = currentUser?.systemRole === 'SUPER_ADMIN';
 
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -402,6 +410,7 @@ export function MinistriesView() {
                           <Pencil className="h-4 w-4" />
                         </button>
                         </Tooltip>
+                        {canDeactivate && (
                         <Tooltip
                           content={
                             m.active
@@ -417,6 +426,7 @@ export function MinistriesView() {
                           <Power className="h-4 w-4" />
                         </button>
                         </Tooltip>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -472,6 +482,7 @@ export function MinistriesView() {
                 >
                   <Pencil className="h-4 w-4" /> Edit
                 </button>
+                {canDeactivate && (
                 <button
                   onClick={() => setToggling(m)}
                   className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -479,6 +490,7 @@ export function MinistriesView() {
                   <Power className="h-4 w-4" />
                   {m.active ? 'Deactivate' : 'Activate'}
                 </button>
+                )}
               </div>
             </li>
           ))}

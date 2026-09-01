@@ -159,5 +159,14 @@ export function stepsForRole(role: SystemRole, firstName: string): TourStep[] {
   }
 
   const admin = adminSteps(role);
+
+  // A role with no admin section of its own would otherwise index into an empty
+  // array here and throw, taking the page down rather than the tour. That is
+  // reachable now: PLATFORM_ADMIN sees none of the meeting surfaces these steps
+  // point at, so there is nothing to walk it through.
+  if (admin.length === 0) {
+    return [...core, CLOSING];
+  }
+
   return [...core, ...admin, { ...CLOSING, route: admin[admin.length - 1].route }];
 }

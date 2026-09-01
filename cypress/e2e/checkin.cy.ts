@@ -53,7 +53,7 @@ describe('Check-in — invalid codes', () => {
 
 describe('Check-in — signed in', () => {
   beforeEach(() => {
-    cy.login('staff@moh.gov.sl', 'Password@123');
+    cy.login('staff@moh.gov.sl', 'not-a-real-password');
   });
 
   it('should fit the form and signature pad on a 320px screen', () => {
@@ -141,7 +141,7 @@ describe('Check-in — signed in', () => {
 
 describe('Check-in code page — organizer', () => {
   beforeEach(() => {
-    cy.login('staff@moh.gov.sl', 'Password@123');
+    cy.login('staff@moh.gov.sl', 'not-a-real-password');
   });
 
   it('should scale the QR code to the screen it is displayed on', () => {
@@ -175,7 +175,7 @@ describe('Check-in code page — organizer', () => {
  */
 describe('Check-in — location refused', () => {
   beforeEach(() => {
-    cy.login('staff@moh.gov.sl', 'Password@123');
+    cy.login('staff@moh.gov.sl', 'not-a-real-password');
   });
 
   /** Every route to a position fails as blocked, however the page asks. */

@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ShieldAlert, Clock, AtSign } from 'lucide-react';
+import { ShieldAlert, Clock, AtSign, LifeBuoy } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { PageContainer } from '@/components/ui/page-container';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+import { useCurrentUser } from '@/components/SessionProvider';
 
 const field =
   'mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none';
@@ -37,6 +38,14 @@ function humanDuration(seconds: number): string {
 
 export function PlatformSettingsView() {
   const queryClient = useQueryClient();
+  const currentUser = useCurrentUser();
+
+  // The sign-in domain is the one setting whose blast radius is the whole
+  // platform: a wrong value locks every user out of every ministry, including
+  // whoever would have to put it back. So it is shown to everyone who can reach
+  // this page and changeable by fewer — the server refuses it either way, and
+  // this keeps the form from inviting an edit it would reject.
+  const canEditDomain = currentUser?.systemRole === 'SUPER_ADMIN';
 
   // null means "not edited yet", so the field shows whatever the server holds
   // and follows it after a save. Seeding state from the query in an effect
@@ -44,6 +53,7 @@ export function PlatformSettingsView() {
   const [timeoutEdit, setTimeoutEdit] = useState<string | null>(null);
   const [domainEdit, setDomainEdit] = useState<string | null>(null);
   const [domainConfirm, setDomainConfirm] = useState('');
+  const [supportEdit, setSupportEdit] = useState<string | null>(null);
   const [error, setError] = useTransientMessage();
   const [saved, setSaved] = useTransientMessage();
   const [isSaving, setIsSaving] = useState(false);
@@ -56,9 +66,17 @@ export function PlatformSettingsView() {
   const find = (key: string) => settings.find((s) => s.key === key);
   const timeoutSetting = find('SESSION_TIMEOUT_SECONDS');
   const domainSetting = find('GOVERNMENT_EMAIL_DOMAIN');
+  const supportSetting = find('SUPPORT_EMAIL');
 
   const timeout_ = timeoutEdit ?? timeoutSetting?.value ?? '';
   const domain = domainEdit ?? domainSetting?.value ?? '';
+  const support = supportEdit ?? supportSetting?.value ?? '';
+
+  // Blank is a real value here, not an empty form, so "changed" has to be
+  // compared against the stored value rather than tested for truthiness.
+  const supportChanged = Boolean(
+    supportSetting && support.trim() !== supportSetting.value,
+  );
 
   const domainChanged = Boolean(
     domainSetting && domain.trim() && domain.trim() !== domainSetting.value,
@@ -176,17 +194,22 @@ export function PlatformSettingsView() {
                 value={domain}
                 onChange={(e) => setDomainEdit(e.target.value)}
                 placeholder=".gov.sl"
-                className={field}
+                disabled={!canEditDomain}
+                className={`${field} disabled:cursor-not-allowed disabled:opacity-60`}
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                {domainSetting ? SOURCE_LABEL[domainSetting.source] : ''}
+                {canEditDomain
+                  ? domainSetting
+                    ? SOURCE_LABEL[domainSetting.source]
+                    : ''
+                  : 'Changing this is limited to the platform owner, because a wrong value signs everyone out of every ministry.'}
               </p>
             </div>
 
             {/* Typed confirmation, like the anonymise flow: getting this wrong
                 locks out everyone whose address no longer matches, including
                 the person making the change. */}
-            {domainChanged && (
+            {canEditDomain && domainChanged && (
               <div className="space-y-3 rounded-[1rem] border border-stat-gold-border bg-stat-gold-bg p-4">
                 <div className="flex items-start gap-2">
                   <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-stat-gold-fg" />
@@ -214,6 +237,7 @@ export function PlatformSettingsView() {
                 )
               }
               disabled={
+                !canEditDomain ||
                 isSaving ||
                 !domainChanged ||
                 domainConfirm.trim() !== domain.trim()
@@ -221,6 +245,49 @@ export function PlatformSettingsView() {
               className="rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
             >
               Save domain
+            </button>
+          </section>
+
+          <section className="space-y-4 rounded-[1.5rem] border border-border bg-card p-6">
+            <div className="flex items-start gap-3">
+              <LifeBuoy className="mt-1 h-5 w-5 text-muted-foreground" />
+              <div>
+                <h2 className="font-semibold text-primary">Support address</h2>
+                <p className="text-sm text-muted-foreground">
+                  Shown on the help page as the way to reach a human about the
+                  platform itself. Point it at a shared mailbox somebody reads,
+                  not at one person — whoever holds it will be written to by
+                  people who are already stuck.
+                </p>
+              </div>
+            </div>
+
+            <div className="max-w-md">
+              <label className={label} htmlFor="support-email">
+                Email address
+              </label>
+              <input
+                id="support-email"
+                type="email"
+                value={support}
+                onChange={(e) => setSupportEdit(e.target.value)}
+                placeholder="info@ministry.gov.sl"
+                className={field}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {support.trim()
+                  ? 'The help page offers this address.'
+                  : 'Blank — the help page points people at their ministry administrator instead.'}
+                {supportSetting ? ` · ${SOURCE_LABEL[supportSetting.source]}` : ''}
+              </p>
+            </div>
+
+            <button
+              onClick={() => save({ SUPPORT_EMAIL: support.trim() }, 'the support address')}
+              disabled={isSaving || !supportChanged}
+              className="rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground disabled:opacity-60"
+            >
+              Save address
             </button>
           </section>
         </>

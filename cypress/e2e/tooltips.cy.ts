@@ -83,7 +83,7 @@ describe('Tooltips — no account needed', () => {
 describe('Tooltips — signed in', () => {
   beforeEach(() => {
     cy.viewport(1280, 800);
-    cy.login('staff@moh.gov.sl', 'Password@123');
+    cy.login('staff@moh.gov.sl', 'not-a-real-password');
   });
 
   // Collapsed, this rail is the entire navigation and nothing on it is

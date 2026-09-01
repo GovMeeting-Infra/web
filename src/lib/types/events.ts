@@ -1,4 +1,9 @@
-export type SystemRole = 'SUPER_ADMIN' | 'MINISTER' | 'MINISTRY_ADMIN' | 'STAFF';
+export type SystemRole =
+  | 'SUPER_ADMIN'
+  | 'PLATFORM_ADMIN'
+  | 'MINISTER'
+  | 'MINISTRY_ADMIN'
+  | 'STAFF';
 
 export type EventType =
   | 'MEETING'
