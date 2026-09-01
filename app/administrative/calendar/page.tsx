@@ -17,7 +17,7 @@ export default function CalendarPage() {
 
   // A platform admin oversees every ministry's calendar and runs none of it, so
   // it reads this page and cannot start anything from it.
-  const canSchedule = STAFF_ROLES.includes(currentUser?.systemRole as any);
+  const canSchedule = !!currentUser && STAFF_ROLES.includes(currentUser.systemRole);
 
   const params = useSearchParams();
   const today = new Date();

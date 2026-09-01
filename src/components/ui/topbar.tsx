@@ -31,7 +31,7 @@ export function Topbar({
   // Search covers events, minutes and people — all of it closed to an
   // operations account, which the results page would answer with a 403. Better
   // no box than a box that always fails.
-  const canSearch = STAFF_ROLES.includes(currentUser?.systemRole as any);
+  const canSearch = !!currentUser && STAFF_ROLES.includes(currentUser.systemRole);
 
   return (
     <header className="relative flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:h-20 sm:px-6">
