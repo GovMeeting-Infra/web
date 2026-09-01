@@ -22,7 +22,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { useCurrentUser } from '@/components/SessionProvider';
-import { ADMIN_ROLES, PLATFORM_ROLES, USER_ADMIN_ROLES } from '@/lib/roles';
+import {
+  ADMIN_ROLES,
+  PLATFORM_ROLES,
+  STAFF_ROLES,
+  USER_ADMIN_ROLES,
+} from '@/lib/roles';
 import { signOut } from '@/lib/sign-out';
 import { Tooltip } from './tooltip';
 
@@ -48,6 +53,10 @@ interface NavGroup {
  * /forbidden, which is how Users and Reports behaved before.
  */
 const NAV_GROUPS: NavGroup[] = [
+  // Entries with no `roles` are shown to everyone signed in. That was every
+  // role until PLATFORM_ADMIN, which participates in no meetings — so the
+  // meeting surfaces below now name STAFF_ROLES explicitly. Leaving them open
+  // put five links in an engineer's sidebar that all answered 403.
   {
     title: 'Overview',
     items: [
@@ -55,6 +64,16 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/administrative/dashboard',
         label: 'Dashboard',
         icon: <LayoutDashboard className="h-4 w-4" />,
+        roles: STAFF_ROLES,
+      },
+      {
+        // Sits here rather than under Administration because for an operations
+        // account it is the overview — the only landing page they have.
+        // requireRole(PLATFORM_ROLES) in administrative/platform/page.tsx.
+        href: '/administrative/platform',
+        label: 'Platform health',
+        icon: <Activity className="h-4 w-4" />,
+        roles: PLATFORM_ROLES,
       },
     ],
   },
@@ -65,11 +84,13 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/administrative/events',
         label: 'Events',
         icon: <CalendarDays className="h-4 w-4" />,
+        roles: STAFF_ROLES,
       },
       {
         href: '/administrative/calendar',
         label: 'Calendar',
         icon: <CalendarRange className="h-4 w-4" />,
+        roles: STAFF_ROLES,
       },
     ],
   },
@@ -80,11 +101,13 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/administrative/minutes',
         label: 'Minutes',
         icon: <ClipboardList className="h-4 w-4" />,
+        roles: STAFF_ROLES,
       },
       {
         href: '/administrative/action-items',
         label: 'Action Items',
         icon: <KanbanSquare className="h-4 w-4" />,
+        roles: STAFF_ROLES,
       },
     ],
   },
@@ -116,13 +139,6 @@ const NAV_GROUPS: NavGroup[] = [
         href: '/administrative/admin/settings',
         label: 'Platform settings',
         icon: <SlidersHorizontal className="h-4 w-4" />,
-        roles: PLATFORM_ROLES,
-      },
-      {
-        // requireRole(PLATFORM_ROLES) in administrative/platform/page.tsx.
-        href: '/administrative/platform',
-        label: 'Platform health',
-        icon: <Activity className="h-4 w-4" />,
         roles: PLATFORM_ROLES,
       },
       {

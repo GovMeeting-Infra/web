@@ -5,6 +5,8 @@ import { Menu, Building2, Search } from 'lucide-react';
 import { SierraLeoneFlag } from '../SierraLeoneFlag';
 import { NotificationBell } from './notification-bell';
 import { SearchDialog } from './search-dialog';
+import { useCurrentUser } from '@/components/SessionProvider';
+import { STAFF_ROLES } from '@/lib/roles';
 import { UserMenu } from './user-menu';
 
 interface TopbarProps {
@@ -24,6 +26,12 @@ export function Topbar({
   onMenuClick,
 }: TopbarProps) {
   const [searchOpen, setSearchOpen] = useState(false);
+  const currentUser = useCurrentUser();
+
+  // Search covers events, minutes and people — all of it closed to an
+  // operations account, which the results page would answer with a 403. Better
+  // no box than a box that always fails.
+  const canSearch = STAFF_ROLES.includes(currentUser?.systemRole as any);
 
   return (
     <header className="relative flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:h-20 sm:px-6">
@@ -56,6 +64,7 @@ export function Topbar({
 
         {/* Global search. A plain GET form so it works without JS and lands on
             /administrative/search?q=… exactly as a shared link would. */}
+        {canSearch && (
         <form
           action="/administrative/search"
           method="GET"
@@ -71,6 +80,7 @@ export function Topbar({
             className="w-full rounded-xl border border-border bg-card py-2 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground focus:border-primary"
           />
         </form>
+        )}
       </div>
 
       <div className="flex items-center gap-2 sm:gap-3">
@@ -79,16 +89,18 @@ export function Topbar({
             results page: that page takes its query from the URL and has no
             input of its own, so the link landed on empty results with nowhere
             to type. */}
-        <button
-          type="button"
-          onClick={() => setSearchOpen(true)}
-          aria-label="Search"
-          aria-expanded={searchOpen}
-          aria-haspopup="dialog"
-          className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-muted md:hidden"
-        >
-          <Search className="h-5 w-5" />
-        </button>
+        {canSearch && (
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            aria-label="Search"
+            aria-expanded={searchOpen}
+            aria-haspopup="dialog"
+            className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-muted md:hidden"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+        )}
 
         {/* Opens a panel of unread items rather than navigating; the full
             history lives on the Notifications page in the sidebar. */}
