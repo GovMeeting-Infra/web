@@ -94,17 +94,21 @@ export interface SearchResults {
 }
 
 /**
- * "Owner" rather than the internal name, which is never shown. The two platform
- * roles read differently because collapsing them made the owner's own account
- * look demoted in its own menu — the point was to avoid naming the role, not to
- * disguise it as a lesser one.
+ * The super-admin label is named plainly, because the only person who ever
+ * reads it is the super admin.
  *
- * Nobody else ever sees this label: the owner's rows are filtered out of the
- * user list server-side, so it renders only in that account's own menu and
- * profile.
+ * That is a property of where it renders, not of the string. Of the seven
+ * places this map is used, five take the role from a list row or from the set
+ * an administrator may assign — and a super admin appears in neither, being
+ * filtered out of the user list server-side and grantable by nobody. The other
+ * two are the viewer's own menu and their own profile.
+ *
+ * So: keep it out of anything driven by a role that is not the viewer's own. A
+ * dropdown built from every SystemRole value would put it in front of a
+ * ministry admin, which is the one outcome this has to avoid.
  */
 export const ROLE_LABELS: Record<SystemRole, string> = {
-  SUPER_ADMIN: 'Owner',
+  SUPER_ADMIN: 'Super Admin',
   PLATFORM_ADMIN: 'Platform Admin',
   MINISTER: 'Minister',
   MINISTRY_ADMIN: 'Ministry Admin',
@@ -119,7 +123,7 @@ export const ROLE_LABELS: Record<SystemRole, string> = {
  */
 export const ROLE_DESCRIPTIONS: Record<SystemRole, string> = {
   SUPER_ADMIN:
-    'You own the platform. You administer every ministry, and you alone appoint platform administrators.',
+    'You administer every ministry on the platform, and you alone appoint platform administrators.',
   PLATFORM_ADMIN:
     'You keep the platform running and set up ministries and accounts. Meetings and their records belong to the ministries.',
   MINISTER: 'You can see everything in your ministry and manage its people.',
