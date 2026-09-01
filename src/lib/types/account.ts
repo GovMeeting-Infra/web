@@ -94,13 +94,17 @@ export interface SearchResults {
 }
 
 /**
- * Both platform roles read the same on purpose. The owner's rows are filtered
- * out of the user list server-side, so the only place its own label is rendered
- * is its own user menu — where "Platform Admin" is true enough and tells a
- * reader nothing about a role that is not theirs to know about.
+ * "Owner" rather than the internal name, which is never shown. The two platform
+ * roles read differently because collapsing them made the owner's own account
+ * look demoted in its own menu — the point was to avoid naming the role, not to
+ * disguise it as a lesser one.
+ *
+ * Nobody else ever sees this label: the owner's rows are filtered out of the
+ * user list server-side, so it renders only in that account's own menu and
+ * profile.
  */
 export const ROLE_LABELS: Record<SystemRole, string> = {
-  SUPER_ADMIN: 'Platform Admin',
+  SUPER_ADMIN: 'Owner',
   PLATFORM_ADMIN: 'Platform Admin',
   MINISTER: 'Minister',
   MINISTRY_ADMIN: 'Ministry Admin',
@@ -114,7 +118,8 @@ export const ROLE_LABELS: Record<SystemRole, string> = {
  * someone in their first week nothing about the difference between the two.
  */
 export const ROLE_DESCRIPTIONS: Record<SystemRole, string> = {
-  SUPER_ADMIN: 'You can administer every ministry on the platform.',
+  SUPER_ADMIN:
+    'You own the platform. You administer every ministry, and you alone appoint platform administrators.',
   PLATFORM_ADMIN:
     'You keep the platform running and set up ministries and accounts. Meetings and their records belong to the ministries.',
   MINISTER: 'You can see everything in your ministry and manage its people.',
