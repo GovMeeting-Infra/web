@@ -276,15 +276,20 @@ async function queueIfDeferrable(
 
   const { route, match } = matched;
 
+  // A create is named by its body; everything else by its address.
+  const entityId = route.entityIdFromBody
+    ? route.entityIdFromBody(body)
+    : route.entityId(match);
+
   try {
     await enqueue({
       kind: route.kind,
       path,
       method: route.method,
       body,
-      entity: { type: route.entityType, id: route.entityId(match) },
+      entity: { type: route.entityType, id: entityId },
       baseUpdatedAt: opts.baseUpdatedAt ?? null,
-      label: route.label(match),
+      label: route.label(match, body),
       collapseByEntity: route.collapseByEntity,
     });
   } catch {

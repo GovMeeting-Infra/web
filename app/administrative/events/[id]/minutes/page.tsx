@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { apiFetch, ApiError, messageFor } from '@/lib/api/client';
+import { newId } from '@/lib/offline/ids';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
   useUnsavedWarning,
@@ -367,6 +368,15 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       await apiFetch(`/api/v1/events/${id}/minutes/action-items`, {
         method: 'POST',
         body: JSON.stringify({
+          /*
+           * Named here, because an action item has no natural key.
+           *
+           * The same title, owner and due date is a perfectly ordinary thing to
+           * record twice, so nothing else could tell a retry apart from a
+           * second item — and a queue that could not be sure its write landed
+           * would turn one into three. The primary key answers it.
+           */
+          id: newId(),
           title: newActionItem.title,
           dueDate: new Date(newActionItem.dueDate).toISOString(),
           // A guest: id is a marker for someone with no account, not something

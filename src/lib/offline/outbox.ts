@@ -92,7 +92,31 @@ export interface EnqueueInput {
   collapseByEntity?: boolean;
 }
 
+/**
+ * Which queued writes this one cannot land without.
+ *
+ * Worked out from the address rather than declared by the caller. An action
+ * item recorded during an outage is written to
+ * /api/v1/events/<event id>/minutes/action-items, and if that event is itself
+ * still sitting in the queue then its id appears as a segment of this path.
+ * That is the dependency, and it is visible without anybody having to remember
+ * to state it.
+ *
+ * Ordering by `seq` already sends them in the right sequence, so this is not
+ * what makes the normal case work. It is what makes the abnormal one safe: if
+ * the meeting is refused, everything written inside it is marked blocked rather
+ * than fired at a record that does not exist and never will.
+ */
+function inferDependencies(path: string, pending: OutboxOp[]): string[] {
+  const segments = new Set(path.split('/').filter(Boolean));
+  return pending
+    .filter((other) => other.entity.id && segments.has(other.entity.id))
+    .map((other) => other.opId);
+}
+
 export async function enqueue(input: EnqueueInput): Promise<OutboxOp> {
+  const existingOps = await listOps();
+
   const op: OutboxOp = {
     opId: newId(),
     seq: await nextSeq(),
@@ -102,7 +126,7 @@ export async function enqueue(input: EnqueueInput): Promise<OutboxOp> {
     method: input.method,
     body: input.body,
     entity: input.entity,
-    dependsOn: input.dependsOn ?? [],
+    dependsOn: input.dependsOn ?? inferDependencies(input.path, existingOps),
     baseUpdatedAt: input.baseUpdatedAt ?? null,
     capturedAt: now().toISOString(),
     attempts: 0,

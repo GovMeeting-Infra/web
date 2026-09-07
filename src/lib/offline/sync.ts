@@ -131,19 +131,42 @@ export async function syncNow(): Promise<SyncReport> {
 
   try {
     const uid = cacheNamespace();
-    const ops = (await listOps()).filter(
+    const all = await listOps();
+    const ops = all.filter(
       (op) =>
         op.status === 'pending' &&
         op.actorUid === uid &&
         op.nextAttemptAt <= Date.now(),
     );
 
+    /** Written before this run and not yet resolved. */
+    const unsent = new Set(all.map((op) => op.opId));
+
+    /** Landed during this run, so anything waiting on them may now go. */
+    const settled = new Set<string>();
+
     for (const op of ops) {
+      /*
+       * Wait for what this was written inside.
+       *
+       * An action item recorded during an outage may belong to a meeting that
+       * is still in the queue behind it. Ordering by seq normally sends the
+       * meeting first, but a retry can reschedule one and not the other — and
+       * firing at an event the server has never heard of turns a recoverable
+       * write into a 404 and a dead letter.
+       */
+      const waitingOn = op.dependsOn.filter(
+        (parent) => unsent.has(parent) && !settled.has(parent),
+      );
+      if (waitingOn.length) continue;
+
       await updateOp(op.opId, { status: 'inflight' });
 
       try {
         const result = (await sendOne(op)) as { conflict?: WriteConflict };
         await resolveOp(op.opId);
+        settled.add(op.opId);
+        unsent.delete(op.opId);
         report.synced += 1;
         if (result?.conflict) {
           report.conflicts.push({ label: op.label, conflict: result.conflict });

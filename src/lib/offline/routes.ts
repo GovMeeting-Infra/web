@@ -1,6 +1,6 @@
 'use client';
 
-import type { OpKind } from './types';
+import type { EntityType, OpKind } from './types';
 
 /**
  * Which writes may be deferred, and — more importantly — which may not.
@@ -21,10 +21,15 @@ export interface OfflineRoute {
   method: 'POST' | 'PATCH';
   match: RegExp;
   /** Identifies the record, so repeated saves collapse onto one another. */
-  entityType: 'minutes' | 'attendance';
+  entityType: EntityType;
   entityId: (match: RegExpMatchArray) => string;
   collapseByEntity: boolean;
-  label: (match: RegExpMatchArray) => string;
+  /**
+   * Where the record's id lives when the path does not carry one — a create,
+   * which is named by its body rather than its address.
+   */
+  entityIdFromBody?: (body: unknown) => string;
+  label: (match: RegExpMatchArray, body: unknown) => string;
   /**
    * What the caller gets back so its success path can run unchanged.
    *
@@ -38,6 +43,13 @@ export interface OfflineRoute {
 const MINUTES = /^\/api\/v1\/events\/([^/?]+)\/minutes(?:\?.*)?$/;
 const OFFLINE_REGISTER =
   /^\/api\/v1\/checkin\/([^/?]+)\/offline-register(?:\?.*)?$/;
+const EVENT_CREATE = /^\/api\/v1\/events(?:\?.*)?$/;
+const EVENT_UPDATE = /^\/api\/v1\/events\/([^/?]+)(?:\?.*)?$/;
+const EVENT_SERIES = /^\/api\/v1\/events\/([^/?]+)\/series(?:\?.*)?$/;
+const ACTION_ITEM_CREATE =
+  /^\/api\/v1\/events\/([^/?]+)\/minutes\/action-items(?:\?.*)?$/;
+const ACTION_ITEM_UPDATE =
+  /^\/api\/v1\/events\/[^/?]+\/action-items\/([^/?]+)(?:\?.*)?$/;
 
 export const OFFLINE_ROUTES: OfflineRoute[] = [
   {
@@ -89,6 +101,84 @@ export const OFFLINE_ROUTES: OfflineRoute[] = [
         })),
       };
     },
+  },
+  {
+    kind: 'event.create',
+    method: 'POST',
+    match: EVENT_CREATE,
+    entityType: 'event',
+    /*
+     * The id comes from the body, not the path — there is no path yet.
+     *
+     * The page mints it before sending, online as well as off, so the address
+     * it navigates to is the record's real one either way. That is what makes a
+     * meeting created during an outage keep its link rather than move when it
+     * syncs.
+     */
+    entityId: () => '',
+    entityIdFromBody: (body) => (body as { id?: string })?.id ?? '',
+    collapseByEntity: false,
+    label: (_m, body) =>
+      `Meeting: ${(body as { title?: string })?.title ?? 'untitled'}`,
+    synthesize: (_m, body) => ({ ...(body as object), __pending: true }),
+  },
+  {
+    kind: 'event.series',
+    method: 'POST',
+    match: EVENT_SERIES,
+    entityType: 'event',
+    entityId: (m) => m[1],
+    collapseByEntity: false,
+    label: () => 'Repeat dates',
+    synthesize: () => ({ __pending: true, occurrences: [] }),
+  },
+  {
+    kind: 'actionItem.create',
+    method: 'POST',
+    match: ACTION_ITEM_CREATE,
+    entityType: 'actionItem',
+    entityId: () => '',
+    entityIdFromBody: (body) => (body as { id?: string })?.id ?? '',
+    collapseByEntity: false,
+    label: (_m, body) =>
+      `Action item: ${(body as { title?: string })?.title ?? 'untitled'}`,
+    synthesize: (_m, body) => ({
+      ...(body as object),
+      status: 'TODO',
+      __pending: true,
+    }),
+  },
+  {
+    kind: 'actionItem.update',
+    method: 'PATCH',
+    match: ACTION_ITEM_UPDATE,
+    entityType: 'actionItem',
+    entityId: (m) => m[1],
+    /*
+     * Collapsed, like minutes: dragging a card across a board produces a run of
+     * updates to the same item, and only the last one describes where it ended
+     * up.
+     */
+    collapseByEntity: true,
+    label: () => 'Action item change',
+    synthesize: (_m, body) => ({ ...(body as object), __pending: true }),
+  },
+  {
+    kind: 'event.update',
+    /*
+     * Ordering is not what keeps this from swallowing /events/:id/minutes —
+     * the segment pattern is [^/?]+, which stops at a slash, so these do not
+     * overlap. Worth stating, because the obvious reading is that a rule this
+     * broad must depend on coming last, and a later edit made on that
+     * assumption would be building on something untrue.
+     */
+    method: 'PATCH',
+    match: EVENT_UPDATE,
+    entityType: 'event',
+    entityId: (m) => m[1],
+    collapseByEntity: true,
+    label: () => 'Meeting details',
+    synthesize: (_m, body) => ({ ...(body as object), __pending: true }),
   },
 ];
 

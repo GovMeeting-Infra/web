@@ -4,6 +4,7 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { CreatedOfflineNotice } from '@/components/offline/CreatedOfflineNotice';
 import {
   ArrowLeft,
   Calendar,
@@ -356,6 +357,8 @@ export default function EventDetailPage({
         >
           <ArrowLeft className="h-4 w-4" /> Back to Events
         </Link>
+
+        <CreatedOfflineNotice />
 
         {error && (
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
