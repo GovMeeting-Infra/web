@@ -1,3 +1,5 @@
+import { reportReachable, reportUnreachable } from '@/lib/offline/connectivity';
+
 export class ApiError extends Error {
   status: number;
   /**
@@ -234,9 +236,19 @@ export async function apiFetch<T = unknown>(
         ...options.headers,
       },
     });
+  } catch (error) {
+    // Never arrived. This — not navigator.onLine — is what the app treats as
+    // being offline, because a request that failed to travel is the only
+    // reliable evidence there is.
+    reportUnreachable();
+    throw error;
   } finally {
     done();
   }
+
+  // Answered at all, so the connection works. A refusal counts: it made the
+  // round trip, which is the whole question here.
+  reportReachable();
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
