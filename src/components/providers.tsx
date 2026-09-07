@@ -1,9 +1,17 @@
 'use client';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { ReactNode, useState } from 'react';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { isOffline } from '@/lib/api/client';
+import {
+  indexedDbPersister,
+  shouldPersistQuery,
+  PERSIST_MAX_AGE_MS,
+} from '@/lib/offline/persister';
+import { requestPersistentStorage } from '@/lib/offline/db';
+import { NEXT_PUBLIC_BUILD_ID_FALLBACK } from '@/lib/offline/build-id';
 
 /**
  * Defaults the app had been running without.
@@ -68,11 +76,31 @@ export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: indexedDbPersister,
+        maxAge: PERSIST_MAX_AGE_MS,
+        /**
+         * Throws the stored cache away when the build changes. Response shapes
+         * travel with the code that reads them, and rehydrating last release's
+         * data into this release's components is a class of bug that only shows
+         * up in production, days after the deploy.
+         */
+        buster: process.env.NEXT_PUBLIC_BUILD_ID ?? NEXT_PUBLIC_BUILD_ID_FALLBACK,
+        dehydrateOptions: { shouldDehydrateQuery: shouldPersistQuery },
+      }}
+      onSuccess={() => {
+        // Once there is something worth keeping, ask the browser not to evict
+        // it. Without this IndexedDB is best effort, and "best effort" here
+        // means a roster disappearing between the meeting and the connection.
+        void requestPersistentStorage();
+      }}
+    >
       {/* At the root rather than inside the admin shell: the sign-in, reset,
           check-in and guest pages are outside that shell and have tooltips of
           their own. Radix throws without a provider above them. */}
       <TooltipProvider>{children}</TooltipProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
   );
 }
