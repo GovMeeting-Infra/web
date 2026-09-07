@@ -148,12 +148,23 @@ function subscribe(onChange: () => void): () => void {
   };
 }
 
-function snapshot(): Connectivity {
+/**
+ * The verdict, outside React.
+ *
+ * Exported because the hook is not the only caller that needs it — anything
+ * deciding whether to bother trying wants the same answer — and because a
+ * decision this load-bearing should be testable without mounting a component.
+ */
+export function currentConnectivity(): Connectivity {
   const current = store();
   // Before anything has been tried, the browser's opinion is all there is.
   // Afterwards it is outranked by what actually happened.
   if (!current.hasEvidence && browserSaysOffline()) return 'offline';
   return current.state;
+}
+
+function snapshot(): Connectivity {
+  return currentConnectivity();
 }
 
 /**

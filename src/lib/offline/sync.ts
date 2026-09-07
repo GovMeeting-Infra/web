@@ -52,7 +52,7 @@ function backoffMs(attempts: number): number {
  * never wastes nothing but hides the failure behind a spinner; treating a not
  * yet as a never throws away someone's work.
  */
-function classify(
+export function classify(
   error: unknown,
 ): { verdict: 'retry' | 'dead' | 'stop'; reason: string } {
   if (isOffline(error)) {

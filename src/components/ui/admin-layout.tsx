@@ -9,6 +9,7 @@ import { MobileNavDrawer } from './mobile-nav-drawer';
 import { SidebarNav } from './sidebar-nav';
 import { Topbar } from './topbar';
 import { OfflineBanner } from '@/components/offline/OfflineBanner';
+import { StorageWarning } from '@/components/offline/StorageWarning';
 import { Tooltip } from './tooltip';
 
 interface AdminLayoutProps {
@@ -143,6 +144,7 @@ export function AdminLayout({
         {/* Directly under the topbar and above the page, so it is the first
             thing read on every screen while it applies — and takes no space at
             all when it does not. */}
+        <StorageWarning />
         <OfflineBanner />
 
         {/* Page Content */}
