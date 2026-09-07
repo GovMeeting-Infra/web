@@ -1,10 +1,19 @@
+import { purgeDraftBackups } from '@/lib/hooks/useDraftBackup';
+
 /**
  * Ends the session and leaves for the sign-in page.
  *
  * Shared by the sidebar button and the profile menu so the two cannot drift —
  * signing out from one place must do exactly what it does from the other.
+ *
+ * Takes the user id so it can clear what belongs to them. A full reload drops
+ * everything held in memory, but unsaved minutes are deliberately kept in
+ * localStorage to survive a crash, and surviving a crash must not mean
+ * surviving the person leaving a shared device.
  */
-export async function signOut(): Promise<void> {
+export async function signOut(userId?: string | null): Promise<void> {
+  if (userId) purgeDraftBackups(userId);
+
   try {
     await fetch('/api/v1/auth/sign-out', {
       method: 'POST',

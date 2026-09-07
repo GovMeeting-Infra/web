@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiFetch, messageFor } from '@/lib/api/client';
 import type { GuestActionItem } from '@/lib/guest-minutes';
 import { ACTION_ITEM_STATUS_LABELS } from '@/lib/types/events';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
@@ -42,30 +43,30 @@ export function GuestActionItemCard({
     setError(null);
     setSaved(null);
     try {
-      const response = await fetch(
+      // apiFetch rather than a bare fetch: this is the same shape of request as
+      // every other write, and rolling its own meant no timeout, no ApiError,
+      // and a raw "Load failed" shown to a guest when the connection dropped.
+      // Never queued for later — a guest has no session and no shell, so their
+      // update has to succeed now or say plainly that it did not.
+      await apiFetch(
         `/api/v1/guest/minutes/${encodeURIComponent(token)}/action-items/${item.id}`,
         {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             status,
             progressNotes: notes,
             progressLink: link,
           }),
         },
+        { offline: 'never' },
       );
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => null);
-        throw new Error(body?.message ?? 'Could not save your update.');
-      }
 
       setSaved(true);
       // Pull the record again so the summary line and any other view of this
       // item reflect the new status.
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not save.');
+      setError(messageFor(err, 'Could not save your update.'));
     } finally {
       setIsSaving(false);
     }

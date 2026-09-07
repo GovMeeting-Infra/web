@@ -15,6 +15,48 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * How long a request may hang before we give up on it.
+ *
+ * `fetch` has no timeout of its own, so until this existed a half-open
+ * connection — a router mid-reboot, a captive portal, an uplink that dropped
+ * without closing its sockets — left the promise neither resolving nor
+ * rejecting for the operating system default, which runs to several minutes.
+ * No catch block ran, no error was shown, and the Save button simply spun.
+ * That is the single most common shape of "the internet is bad here", and it
+ * was the one failure the app could not see.
+ *
+ * Everything downstream — the offline message, and later the write queue —
+ * depends on the request actually rejecting, so this is load-bearing rather
+ * than a nicety.
+ */
+export const REQUEST_TIMEOUT_MS = 15_000;
+
+/** Downloads stream a whole file, so they get a longer leash than a JSON call. */
+export const DOWNLOAD_TIMEOUT_MS = 60_000;
+
+export interface ApiFetchOptions {
+  /**
+   * Whether this request may be deferred when the device is offline.
+   *
+   * Plumbing for the write queue: 'never' marks calls that must fail rather
+   * than be replayed later — session probes, anything that emails people, and
+   * anything whose meaning depends on the moment it runs. Nothing consumes
+   * this yet; declaring it now keeps the call sites from having to be revisited.
+   */
+  offline?: 'auto' | 'never';
+  /** Milliseconds before the request is abandoned. */
+  timeoutMs?: number;
+  /**
+   * Whether a lost session should send the browser to the login page.
+   *
+   * Background work must not: a sync running while someone is mid-sentence
+   * would navigate away from the page they are typing into. Such a caller sets
+   * this false and reads the 401 off the thrown ApiError instead.
+   */
+  authRedirect?: boolean;
+}
+
 function normalizeMessage(message: unknown, fallback: string): string {
   if (Array.isArray(message)) return message.join(', ');
   if (typeof message === 'string') return message;
@@ -44,6 +86,17 @@ function isSessionLoss(raw: string, status: number): boolean {
   // expired session that the guard sees as "nobody is asking". Only the second
   // one mentions a missing user, so the phrase is a reliable separator.
   return status === 403 && /no user in request/i.test(raw);
+}
+
+/**
+ * True when this error is the session having ended, whoever is asking.
+ *
+ * Exported so a caller that opted out of the redirect can still recognise the
+ * case and act on it — the sync engine holds its queue and asks the person to
+ * sign in rather than discarding their work.
+ */
+export function isSessionLossError(error: unknown): boolean {
+  return error instanceof ApiError && isSessionLoss(error.message, error.status);
 }
 
 /**
@@ -81,9 +134,13 @@ function redirectToLogin(): void {
   )}`;
 }
 
-function humanMessage(raw: string, status: number): string {
+function humanMessage(
+  raw: string,
+  status: number,
+  authRedirect: boolean,
+): string {
   if (isSessionLoss(raw, status)) {
-    redirectToLogin();
+    if (authRedirect) redirectToLogin();
     return SESSION_LOST;
   }
   if (status >= 500) {
@@ -93,12 +150,53 @@ function humanMessage(raw: string, status: number): string {
 }
 
 /**
+ * A signal that fires on our timeout, on the caller's own signal, or on
+ * neither, whichever comes first.
+ *
+ * `AbortSignal.timeout` and `AbortSignal.any` would say this in two lines, but
+ * both are recent and this app runs on whatever Android handset a ministry
+ * already owns. `AbortController` is everywhere, so it is built by hand.
+ *
+ * The returned `done` must be called or the timer keeps the callback — and the
+ * closure around it — alive for the full timeout after the request has settled.
+ */
+function abortAfter(
+  ms: number,
+  external?: AbortSignal | null,
+): { signal: AbortSignal; done: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort(new DOMException('The request timed out', 'TimeoutError'));
+  }, ms);
+
+  const forward = () => controller.abort(external?.reason);
+  if (external) {
+    if (external.aborted) forward();
+    else external.addEventListener('abort', forward, { once: true });
+  }
+
+  return {
+    signal: controller.signal,
+    done: () => {
+      clearTimeout(timer);
+      external?.removeEventListener('abort', forward);
+    },
+  };
+}
+
+/** True when the request gave up waiting rather than being answered. */
+export function isTimeout(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'TimeoutError';
+}
+
+/**
  * What a failed network call should say.
  *
  * A dropped connection never reaches ApiError at all — fetch rejects with a
  * TypeError whose message is "Failed to fetch" on Chrome and "Load failed" on
  * Safari. Both were rendered verbatim, including to citizens on the public
- * calendar and to attendees mid-check-in.
+ * calendar and to attendees mid-check-in. A timed-out request lands here too:
+ * it is the same problem to the person holding the phone.
  */
 export function isOffline(error: unknown): boolean {
   return !(error instanceof ApiError);
@@ -106,6 +204,9 @@ export function isOffline(error: unknown): boolean {
 
 export function messageFor(error: unknown, fallback: string): string {
   if (error instanceof ApiError) return error.message;
+  if (isTimeout(error)) {
+    return 'That took too long to reach the service. Your connection may be down — nothing you entered has been lost.';
+  }
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
     return 'You appear to be offline. Check your connection and try again.';
   }
@@ -115,15 +216,27 @@ export function messageFor(error: unknown, fallback: string): string {
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
+  opts: ApiFetchOptions = {},
 ): Promise<T> {
-  const response = await fetch(path, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+  const { signal, done } = abortAfter(
+    opts.timeoutMs ?? REQUEST_TIMEOUT_MS,
+    options.signal,
+  );
+
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      ...options,
+      credentials: 'include',
+      signal,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  } finally {
+    done();
+  }
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
@@ -135,7 +248,11 @@ export async function apiFetch<T = unknown>(
     } catch {
       // response had no JSON body
     }
-    throw new ApiError(humanMessage(message, response.status), response.status, code);
+    throw new ApiError(
+      humanMessage(message, response.status, opts.authRedirect !== false),
+      response.status,
+      code,
+    );
   }
 
   if (response.status === 204) {
@@ -158,12 +275,31 @@ function filenameFrom(disposition: string | null): string | null {
  * A plain <a href> would be shorter — the Next rewrite forwards the session
  * cookie either way — but a refusal or a server error would then navigate the
  * user to a raw JSON error body instead of surfacing as a message on the page.
+ *
+ * Always needs a live connection: an export is a server-side query, so there is
+ * nothing to defer and nothing useful in a cached copy.
  */
 export async function apiDownload(
   path: string,
   fallbackName: string,
 ): Promise<void> {
-  const response = await fetch(path, { credentials: 'include' });
+  const { signal, done } = abortAfter(DOWNLOAD_TIMEOUT_MS);
+
+  let response: Response;
+  try {
+    response = await fetch(path, { credentials: 'include', signal });
+  } catch (err) {
+    done();
+    // Said plainly, because "Load failed" reads like the file was corrupt
+    // rather than like the connection was.
+    if (isOffline(err)) {
+      throw new Error(
+        'You need a connection to download this. Try again once you are back online.',
+      );
+    }
+    throw err;
+  }
+  done();
 
   if (!response.ok) {
     let message = `Download failed (${response.status})`;
@@ -175,7 +311,7 @@ export async function apiDownload(
     }
     // An export is usually the first thing tried after a long read, which is
     // exactly when a session has quietly elapsed.
-    throw new ApiError(humanMessage(message, response.status), response.status);
+    throw new ApiError(humanMessage(message, response.status, true), response.status);
   }
 
   const blob = await response.blob();

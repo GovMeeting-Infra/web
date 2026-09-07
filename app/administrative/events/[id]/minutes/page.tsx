@@ -211,7 +211,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   }
 
   useUnsavedWarning(isDirty);
-  const restorableDraft = useDraftBackup(id, decisions, nextSteps, isDirty);
+  const restorableDraft = useDraftBackup(currentUser?.id ?? null, id, decisions, nextSteps, isDirty);
 
   // The 2-day edit window and its ministry-admin override live on the server;
   // ask rather than re-deriving them here.
@@ -305,7 +305,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       });
       queryClient.invalidateQueries({ queryKey: ['minutes', id] });
       queryClient.invalidateQueries({ queryKey: ['minutes-can-edit', id] });
-      discardDraftBackup(id);
+      discardDraftBackup(currentUser?.id ?? null, id);
       setSavedAt(
         new Date().toLocaleTimeString('en-GB', {
           hour: '2-digit',
@@ -575,7 +575,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
               onClick={() => {
                 setDecisions(restorableDraft.decisions);
                 setNextSteps(restorableDraft.nextSteps);
-                discardDraftBackup(id);
+                discardDraftBackup(currentUser?.id ?? null, id);
               }}
               className="rounded-[1.25rem] bg-primary px-4 py-2 text-xs font-medium text-primary-foreground"
             >
@@ -583,7 +583,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
             </button>
             <button
               type="button"
-              onClick={() => discardDraftBackup(id)}
+              onClick={() => discardDraftBackup(currentUser?.id ?? null, id)}
               className="rounded-[1.25rem] border border-border px-4 py-2 text-xs font-medium text-foreground"
             >
               Discard them
