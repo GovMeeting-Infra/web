@@ -1,7 +1,7 @@
 'use client';
 
 /** What kind of thing a queued write is, so the sync engine can reason about it. */
-export type OpKind = 'minutes.upsert';
+export type OpKind = 'minutes.upsert' | 'attendance.register';
 
 export type OpStatus =
   | 'pending'
@@ -31,7 +31,7 @@ export interface OutboxOp {
   path: string;
   method: 'POST' | 'PATCH';
   body: unknown;
-  entity: { type: 'minutes'; id: string };
+  entity: { type: 'minutes' | 'attendance'; id: string };
   /** opIds that must land first. */
   dependsOn: string[];
   /** `updatedAt` of the copy this was written against, for conflict reporting. */

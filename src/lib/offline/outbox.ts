@@ -17,25 +17,49 @@ import type { DeadOp, OutboxOp } from './types';
 
 const SEQ_KEY = 'outbox-seq';
 
-/** Notifies the UI without every consumer polling IndexedDB. */
-const listeners = new Set<() => void>();
+/**
+ * Subscribers, on globalThis rather than in module scope.
+ *
+ * Same reason as connectivity.ts: a bundler may place this module in more than
+ * one chunk, and each copy would then keep its own listener set. A queue change
+ * made through one copy would notify only that copy's subscribers, so the
+ * banner could sit at "2 waiting" while the queue was empty. BroadcastChannel
+ * does not paper over it either — it delivers to other tabs, never to the tab
+ * that posted.
+ */
+const KEY = '__govmeeting_outbox__';
 
-/** Keeps every tab's view of the queue in step. */
-const channel =
-  typeof BroadcastChannel !== 'undefined'
-    ? new BroadcastChannel('govmeeting-outbox')
-    : null;
+interface OutboxBus {
+  listeners: Set<() => void>;
+  channel: BroadcastChannel | null;
+}
 
-channel?.addEventListener('message', () => {
-  listeners.forEach((notify) => notify());
-});
+function bus(): OutboxBus {
+  const host = globalThis as Record<string, unknown>;
+  if (!host[KEY]) {
+    const created: OutboxBus = {
+      listeners: new Set<() => void>(),
+      channel:
+        typeof BroadcastChannel !== 'undefined'
+          ? new BroadcastChannel('govmeeting-outbox')
+          : null,
+    };
+    created.channel?.addEventListener('message', () => {
+      created.listeners.forEach((notify) => notify());
+    });
+    host[KEY] = created;
+  }
+  return host[KEY] as OutboxBus;
+}
 
 function announce(): void {
+  const { listeners, channel } = bus();
   listeners.forEach((notify) => notify());
   channel?.postMessage('changed');
 }
 
 export function subscribeToOutbox(onChange: () => void): () => void {
+  const { listeners } = bus();
   listeners.add(onChange);
   return () => listeners.delete(onChange);
 }

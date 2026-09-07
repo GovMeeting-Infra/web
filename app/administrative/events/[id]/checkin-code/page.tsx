@@ -4,6 +4,8 @@ import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
+import { PrepareForOffline } from '@/components/offline/PrepareForOffline';
+import { useIsOffline } from '@/lib/offline/connectivity';
 import { ArrowLeft, RefreshCw, MapPin, QrCode, XCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
 import { requestLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
@@ -27,6 +29,7 @@ export default function CheckInCodePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const offline = useIsOffline();
   const queryClient = useQueryClient();
   const [countdown, setCountdown] = useState<string>('');
   // null until the first tick, so the code is never painted as expired during
@@ -210,6 +213,35 @@ export default function CheckInCodePage({
           Generate a code for attendees to scan
         </p>
       </div>
+
+      {/*
+        Offline, a QR code is not merely unavailable — it is meaningless. The
+        code is minted by the server, and the phone that scans it would have to
+        fetch the check-in page from that same server. So this replaces the
+        panel rather than disabling a button, and points at the thing that does
+        work.
+      */}
+      {offline ? (
+        <div className="rounded-[1.5rem] border border-stat-blue-border bg-stat-blue-bg p-6 text-primary">
+          <h2 className="font-semibold">
+            A QR code can&rsquo;t be used without a connection
+          </h2>
+          <p className="mt-2 text-sm">
+            The code is issued by the server, and an attendee&rsquo;s phone would
+            have to reach that same server to use it. Take attendance on this
+            device instead — everyone you record is saved here and sent
+            automatically when the signal returns.
+          </p>
+          <Link
+            href={`/administrative/events/${id}/register`}
+            className="mt-4 inline-block rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            Open the attendance register
+          </Link>
+        </div>
+      ) : (
+        <PrepareForOffline eventId={id} />
+      )}
 
       {actionError && (
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">

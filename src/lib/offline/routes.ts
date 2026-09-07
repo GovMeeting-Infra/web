@@ -21,6 +21,7 @@ export interface OfflineRoute {
   method: 'POST' | 'PATCH';
   match: RegExp;
   /** Identifies the record, so repeated saves collapse onto one another. */
+  entityType: 'minutes' | 'attendance';
   entityId: (match: RegExpMatchArray) => string;
   collapseByEntity: boolean;
   label: (match: RegExpMatchArray) => string;
@@ -35,10 +36,13 @@ export interface OfflineRoute {
 }
 
 const MINUTES = /^\/api\/v1\/events\/([^/?]+)\/minutes(?:\?.*)?$/;
+const OFFLINE_REGISTER =
+  /^\/api\/v1\/checkin\/([^/?]+)\/offline-register(?:\?.*)?$/;
 
 export const OFFLINE_ROUTES: OfflineRoute[] = [
   {
     kind: 'minutes.upsert',
+    entityType: 'minutes',
     /*
      * Always POST on the way out, whichever verb the page used.
      *
@@ -54,6 +58,37 @@ export const OFFLINE_ROUTES: OfflineRoute[] = [
     collapseByEntity: true,
     label: () => 'Meeting minutes',
     synthesize: (_m, body) => ({ ...(body as object), __pending: true }),
+  },
+  {
+    kind: 'attendance.register',
+    method: 'POST',
+    match: OFFLINE_REGISTER,
+    entityType: 'attendance',
+    entityId: (m) => m[1],
+    /*
+     * Never collapsed, unlike minutes.
+     *
+     * Each send carries the people recorded since the last one, so replacing a
+     * pending batch with a newer one would drop everybody in the older one. The
+     * register is append-only in a way a minutes list is not: an earlier save
+     * has names a later one does not.
+     */
+    collapseByEntity: false,
+    label: () => 'Attendance register',
+    synthesize: (_m, body) => {
+      const records = (body as { records?: unknown[] })?.records ?? [];
+      // Shaped like the real response so the register screen can mark each
+      // person as recorded without a special offline branch.
+      return {
+        syncedAt: null,
+        __pending: true,
+        results: records.map((_r, index) => ({
+          index,
+          id: null,
+          status: 'RECORDED' as const,
+        })),
+      };
+    },
   },
 ];
 

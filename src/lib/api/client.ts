@@ -282,7 +282,7 @@ async function queueIfDeferrable(
       path,
       method: route.method,
       body,
-      entity: { type: 'minutes', id: route.entityId(match) },
+      entity: { type: route.entityType, id: route.entityId(match) },
       baseUpdatedAt: opts.baseUpdatedAt ?? null,
       label: route.label(match),
       collapseByEntity: route.collapseByEntity,
