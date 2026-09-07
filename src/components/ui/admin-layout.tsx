@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils/cn';
 import { MobileNavDrawer } from './mobile-nav-drawer';
 import { SidebarNav } from './sidebar-nav';
 import { Topbar } from './topbar';
+import { OfflineBanner } from '@/components/offline/OfflineBanner';
 import { Tooltip } from './tooltip';
 
 interface AdminLayoutProps {
@@ -138,6 +139,11 @@ export function AdminLayout({
           menuOpen={mobileNavOpen}
           onMenuClick={() => setMobileNavOpen(true)}
         />
+
+        {/* Directly under the topbar and above the page, so it is the first
+            thing read on every screen while it applies — and takes no space at
+            all when it does not. */}
+        <OfflineBanner />
 
         {/* Page Content */}
         {/* A flex column all the way down, so a page can opt into filling the
