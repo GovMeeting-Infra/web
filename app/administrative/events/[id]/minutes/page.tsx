@@ -108,6 +108,8 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const [isAddingActionItem, setIsAddingActionItem] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  /** True when the last save went into the queue rather than to the server. */
+  const [queued, setQueued] = useState(false);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
 
   const { data: event } = useQuery({
@@ -299,13 +301,26 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       nextSteps: nextSteps.map((s) => s.trim()).filter(Boolean),
     });
     try {
-      await apiFetch(`/api/v1/events/${id}/minutes`, {
-        method: minutes ? 'PATCH' : 'POST',
-        body: payload,
-      });
+      const saved = await apiFetch<{ __pending?: boolean }>(
+        `/api/v1/events/${id}/minutes`,
+        {
+          method: minutes ? 'PATCH' : 'POST',
+          body: payload,
+        },
+        {
+          // What this edit was made against. The server writes either way —
+          // last write wins — but with this it can say whether it landed on
+          // top of someone else's save, and hand back the lines it replaced.
+          baseUpdatedAt: minutes?.updatedAt ?? null,
+        },
+      );
       queryClient.invalidateQueries({ queryKey: ['minutes', id] });
       queryClient.invalidateQueries({ queryKey: ['minutes-can-edit', id] });
       discardDraftBackup(currentUser?.id ?? null, id);
+      // A queued save resolves rather than throwing, so this path runs offline
+      // too. Saying "Saved" would be a lie by omission: it is on the device,
+      // not at the ministry.
+      setQueued(Boolean(saved?.__pending));
       setSavedAt(
         new Date().toLocaleTimeString('en-GB', {
           hour: '2-digit',
@@ -537,8 +552,28 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       {/* Announced, because a save that worked is the thing the person is
           waiting to be told and nothing was telling them. */}
       <p role="status" aria-live="polite" className="sr-only">
-        {savedAt ? `Minutes saved at ${savedAt}.` : ''}
+        {savedAt
+          ? queued
+            ? `Minutes saved on this device at ${savedAt}. They will be sent when you are back online.`
+            : `Minutes saved at ${savedAt}.`
+          : ''}
       </p>
+
+      {/* Deliberately visible, not only announced. A save that went into the
+          queue looks identical to one that reached the ministry, and the
+          difference is exactly what someone deciding whether to close a laptop
+          needs to know. */}
+      {queued && savedAt && (
+        <div className="rounded-lg border border-stat-blue-border bg-stat-blue-bg p-4 text-sm text-primary">
+          <p className="font-medium">
+            Saved on this device at {savedAt} — not sent yet.
+          </p>
+          <p className="mt-1">
+            These minutes are safe here and will go to the ministry on their own
+            once you have a connection. You can close this page.
+          </p>
+        </div>
+      )}
 
       {conflictVersion && (
         <div

@@ -18,13 +18,15 @@ import { openDB, type IDBPDatabase } from 'idb';
 const DB_NAME = 'govmeeting-offline';
 
 /**
- * Bump when the stores change shape. The upgrade below is written to be
- * re-runnable from any earlier version rather than as a chain of migrations —
- * cached reads can always be thrown away and refetched, so there is nothing
- * here worth migrating carefully. That stops being true when the outbox
- * arrives, and this comment should be revisited then.
+ * Bump when the stores change shape.
+ *
+ * The upgrade only ever adds stores it does not find; it never drops or
+ * rewrites one. That was a convenience while everything here was a copy of
+ * something the server had, and is now a rule: the outbox holds writes that
+ * exist nowhere else, so an upgrade that cleared it to start fresh would throw
+ * away a meeting.
  */
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 export const STORE = {
   /** Mirror of the React Query cache, so lists render before any network call. */
@@ -33,6 +35,22 @@ export const STORE = {
   session: 'session',
   /** Small bookkeeping values: namespace in use, last sync, storage decisions. */
   meta: 'meta',
+  /**
+   * Writes waiting to reach the server, in the order they were made.
+   *
+   * The one store here whose contents cannot be refetched. Everything else is a
+   * copy of something the server has; this is the only record of something it
+   * does not, which is why nothing evicts from it automatically.
+   */
+  outbox: 'outbox',
+  /**
+   * Writes the server refused for a reason retrying will not fix.
+   *
+   * Kept rather than dropped. A 403 because an edit window closed during a long
+   * outage still contains a meeting's minutes, and quietly discarding them is
+   * the worst thing this feature could do.
+   */
+  deadLetter: 'deadLetter',
 } as const;
 
 let handle: Promise<IDBPDatabase> | null = null;

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiFetch } from '@/lib/api/client';
 import { Modal } from './modal';
+import { useOutbox } from '@/lib/offline/useOutbox';
 
 /** How long before the deadline to speak up. */
 const WARN_BEFORE_MS = 2 * 60 * 1000;
@@ -41,7 +42,11 @@ export function SessionTimeoutWarning() {
   // number twice already.
   useEffect(() => {
     let cancelled = false;
-    apiFetch<{ sessionTimeoutSeconds?: number }>('/api/v1/auth/session')
+    apiFetch<{ sessionTimeoutSeconds?: number }>(
+      '/api/v1/auth/session',
+      {},
+      { offline: 'never' },
+    )
       .then((res) => {
         if (!cancelled && res?.sessionTimeoutSeconds) {
           setTimeoutMs(res.sessionTimeoutSeconds * 1000);
@@ -59,6 +64,19 @@ export function SessionTimeoutWarning() {
     lastActivity.current = Date.now();
     setShowing(false);
   }, []);
+
+  /**
+   * Whether anything is still waiting to be sent.
+   *
+   * Held in a ref rather than read directly in the countdown, so a save every
+   * few seconds does not tear down and rebuild the interval — which would keep
+   * resetting the clock and mean the warning never appeared at all.
+   */
+  const { pending } = useOutbox();
+  const hasUnsentWork = useRef(false);
+  useEffect(() => {
+    hasUnsentWork.current = pending.length > 0;
+  }, [pending.length]);
 
   useEffect(() => {
     if (!timeoutMs) return;
@@ -80,6 +98,18 @@ export function SessionTimeoutWarning() {
       setRemaining(left);
       if (left <= WARN_BEFORE_MS) setShowing(true);
       if (left <= 0) {
+        /*
+         * Not while there is unsent work, and not while offline.
+         *
+         * This clock is entirely local — it measures pointer and key events,
+         * not anything the server said — so offline it is measuring nothing
+         * real. Acting on it would navigate away from a half-written page to a
+         * login screen that cannot load, discarding whatever is on screen and
+         * stranding the queue behind it. The session may well have expired; the
+         * person can sign in again when there is something to sign in to.
+         */
+        if (navigator.onLine === false || hasUnsentWork.current) return;
+
         // The cookie is already dead server-side; a full load lands on the
         // login page with a reason rather than leaving a shell that lies.
         window.location.href = `/administrative/login?reason=expired&callbackUrl=${encodeURIComponent(
@@ -97,8 +127,9 @@ export function SessionTimeoutWarning() {
   const staySignedIn = async () => {
     try {
       // Any authenticated request pushes the server's expiry out; this is the
-      // cheapest one.
-      await apiFetch('/api/v1/auth/session');
+      // cheapest one. Never queued: a session probe replayed an hour later
+      // would be answering a question nobody is still asking.
+      await apiFetch('/api/v1/auth/session', {}, { offline: 'never' });
     } catch {
       // Ignored: if it failed, the next tick sends them to sign in anyway.
     }

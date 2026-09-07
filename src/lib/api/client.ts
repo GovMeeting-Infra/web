@@ -1,4 +1,7 @@
 import { reportReachable, reportUnreachable } from '@/lib/offline/connectivity';
+import { matchOfflineRoute } from '@/lib/offline/routes';
+import { enqueue } from '@/lib/offline/outbox';
+import { observeServerDate } from '@/lib/offline/clock';
 
 export class ApiError extends Error {
   status: number;
@@ -41,12 +44,27 @@ export interface ApiFetchOptions {
   /**
    * Whether this request may be deferred when the device is offline.
    *
-   * Plumbing for the write queue: 'never' marks calls that must fail rather
-   * than be replayed later — session probes, anything that emails people, and
-   * anything whose meaning depends on the moment it runs. Nothing consumes
-   * this yet; declaring it now keeps the call sites from having to be revisited.
+   * 'never' marks calls that must fail rather than be replayed later — session
+   * probes, anything that emails people, and anything whose meaning depends on
+   * the moment it runs. The route allowlist is the other half of this: a path
+   * it does not name is never queued regardless.
    */
   offline?: 'auto' | 'never';
+  /**
+   * The `updatedAt` of the copy this write was made against.
+   *
+   * Sent as a header so the server can say whether the write landed on top of
+   * someone else's, and hand back what it replaced.
+   */
+  baseUpdatedAt?: string | null;
+  /**
+   * The queued operation this request is sending.
+   *
+   * Recorded in the audit trail, so a change that reached the server hours
+   * after it was made can be traced back to the device action that made it
+   * rather than to the moment the connection happened to return.
+   */
+  clientOpId?: string | null;
   /** Milliseconds before the request is abandoned. */
   timeoutMs?: number;
   /**
@@ -215,6 +233,70 @@ export function messageFor(error: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Distinct from undefined, which is what a 204 legitimately returns.
+ */
+const NOT_QUEUED = Symbol('not queued');
+
+/**
+ * Put a failed write in the queue, if it is one of the writes that may wait.
+ *
+ * This is the whole of the offline write path, and it lives here rather than at
+ * the call sites on purpose. There are around fifty hand-rolled
+ * `try { await apiFetch(...) } catch { setError(...) }` blocks in this app and
+ * exactly one useMutation; rewriting them into a mutation layer to add queueing
+ * would be a large change to a lot of working code. Intercepting at the one
+ * point they all pass through costs them nothing — their success paths, the
+ * invalidateQueries and the draft-backup clearing and the router.push, run
+ * exactly as they do online.
+ *
+ * Returns NOT_QUEUED when the request must fail, which is the default for
+ * anything the allowlist does not name.
+ */
+async function queueIfDeferrable(
+  path: string,
+  options: RequestInit,
+  opts: ApiFetchOptions,
+): Promise<unknown> {
+  if (opts.offline === 'never') return NOT_QUEUED;
+
+  const method = (options.method ?? 'GET').toUpperCase();
+  const matched = matchOfflineRoute(path, method);
+  if (!matched) return NOT_QUEUED;
+
+  let body: unknown;
+  try {
+    body =
+      typeof options.body === 'string' ? JSON.parse(options.body) : undefined;
+  } catch {
+    // A body we cannot read is a body we cannot replay faithfully.
+    return NOT_QUEUED;
+  }
+  if (body === undefined) return NOT_QUEUED;
+
+  const { route, match } = matched;
+
+  try {
+    await enqueue({
+      kind: route.kind,
+      path,
+      method: route.method,
+      body,
+      entity: { type: 'minutes', id: route.entityId(match) },
+      baseUpdatedAt: opts.baseUpdatedAt ?? null,
+      label: route.label(match),
+      collapseByEntity: route.collapseByEntity,
+    });
+  } catch {
+    // Storage refused. Failing loudly is right: the caller still has the text
+    // on screen and its own error path, and pretending a write was saved when
+    // nothing recorded it is the one outcome worse than an error message.
+    return NOT_QUEUED;
+  }
+
+  return route.synthesize(match, body);
+}
+
 export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
@@ -233,6 +315,10 @@ export async function apiFetch<T = unknown>(
       signal,
       headers: {
         'Content-Type': 'application/json',
+        ...(opts.baseUpdatedAt
+          ? { 'X-Base-Updated-At': opts.baseUpdatedAt }
+          : {}),
+        ...(opts.clientOpId ? { 'X-Client-Op-Id': opts.clientOpId } : {}),
         ...options.headers,
       },
     });
@@ -241,25 +327,56 @@ export async function apiFetch<T = unknown>(
     // being offline, because a request that failed to travel is the only
     // reliable evidence there is.
     reportUnreachable();
+
+    const queued = await queueIfDeferrable(path, options, opts);
+    if (queued !== NOT_QUEUED) return queued as T;
+
     throw error;
   } finally {
     done();
   }
 
-  // Answered at all, so the connection works. A refusal counts: it made the
-  // round trip, which is the whole question here.
-  reportReachable();
+  // Answered at all, so something is there. Whether it was the API is settled
+  // below — a proxy answering for a dead upstream is not the connection this
+  // module is asking about.
+  if (response.ok) reportReachable();
+  observeServerDate(response.headers.get('Date'));
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     let code: string | undefined;
+    let fromApi = false;
     try {
       const body = await response.json();
+      fromApi = true;
       message = normalizeMessage(body.message, message);
       code = typeof body.code === 'string' ? body.code : undefined;
     } catch {
       // response had no JSON body
     }
+
+    /*
+     * A 5xx with no JSON body never reached the API.
+     *
+     * This is the shape of "the meetings service is down behind a web server
+     * that is fine" — the Next rewrite answers a dead upstream with a plain
+     * 500, and nginx would answer with an HTML 502. Both are indistinguishable
+     * from a working API to `fetch`, which succeeds, so without this a save
+     * made while the API was restarting was simply lost: the request did not
+     * fail at the network level, so nothing queued it.
+     *
+     * A genuine refusal from the API carries JSON and is left alone, so a
+     * server bug still surfaces as an error rather than being retried forever
+     * behind a reassuring message.
+     */
+    if (fromApi) reportReachable();
+
+    if (response.status >= 500 && !fromApi) {
+      reportUnreachable();
+      const queued = await queueIfDeferrable(path, options, opts);
+      if (queued !== NOT_QUEUED) return queued as T;
+    }
+
     throw new ApiError(
       humanMessage(message, response.status, opts.authRedirect !== false),
       response.status,

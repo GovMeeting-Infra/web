@@ -6,6 +6,7 @@ import { PlatformTour } from '@/components/tour/PlatformTour';
 import { SessionTimeoutWarning } from '@/components/ui/session-timeout-warning';
 import { OfflineAdminShell } from '@/components/offline/OfflineAdminShell';
 import { SessionSnapshotWriter } from '@/components/offline/SessionSnapshotWriter';
+import { SyncProvider } from '@/components/offline/SyncProvider';
 import {
   getSessionState,
   getMinistryName,
@@ -68,6 +69,10 @@ export default async function AdministrativeLayout({
           ministryName={ministryName}
           compact={preferences?.compactMode ?? false}
         />
+        {/* Drains the queue and reports the two outcomes worth interrupting
+            for. In the layout so it survives navigation — a sync that stopped
+            every time someone changed page would never finish. */}
+        <SyncProvider />
         {children}
         {/* Same reasoning as the tour: the clock has to survive navigation,
             and an inactivity sign-out can land on any page. */}
