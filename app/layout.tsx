@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { ServiceWorkerRegistrar } from "@/components/offline/ServiceWorkerRegistrar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -65,7 +66,13 @@ export default function RootLayout({
           not the document, so there is nothing to scroll that strip back into
           view. */}
       <body className="h-dvh bg-background text-foreground">
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          {/* Outside the administrative shell on purpose: the check-in page and
+              the public calendar are the ones most likely to be opened on a bad
+              connection, and they never render that shell. */}
+          <ServiceWorkerRegistrar />
+        </Providers>
       </body>
     </html>
   );

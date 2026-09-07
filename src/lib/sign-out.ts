@@ -1,4 +1,7 @@
 import { purgeDraftBackups } from '@/lib/hooks/useDraftBackup';
+import { purgeCachedPages } from '@/components/offline/ServiceWorkerRegistrar';
+import { cacheNamespace } from '@/lib/offline/uid';
+import { idbPurgeNamespace } from '@/lib/offline/db';
 
 /**
  * Ends the session and leaves for the sign-in page.
@@ -13,6 +16,14 @@ import { purgeDraftBackups } from '@/lib/hooks/useDraftBackup';
  */
 export async function signOut(userId?: string | null): Promise<void> {
   if (userId) purgeDraftBackups(userId);
+
+  // Everything this device is holding on this person's behalf, before the
+  // session cookie goes and the namespace becomes unreadable. Order matters:
+  // cacheNamespace() reads the uidHint cookie, which the sign-out response
+  // clears.
+  const namespace = cacheNamespace();
+  purgeCachedPages();
+  await idbPurgeNamespace(namespace);
 
   try {
     await fetch('/api/v1/auth/sign-out', {
