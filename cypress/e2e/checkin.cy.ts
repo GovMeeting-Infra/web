@@ -13,19 +13,72 @@
  * cookie — which is how these tests mint a real token instead of stubbing one.
  */
 
-const EVENT_TITLE = 'Cabinet Meeting';
+/**
+ * Draw a stroke on the signature pad.
+ *
+ * Three details, each of which silently produces an empty pad:
+ *
+ * Mouse events, not pointer events. The canvas is touch-none so a drag draws
+ * rather than scrolling, which makes pointer events the obvious guess — but
+ * the signature_pad underneath listens for mousedown/mousemove/mouseup and
+ * touchstart/touchmove/touchend, and nothing else. Pointer events land on the
+ * canvas and are never heard.
+ *
+ * eventConstructor, because Cypress otherwise dispatches a plain Event, which
+ * carries no clientX or clientY — the listener runs and has nowhere to draw.
+ *
+ * buttons: 1, because the library ignores a move with no button held. That is
+ * how it tells a drag from a hover.
+ *
+ * All three together read as "the signature pad is broken", which is what the
+ * old specs appeared to be reporting and was never true.
+ */
+function drawSignature(): void {
+  const held = {
+    eventConstructor: 'MouseEvent',
+    buttons: 1,
+    button: 0,
+  } as const;
 
-/** Mints a live check-in token for the first event this account can organize. */
+  cy.get('canvas[aria-label^="Signature pad"]')
+    .trigger('mousedown', 40, 40, held)
+    .trigger('mousemove', 90, 70, held)
+    .trigger('mousemove', 140, 45, held)
+    .trigger('mouseup', 140, 45, {
+      eventConstructor: 'MouseEvent',
+      buttons: 0,
+      button: 0,
+    });
+}
+
+/**
+ * Mints a live check-in token for a meeting this spec created.
+ *
+ * It used to look for a seeded 'Cabinet Meeting' and fall back to whatever was
+ * first in the list. When seeding was removed that became a search for a row
+ * nobody maintained, and every test here failed on "a seeded event to check
+ * into" — a spec asserting on the state of somebody's development database
+ * rather than on the application.
+ *
+ * A meeting made here is also a meeting whose properties are known, so the
+ * assertions below can be about check-in rather than about whatever happened
+ * to be lying around.
+ */
 function withCheckInToken(run: (token: string) => void) {
-  cy.request('/api/v1/events').then((events) => {
-    const list = events.body?.data ?? events.body;
-    const event =
-      list.find((e: { title: string }) => e.title === EVENT_TITLE) ?? list[0];
-    // not .to.exist: that is a bare property access, which reads to eslint as
-    // an expression that does nothing.
-    expect(event, 'a seeded event to check into').to.not.equal(undefined);
-
-    cy.request('POST', `/api/v1/checkin-code/${event.id}`, {}).then((code) => {
+  cy.createEvent().then((event) => {
+    /*
+     * A code cannot be minted without a position.
+     *
+     * The check-in area is anchored to wherever the organizer stood when they
+     * generated the code, so the endpoint refuses a request that carries no
+     * fix, or one too vague to anchor from — the accuracy gate is 50m. An
+     * empty body used to be enough and has not been for some time.
+     */
+    cy.request('POST', `/api/v1/checkin-code/${event.id}`, {
+      lat: 8.4657,
+      lng: -13.2317,
+      gpsAccuracy: 10,
+    }).then((code) => {
       const token = code.body.token;
       expect(token, 'a check-in token').to.be.a('string');
       run(token);
@@ -53,7 +106,7 @@ describe('Check-in — invalid codes', () => {
 
 describe('Check-in — signed in', () => {
   beforeEach(() => {
-    cy.login('staff@moh.gov.sl', 'not-a-real-password');
+    cy.login();
   });
 
   it('should fit the form and signature pad on a 320px screen', () => {
@@ -62,7 +115,7 @@ describe('Check-in — signed in', () => {
       cy.visit(`/checkin/${token}`);
 
       cy.get('input#signedName').should('be.visible');
-      cy.get('canvas[aria-label="Signature pad"]').should('be.visible');
+      cy.get('canvas[aria-label^="Signature pad"]').should('be.visible');
       cy.contains('button', 'Clear signature').should('be.visible');
       cy.assertNoClipping();
     });
@@ -73,7 +126,17 @@ describe('Check-in — signed in', () => {
       cy.viewport(320, 640);
       cy.visit(`/checkin/${token}`);
 
-      cy.get('canvas[aria-label="Signature pad"]').then(($canvas) => {
+      /*
+       * should, not then.
+       *
+       * The pad starts at its 400px ceiling and shrinks to fit once a
+       * ResizeObserver has measured the card, so a `.then` runs against the
+       * first paint and reads a width that was never on screen — it reported
+       * an overflow of exactly the initial size, which reads like a real
+       * responsive bug and is not one. `.should` retries until the observer
+       * has settled.
+       */
+      cy.get('canvas[aria-label^="Signature pad"]').should(($canvas) => {
         const canvas = $canvas[0] as HTMLCanvasElement;
         const box = canvas.getBoundingClientRect();
 
@@ -95,21 +158,27 @@ describe('Check-in — signed in', () => {
       cy.viewport(320, 640);
       cy.visit(`/checkin/${token}`);
 
-      cy.get('canvas[aria-label="Signature pad"]')
+      // Settled at the narrow size first — otherwise "it grew" can be
+      // satisfied by the pad simply not having shrunk yet.
+      cy.get('canvas[aria-label^="Signature pad"]')
         .should('be.visible')
-        .then(($canvas) => {
-          const narrow = ($canvas[0] as HTMLCanvasElement).width;
-
-          // Rotating to landscape gives the card its full max-w-sm width, so
-          // the pad must grow with it rather than stay pinned at the old size.
-          cy.viewport(667, 375);
-          cy.get('canvas[aria-label="Signature pad"]').should(($resized) => {
-            const wide = ($resized[0] as HTMLCanvasElement).width;
-            expect(wide).to.be.greaterThan(narrow);
-            // Never past the pad's own ceiling.
-            expect(wide).to.be.at.most(400);
-          });
+        .and(($canvas) => {
+          expect(($canvas[0] as HTMLCanvasElement).width).to.be.lessThan(400);
         });
+
+      cy.get('canvas[aria-label^="Signature pad"]').then(($canvas) => {
+        const narrow = ($canvas[0] as HTMLCanvasElement).width;
+
+        // Rotating to landscape gives the card its full max-w-sm width, so
+        // the pad must grow with it rather than stay pinned at the old size.
+        cy.viewport(667, 375);
+        cy.get('canvas[aria-label^="Signature pad"]').should(($resized) => {
+          const wide = ($resized[0] as HTMLCanvasElement).width;
+          expect(wide).to.be.greaterThan(narrow);
+          // Never past the pad's own ceiling.
+          expect(wide).to.be.at.most(400);
+        });
+      });
     });
   });
 
@@ -120,13 +189,7 @@ describe('Check-in — signed in', () => {
 
       cy.get('button[type="submit"]').should('be.disabled');
 
-      // Draw with pointer events — the canvas is touch-none precisely so a
-      // drag draws instead of scrolling the page.
-      cy.get('canvas[aria-label="Signature pad"]')
-        .trigger('pointerdown', 40, 40, { eventConstructor: 'PointerEvent' })
-        .trigger('pointermove', 90, 70, { eventConstructor: 'PointerEvent' })
-        .trigger('pointermove', 140, 45, { eventConstructor: 'PointerEvent' })
-        .trigger('pointerup', 140, 45, { eventConstructor: 'PointerEvent' });
+      drawSignature();
 
       cy.contains('Signature captured').should('be.visible');
       cy.get('button[type="submit"]').should('not.be.disabled');
@@ -141,15 +204,11 @@ describe('Check-in — signed in', () => {
 
 describe('Check-in code page — organizer', () => {
   beforeEach(() => {
-    cy.login('staff@moh.gov.sl', 'not-a-real-password');
+    cy.login();
   });
 
   it('should scale the QR code to the screen it is displayed on', () => {
-    cy.request('/api/v1/events').then((events) => {
-      const list = events.body?.data ?? events.body;
-      const event =
-        list.find((e: { title: string }) => e.title === EVENT_TITLE) ?? list[0];
-
+    cy.createEvent().then((event) => {
       cy.viewport(375, 812);
       cy.visit(`/administrative/events/${event.id}/checkin-code`);
 
@@ -175,7 +234,7 @@ describe('Check-in code page — organizer', () => {
  */
 describe('Check-in — location refused', () => {
   beforeEach(() => {
-    cy.login('staff@moh.gov.sl', 'not-a-real-password');
+    cy.login();
   });
 
   /** Every route to a position fails as blocked, however the page asks. */
@@ -193,10 +252,7 @@ describe('Check-in — location refused', () => {
       cy.visit(`/checkin/${token}`, { onBeforeLoad: denyLocation });
 
       cy.get('input#signedName').type('Aminata Kamara');
-      cy.get('canvas[aria-label="Signature pad"]')
-        .trigger('pointerdown', 20, 20)
-        .trigger('pointermove', 80, 60)
-        .trigger('pointerup');
+      drawSignature();
 
       cy.get('button[type="submit"]').click();
 

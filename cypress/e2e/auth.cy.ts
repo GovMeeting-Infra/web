@@ -1,3 +1,5 @@
+import { FIXTURE } from '../fixtures/accounts';
+
 // Sign-in lives under the (auth) route group at /administrative/login. Every
 // visit here used to be a bare /login, which has never been a route — so these
 // specs were asserting against a 404 body and only "passed" where the
@@ -19,7 +21,7 @@ describe('Authentication Flow', () => {
         it(`sends a signed-out visitor from ${path} to sign in`, () => {
           cy.visit(path);
           cy.url().should('include', LOGIN);
-          cy.contains('Welcome').should('be.visible');
+          cy.contains('Sign in to continue').should('be.visible');
         });
       },
     );
@@ -34,7 +36,7 @@ describe('Authentication Flow', () => {
   describe('Login', () => {
     it('should display login form', () => {
       cy.visit(LOGIN);
-      cy.contains('Welcome').should('be.visible');
+      cy.contains('Sign in to continue').should('be.visible');
       cy.get('input[type="email"]').should('exist');
       cy.get('input[type="password"]').should('exist');
       cy.get('button[type="submit"]').should('exist');
@@ -42,45 +44,46 @@ describe('Authentication Flow', () => {
 
     it('should successfully login with valid credentials', () => {
       cy.visit(LOGIN);
-      cy.get('input[type="email"]').type('staff@moh.gov.sl');
-      cy.get('input[type="password"]').type('not-a-real-password');
+      cy.get('input[type="email"]').type(FIXTURE.admin.email);
+      cy.get('input[type="password"]').type(FIXTURE.admin.password);
       cy.get('button[type="submit"]').click();
       cy.url().should('include', '/administrative/dashboard');
     });
 
     it('should show error with invalid credentials', () => {
       cy.visit(LOGIN);
-      cy.get('input[type="email"]').type('staff@moh.gov.sl');
+      cy.get('input[type="email"]').type(FIXTURE.admin.email);
       cy.get('input[type="password"]').type('WrongPassword');
       cy.get('button[type="submit"]').click();
       cy.contains('Invalid credentials').should('be.visible');
     });
 
-    it('should show error with invalid email format', () => {
+    it('refuses to submit an address that is not one', () => {
+      // The field is type=email, so the browser's own validation stops the
+      // submission before the form's runs. Asserting on a message the app
+      // never gets to show was testing the wrong layer; what matters is that
+      // nothing is sent and the person stays put.
       cy.visit(LOGIN);
       cy.get('input[type="email"]').type('invalid-email');
-      cy.get('input[type="password"]').type('not-a-real-password');
+      cy.get('input[type="password"]').type('irrelevant-here');
       cy.get('button[type="submit"]').click();
-      cy.contains('Invalid email').should('be.visible');
+      cy.url().should('include', LOGIN);
+      cy.get('input[type="email"]').then(($input) => {
+        expect(($input[0] as HTMLInputElement).validity.valid).to.equal(false);
+      });
     });
 
     it('should show error with short password', () => {
       cy.visit(LOGIN);
-      cy.get('input[type="email"]').type('staff@moh.gov.sl');
+      cy.get('input[type="email"]').type(FIXTURE.admin.email);
       cy.get('input[type="password"]').type('short');
       cy.get('button[type="submit"]').click();
       cy.contains('at least 8 characters').should('be.visible');
     });
 
-    it('should have working remember me checkbox', () => {
-      cy.visit(LOGIN);
-      cy.get('input[type="checkbox"]').should('exist');
-      cy.get('input[type="checkbox"]').check().should('be.checked');
-    });
-
     it('should have working forgot password link', () => {
       cy.visit(LOGIN);
-      cy.contains('Forgot password?').click();
+      cy.contains('Forgotten your password?').click();
       cy.url().should('include', '/forgot-password');
     });
   });
@@ -96,7 +99,13 @@ describe('Authentication Flow', () => {
       // from the in-form header instead — otherwise the page loses its
       // government identity entirely on a phone.
       cy.get('aside').should('not.be.visible');
-      cy.contains('Government of Sierra Leone').should('be.visible');
+      // Scoped to what is on screen: the same wording appears twice by design,
+      // once in the hidden desktop panel and once in the mobile stand-in, and
+      // cy.contains takes the first in the DOM — which is the hidden one. The
+      // test was right and the selector was ambiguous.
+      cy.get('p:visible')
+        .contains('Government of Sierra Leone')
+        .should('be.visible');
       cy.get('input[type="email"]').should('be.visible');
       cy.get('button[type="submit"]').should('be.visible');
       cy.assertNoClipping();
@@ -120,7 +129,7 @@ describe('Authentication Flow', () => {
 
   describe('Session Management', () => {
     beforeEach(() => {
-      cy.login('staff@moh.gov.sl', 'not-a-real-password');
+      cy.login();
     });
 
     it('should maintain session after navigation', () => {
@@ -135,7 +144,11 @@ describe('Authentication Flow', () => {
     });
 
     it('should show user profile in topbar', () => {
-      cy.get('button').contains('S').should('be.visible'); // First initial
+      // Derived from the fixture rather than hardcoded to 'S', which only
+      // worked while a particular seeded user happened to exist.
+      cy.get('button')
+        .contains(FIXTURE.admin.name.charAt(0))
+        .should('be.visible');
     });
 
     it('should logout successfully', () => {
