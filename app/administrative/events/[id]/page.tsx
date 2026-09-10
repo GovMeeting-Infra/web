@@ -152,13 +152,24 @@ export default function EventDetailPage({
     !!currentUser &&
     ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'].includes(currentUser.systemRole);
 
-  // These mirror the server: editing is open to co-organizers and ministry
-  // admins, cancelling to organizers and co-organizers, while publish and
-  // delete stay organizer-only.
-  // Public activities have no organizer, so admins stand in for one — mirrors
-  // assertCanAdminister on the server.
+  // These mirror assertCanAdminister on the server: editing is open to
+  // co-organizers and ministry admins, cancelling to organizers and
+  // co-organizers, and delete stays with whoever administers the event.
+  //
+  // Ministry admins stand in on a public activity — they decide whether it
+  // appears on the public calendar, so having approved one they must be able to
+  // take it down. isOrganizerless is the same allowance for the events created
+  // before public activities had an organizer at all.
   const isOrganizerless = !!event && event.organizerId === null;
-  const canAdminister = isOrganizer || (isOrganizerless && isMinistryAdmin);
+  const canAdminister =
+    isOrganizer ||
+    (!!event && event.isPublic && isMinistryAdmin) ||
+    (isOrganizerless && isMinistryAdmin);
+
+  // The one thing an organizer must not do to their own activity. Publishing
+  // is the approval, and an author who can approve themselves is no approval
+  // at all — so this is the admin roles alone, never canAdminister.
+  const canPublish = isMinistryAdmin;
 
   const canEdit = canAdminister || isCoOrganizer || isMinistryAdmin;
   const canCancel = canAdminister || isCoOrganizer;
@@ -401,7 +412,7 @@ export default function EventDetailPage({
             {/* Publishing is what puts an activity on the public calendar, so it
                 only belongs to public ones. Internal meetings are live from
                 creation and never show this. */}
-            {canAdminister && event.isPublic && event.status === 'DRAFT' && (
+            {canPublish && event.isPublic && event.status === 'DRAFT' && (
               <Tooltip content="Lists this activity on the public calendar, where anyone outside government can see it. It stays there until cancelled.">
                 <button
                   onClick={handlePublish}
@@ -441,6 +452,17 @@ export default function EventDetailPage({
                 <Trash2 className="h-4 w-4" />
                 {confirmDelete ? 'Confirm Delete' : 'Delete'}
               </button>
+            )}
+
+            {/* Said out loud, because the alternative is an activity sitting
+                in Draft with no button and no explanation — which reads as
+                something being broken rather than something being reviewed.
+                The organizer keeps every other control over it. */}
+            {!canPublish && canEdit && event.isPublic && event.status === 'DRAFT' && (
+              <p className="max-w-xs text-right text-xs text-muted-foreground">
+                Waiting for a ministry admin to publish this to the public
+                calendar. You can keep editing it in the meantime.
+              </p>
             )}
 
             {!canAdminister && !canEdit && (

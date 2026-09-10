@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api/client';
+import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
 import { CardGridSkeleton } from '@/components/ui/skeletons';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -82,6 +83,20 @@ function formatDateTime(startAt: string, endAt: string) {
 
 function EventCard({ event }: { event: EventListItem }) {
   const { date, time } = formatDateTime(event.startAt, event.endAt);
+  const currentUser = useCurrentUser();
+
+  // Mirrors updateEvent on the server: the organizer, a co-organizer, or a
+  // ministry-level admin. The card used to offer Edit on every event to
+  // everyone, so the answer arrived as a refusal on the page it led to — which
+  // is what a member of staff finding themselves locked out of their own
+  // public activity actually clicked on.
+  const canEdit =
+    !!currentUser &&
+    (currentUser.id === event.organizer?.id ||
+      event.coOrganizers.some((c) => c.userId === currentUser.id) ||
+      ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'].includes(
+        currentUser.systemRole,
+      ));
 
   return (
     <div className="group rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)] transition-all hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(0,53,128,0.12)]">
@@ -115,12 +130,16 @@ function EventCard({ event }: { event: EventListItem }) {
       </div>
 
       <div className="mt-6 flex gap-3 border-t border-border pt-4">
-        <Link
-          href={`/administrative/events/${event.id}/edit`}
-          className="flex-1 rounded-lg bg-secondary px-3 py-2 text-center text-sm font-medium text-secondary-foreground transition-colors hover:bg-muted"
-        >
-          Edit
-        </Link>
+        {canEdit && (
+          <Link
+            href={`/administrative/events/${event.id}/edit`}
+            className="flex-1 rounded-lg bg-secondary px-3 py-2 text-center text-sm font-medium text-secondary-foreground transition-colors hover:bg-muted"
+          >
+            Edit
+          </Link>
+        )}
+        {/* Takes the whole row when Edit is not offered, rather than leaving a
+            half-width button beside a gap where one used to be. */}
         <Link
           href={`/administrative/events/${event.id}`}
           className="flex-1 rounded-lg bg-muted px-3 py-2 text-center text-sm font-medium text-foreground transition-colors hover:bg-border"
