@@ -16,6 +16,15 @@ export interface CurrentUser {
   name: string;
   systemRole: SystemRole;
   jobTitle: string | null;
+  /**
+   * The profile photograph, as a hosted URL.
+   *
+   * Optional because this and the API deploy separately: a build that requires
+   * it will meet a session endpoint that does not send it yet. Absent and null
+   * mean the same thing to everything that reads it — show the initial — so
+   * the avatar degrades to what it did before rather than breaking.
+   */
+  image?: string | null;
   ministryId: string | null;
 }
 

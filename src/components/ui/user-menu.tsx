@@ -8,6 +8,7 @@ import { Tooltip } from './tooltip';
 import { signOut } from '@/lib/sign-out';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { ROLE_LABELS } from '@/lib/types/account';
+import { avatarUrl } from '@/lib/avatar-url';
 
 const LINKS = [
   {
@@ -45,6 +46,29 @@ export function UserMenu({
   const email = userEmail ?? currentUser?.email;
   const initial = (name ?? email ?? 'U').charAt(0).toUpperCase();
 
+  // The photograph people upload on their profile. It was never shown here:
+  // the avatar only ever drew an initial, because the session this reads did
+  // not carry the image at all — so uploading one changed the profile page and
+  // nothing else.
+  //
+  // 160px for a 40px circle, so it stays sharp on a dense screen. Sized rather
+  // than sent whole because these are camera photographs: the largest on the
+  // platform is 4.3MB, and this draws on every page.
+  const photo = avatarUrl(currentUser?.image, 160);
+
+  // A stored URL is not a guarantee of a picture. These are arbitrary hosted
+  // links — an upload can be deleted at the far end, and the profile form also
+  // accepts a pasted address — and a broken <img> renders as a torn icon in
+  // the top bar of every page. Falling back to the initial is what it did
+  // before there was a photograph, so it is the right thing to fall back to.
+  //
+  // Which URL failed, not merely that one did: a new photograph is a different
+  // address, so this clears itself when someone replaces a broken one. Holding
+  // a boolean instead would need an effect to reset it, which is a render
+  // cascade for something the comparison already answers.
+  const [brokenPhoto, setBrokenPhoto] = useState<string | null>(null);
+  const showPhoto = photo !== null && brokenPhoto !== photo;
+
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
@@ -79,9 +103,22 @@ export function UserMenu({
           open && 'bg-muted',
         )}
       >
-        <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
-          {initial}
-        </span>
+        {showPhoto ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photo}
+            alt=""
+            onError={() => setBrokenPhoto(photo)}
+            // object-cover so a portrait or a wide crop fills the circle
+            // instead of squashing to fit it. The button's aria-label already
+            // names the account, so the image itself is decorative.
+            className="h-10 w-10 flex-shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+            {initial}
+          </span>
+        )}
       </button>
       </Tooltip>
 
