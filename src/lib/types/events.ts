@@ -147,6 +147,8 @@ export interface EventListItem {
   status: EventStatus;
   colorCategory: string | null;
   organizer: { id: string; name: string } | null;
+  /** Ids only — enough for a card to know whether its Edit link applies. */
+  coOrganizers: { userId: string }[];
   _count: { attendees: number; attendances: number };
 }
 

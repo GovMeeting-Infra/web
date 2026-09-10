@@ -286,17 +286,16 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const isCoOrganizer =
     !!currentUser && !!event?.coOrganizers.some((c) => c.userId === currentUser.id);
   // Mirrors assertCanAdminister on the server: the organizer, a co-organizer,
-  // the super admin anywhere, or a ministry-level admin on an event that has
-  // no organizer to own it. The last two were missing, so the API accepted
-  // invitations the page gave you no way to make.
+  // the super admin anywhere, or a ministry-level admin on a public activity —
+  // and on the ownerless events created before public activities had an
+  // organizer. The last two were missing, so the API accepted invitations the
+  // page gave you no way to make.
   const isSuperAdmin = currentUser?.systemRole === 'SUPER_ADMIN';
-  const canInvite =
-    isOrganizer ||
-    isCoOrganizer ||
-    isSuperAdmin ||
-    (!event?.organizerId &&
-      !!currentUser &&
-      ['MINISTER', 'MINISTRY_ADMIN'].includes(currentUser.systemRole));
+  const isMinistryLevelAdmin =
+    !!currentUser && ['MINISTER', 'MINISTRY_ADMIN'].includes(currentUser.systemRole);
+  const adminStandsIn =
+    isMinistryLevelAdmin && (!!event?.isPublic || !event?.organizerId);
+  const canInvite = isOrganizer || isCoOrganizer || isSuperAdmin || adminStandsIn;
 
   // POST /checkin/:eventId/manual is behind CanManageEventGuard now, so a role
   // check alone would offer the desk to people the API refuses. The server is
@@ -304,11 +303,8 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const canDoWalkIn =
     isOrganizer ||
     isCoOrganizer ||
-    currentUser?.systemRole === 'SUPER_ADMIN' ||
-    (!event?.organizerId &&
-      !!currentUser &&
-      ['MINISTER', 'MINISTRY_ADMIN'].includes(currentUser.systemRole) &&
-      event?.ministryId === currentUser.ministryId);
+    isSuperAdmin ||
+    (adminStandsIn && event?.ministryId === currentUser?.ministryId);
 
   // Mirrors the export route's guards: the people running the meeting, plus a
   // minister across their own ministry's meetings whoever organized them.
