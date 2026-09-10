@@ -147,8 +147,15 @@ export interface EventListItem {
   status: EventStatus;
   colorCategory: string | null;
   organizer: { id: string; name: string } | null;
-  /** Ids only — enough for a card to know whether its Edit link applies. */
-  coOrganizers: { userId: string }[];
+  /**
+   * Ids only — enough for a card to know whether its Edit link applies.
+   *
+   * Optional because the field is newer than this page: the two repositories
+   * deploy separately, and a web build that requires it will meet an API that
+   * does not send it yet. A cached list response written before the API change
+   * outlives the deploy too. Absent means "cannot tell", never "none".
+   */
+  coOrganizers?: { userId: string }[];
   _count: { attendees: number; attendances: number };
 }
 

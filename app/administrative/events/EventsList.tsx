@@ -90,10 +90,18 @@ function EventCard({ event }: { event: EventListItem }) {
   // everyone, so the answer arrived as a refusal on the page it led to — which
   // is what a member of staff finding themselves locked out of their own
   // public activity actually clicked on.
+  //
+  // Optional chaining on coOrganizers, not decoration: this page and the API
+  // are separate deployments, and a build that reaches an API not yet sending
+  // the field threw here and took the whole page down with it — every tab
+  // holding an event, replaced by the generic error screen. A card is the last
+  // thing that should be able to do that, so a field it cannot read costs it
+  // one button rather than the page. The detail page stays authoritative and
+  // still offers Edit to a co-organizer either way.
   const canEdit =
     !!currentUser &&
     (currentUser.id === event.organizer?.id ||
-      event.coOrganizers.some((c) => c.userId === currentUser.id) ||
+      (event.coOrganizers ?? []).some((c) => c.userId === currentUser.id) ||
       ['SUPER_ADMIN', 'MINISTER', 'MINISTRY_ADMIN'].includes(
         currentUser.systemRole,
       ));
