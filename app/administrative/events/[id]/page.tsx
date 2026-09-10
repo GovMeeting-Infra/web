@@ -24,6 +24,7 @@ import {
 import { apiFetch, ApiError } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
 import { PageContainer } from '@/components/ui/page-container';
+import { describeRecurrence } from '@/lib/utils/recurrence';
 import { Tooltip } from '@/components/ui/tooltip';
 import { DetailSkeleton } from '@/components/ui/skeletons';
 import { useCurrentUser } from '@/components/SessionProvider';
@@ -34,7 +35,6 @@ import {
 import {
   EVENT_TYPE_LABELS,
   EVENT_STATUS_LABELS,
-  FREQUENCY_LABELS,
   type EventDetail,
   type EventStatus,
 } from '@/lib/types/events';
@@ -59,22 +59,6 @@ const RSVP_COLOR: Record<string, string> = {
   CONFIRMED: 'text-success',
   DECLINED: 'text-destructive',
 };
-
-/** Human sentence for a recurrence rule, e.g. "Weekly · 4 occurrences". */
-function describeRecurrence(series: NonNullable<EventDetail['series']>): string {
-  const every =
-    series.interval > 1
-      ? `Every ${series.interval} × ${FREQUENCY_LABELS[series.frequency].toLowerCase()}`
-      : FREQUENCY_LABELS[series.frequency];
-
-  if (series.endType === 'COUNT' && series.count) {
-    return `${every} · ${series.count} occurrences`;
-  }
-  if (series.endType === 'UNTIL' && series.until) {
-    return `${every} · until ${new Date(series.until).toLocaleDateString(undefined, { dateStyle: 'medium' })}`;
-  }
-  return `${every} · no end date`;
-}
 
 function InfoCard({
   icon,
