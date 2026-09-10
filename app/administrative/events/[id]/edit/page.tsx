@@ -12,6 +12,14 @@ import type { EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { FormSkeleton } from '@/components/ui/skeletons';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+import { RepeatFields } from '@/components/events/repeat-fields';
+import {
+  NO_RECURRENCE,
+  sameRecurrence,
+  seriesToValue,
+  valueToPayload,
+  type RecurrenceValue,
+} from '@/lib/utils/recurrence';
 
 // Same styling constants as the create form.
 const field =
@@ -92,6 +100,18 @@ export default function EditEventPage({
   const [externalUrl, setExternalUrl] = useState('');
   const [bannerImage, setBannerImage] = useState('');
 
+  // How the activity repeats, and how it repeated when the form opened — the
+  // pair is what says whether the rule was touched, which decides both whether
+  // to send it and which warning to show.
+  const [recurrence, setRecurrence] = useState<RecurrenceValue>(NO_RECURRENCE);
+  const [originalRecurrence, setOriginalRecurrence] =
+    useState<RecurrenceValue>(NO_RECURRENCE);
+
+  // Set once the form is happy, to ask how far the edit reaches before it is
+  // sent. Holding the payload here rather than rebuilding it after the answer
+  // keeps what was validated and what is sent the same thing.
+  const [pending, setPending] = useState<Record<string, unknown> | null>(null);
+
   const {
     data: event,
     isLoading,
@@ -119,8 +139,14 @@ export default function EditEventPage({
     setExternalUrl(event.externalUrl ?? '');
     setBannerImage(event.bannerImage ?? '');
     setAllowGuestCheckIn(event.allowGuestCheckIn ?? true);
+    const rule = seriesToValue(event.series);
+    setRecurrence(rule);
+    setOriginalRecurrence(rule);
     setSeeded(true);
   }, [event, seeded]);
+
+  /** Whether the repeat rule was left exactly as the form found it. */
+  const ruleUnchanged = sameRecurrence(recurrence, originalRecurrence);
 
   const handleSubmit = async () => {
     setError(null);
@@ -138,30 +164,69 @@ export default function EditEventPage({
       return;
     }
 
+    // Empty strings clear a field; undefined leaves it untouched. Sending ''
+    // for an @IsEmail/@IsUrl field would fail validation, so omit instead.
+    const payload: Record<string, unknown> = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      isPublic,
+      type,
+      scope: scope || undefined,
+      classification: classification || undefined,
+      colorCategory: colorCategory.trim() || undefined,
+      startAt: new Date(startAt).toISOString(),
+      endAt: new Date(endAt).toISOString(),
+      venueName: venueName.trim() || undefined,
+      contactEmail: contactEmail.trim() || undefined,
+      contactPhone: contactPhone.trim() || undefined,
+      externalUrl: externalUrl.trim() || undefined,
+      bannerImage: bannerImage.trim() || undefined,
+      allowGuestCheckIn,
+    };
+
+    // On an activity that repeats, saving is ambiguous until someone says
+    // whether they mean this meeting or the ones after it too. Asking is only
+    // worth it when the rule is staying put — if the rule itself changed, the
+    // rebuild carries the details forward anyway and a second question about
+    // occurrences that are about to be replaced would be noise.
+    if (event?.seriesId && ruleUnchanged) {
+      setPending(payload);
+      return;
+    }
+
+    await save(payload, 'THIS');
+  };
+
+  /**
+   * Send the edit, then the rule if it changed.
+   *
+   * In that order deliberately. The rule change rebuilds what is still to come
+   * from this activity, so it has to see the new title and time rather than the
+   * old ones.
+   */
+  const save = async (
+    payload: Record<string, unknown>,
+    applyTo: 'THIS' | 'FUTURE',
+  ) => {
+    setPending(null);
     setIsSubmitting(true);
     try {
-      // Empty strings clear a field; undefined leaves it untouched. Sending ''
-      // for an @IsEmail/@IsUrl field would fail validation, so omit instead.
       await apiFetch(`/api/v1/events/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          title: title.trim(),
-          description: description.trim() || undefined,
-          isPublic,
-          type,
-          scope: scope || undefined,
-          classification: classification || undefined,
-          colorCategory: colorCategory.trim() || undefined,
-          startAt: new Date(startAt).toISOString(),
-          endAt: new Date(endAt).toISOString(),
-          venueName: venueName.trim() || undefined,
-          contactEmail: contactEmail.trim() || undefined,
-          contactPhone: contactPhone.trim() || undefined,
-          externalUrl: externalUrl.trim() || undefined,
-          bannerImage: bannerImage.trim() || undefined,
-          allowGuestCheckIn,
-        }),
+        body: JSON.stringify({ ...payload, applyTo }),
       });
+
+      if (!ruleUnchanged) {
+        const rule = valueToPayload(recurrence);
+        if (rule) {
+          await apiFetch(`/api/v1/events/${id}/series`, {
+            method: 'PUT',
+            body: JSON.stringify(rule),
+          });
+        } else {
+          await apiFetch(`/api/v1/events/${id}/series`, { method: 'DELETE' });
+        }
+      }
 
       router.push(`/administrative/events/${id}`);
     } catch (err) {
@@ -498,6 +563,29 @@ export default function EditEventPage({
           </div>
         </div>
 
+        <RepeatFields
+          value={recurrence}
+          onChange={setRecurrence}
+          idPrefix="edit-repeat"
+          startAt={startAt}
+          existingSeries={!!event.seriesId}
+        />
+
+        {/* What a rule change costs, said before it is made rather than after.
+            Occurrences already held are safe; upcoming ones are replaced,
+            including any that were amended on their own — nothing records that
+            an occurrence diverged, so it cannot be told apart from a generated
+            one. Anyone who had accepted an upcoming date is re-invited. */}
+        {!ruleUnchanged && event.seriesId && (
+          <div className="rounded-md border border-alert-border bg-alert-bg px-3 py-2 text-sm text-alert-fg">
+            Changing how this repeats replaces every upcoming occurrence.
+            Occurrences that have already started are not affected, and neither
+            is one that has already taken attendance — but any you have edited
+            on their own will be replaced, and anyone who had replied to an
+            upcoming date will be asked again.
+          </div>
+        )}
+
         <button
           type="button"
           onClick={handleSubmit}
@@ -507,6 +595,62 @@ export default function EditEventPage({
           {isSubmitting ? 'Saving…' : 'Save changes'}
         </button>
       </div>
+
+      {/* Saving one occurrence of a repeating activity is ambiguous, so it is
+          asked rather than assumed. Only reached when the rule itself is
+          staying put. */}
+      {pending && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="apply-to-title"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/60 p-4"
+        >
+          <div className="w-full max-w-md rounded-[1.25rem] border border-border bg-card p-6 shadow-xl">
+            <h2
+              id="apply-to-title"
+              className="text-lg font-semibold text-foreground"
+            >
+              This activity repeats
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Save these changes to this occurrence alone, or to this one and
+              every upcoming occurrence?
+            </p>
+
+            <div className="mt-5 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => void save(pending, 'THIS')}
+                className="rounded-xl border border-border px-4 py-3 text-left text-sm font-medium text-foreground hover:bg-muted"
+              >
+                Only this occurrence
+                <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                  The rest of the series is left as it is.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void save(pending, 'FUTURE')}
+                className="rounded-xl bg-primary px-4 py-3 text-left text-sm font-medium text-primary-foreground hover:opacity-90"
+              >
+                This and all upcoming occurrences
+                <span className="mt-0.5 block text-xs font-normal text-primary-foreground/80">
+                  A change of time moves each later occurrence by the same
+                  amount, keeping its own date.
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPending(null)}
+                className="mt-1 rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </PageContainer>
   );
 }

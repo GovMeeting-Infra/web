@@ -15,13 +15,14 @@ import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PersonPicker } from '@/components/ui/person-picker';
-import type {
-  EventDetail,
-  CoOrganizerCandidate,
-  Frequency,
-  EndType,
-} from '@/lib/types/events';
+import type { EventDetail, CoOrganizerCandidate } from '@/lib/types/events';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+import { RepeatFields } from '@/components/events/repeat-fields';
+import {
+  NO_RECURRENCE,
+  valueToPayload,
+  type RecurrenceValue,
+} from '@/lib/utils/recurrence';
 
 // Reference form styling (src/app/(app)/events/new/EventForm.tsx).
 const field =
@@ -47,16 +48,6 @@ const DEFAULT_CATEGORIES = [
   'LAUNCH',
   'OTHER',
 ] as const;
-
-const FREQUENCIES: { value: Frequency; label: string }[] = [
-  { value: 'DAILY', label: 'Daily' },
-  { value: 'WEEKLY', label: 'Weekly' },
-  { value: 'WEEKDAYS', label: 'Every weekday' },
-  { value: 'BIWEEKLY', label: 'Every two weeks' },
-  { value: 'MONTHLY', label: 'Monthly' },
-  { value: 'QUARTERLY', label: 'Quarterly' },
-  { value: 'YEARLY', label: 'Yearly' },
-];
 
 function titleCase(value: string) {
   return value.charAt(0) + value.slice(1).toLowerCase();
@@ -122,11 +113,14 @@ export default function NewEventPage() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteError, setInviteError] = useTransientMessage();
 
-  const [recurrenceFreq, setRecurrenceFreq] = useState('');
-  const [recurrenceInterval, setRecurrenceInterval] = useState('1');
-  const [recurrenceEndType, setRecurrenceEndType] = useState<EndType>('COUNT');
-  const [recurrenceCount, setRecurrenceCount] = useState('4');
-  const [recurrenceUntil, setRecurrenceUntil] = useState('');
+  const [recurrence, setRecurrence] = useState<RecurrenceValue>(NO_RECURRENCE);
+  // The activity is saved by the time a repeat rule can fail, so losing it
+  // behind a navigation would leave someone believing an activity repeats when
+  // it does not. It used to be handed to a query parameter nothing read.
+  const [recurrenceError, setRecurrenceError] = useState<{
+    message: string;
+    eventId: string;
+  } | null>(null);
 
   /**
    * Co-organiser candidates. A failure here mattered more than most: at least
@@ -282,32 +276,26 @@ export default function NewEventPage() {
         body: JSON.stringify(payload),
       });
 
-      // Recurrence is a second call: the series is built from a saved event.
-      if (recurrenceFreq) {
+      // Recurrence is a second call: the rule is set on a saved activity.
+      const rule = valueToPayload(recurrence);
+      if (rule) {
         try {
           await apiFetch(`/api/v1/events/${event.id}/series`, {
-            method: 'POST',
-            body: JSON.stringify({
-              frequency: recurrenceFreq,
-              interval: Number(recurrenceInterval) || 1,
-              endType: recurrenceEndType,
-              count:
-                recurrenceEndType === 'COUNT'
-                  ? Number(recurrenceCount) || 2
-                  : undefined,
-              until:
-                recurrenceEndType === 'UNTIL' && recurrenceUntil
-                  ? new Date(recurrenceUntil).toISOString()
-                  : undefined,
-            }),
+            method: 'PUT',
+            body: JSON.stringify(rule),
           });
         } catch (err) {
-          // The event exists; say so rather than losing it behind an error.
-          router.push(
-            `/administrative/events/${event.id}?recurrenceError=${encodeURIComponent(
-              err instanceof Error ? err.message : 'Recurrence failed',
-            )}`,
-          );
+          // Stay put and say what happened. This used to navigate away with
+          // the reason in a query parameter that nothing anywhere read, so a
+          // repeat that failed to save looked exactly like one that worked.
+          setRecurrenceError({
+            message:
+              err instanceof Error
+                ? err.message
+                : 'The repeat rule could not be applied.',
+            eventId: event.id,
+          });
+          setIsSubmitting(false);
           return;
         }
       }
@@ -358,6 +346,24 @@ export default function NewEventPage() {
           <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
             {error}
           </p>
+        )}
+
+        {/* The activity saved and the repeat did not, which is a state worth
+            spelling out: the alternative is someone walking away believing a
+            meeting recurs when only one of them exists. */}
+        {recurrenceError && (
+          <div className="rounded-md border border-alert-border bg-alert-bg px-3 py-2 text-sm text-alert-fg">
+            <p className="font-medium">
+              The activity was saved, but it will not repeat.
+            </p>
+            <p className="mt-1">{recurrenceError.message}</p>
+            <Link
+              href={`/administrative/events/${recurrenceError.eventId}`}
+              className="mt-2 inline-block font-medium underline underline-offset-2"
+            >
+              Open the activity and set the repeat there
+            </Link>
+          </div>
         )}
 
         {/* Activity Type Toggle */}
@@ -856,77 +862,12 @@ export default function NewEventPage() {
           </div>
         </div>
 
-        {/* Recurrence */}
-        <div className="rounded-lg border border-border bg-muted/20 p-4">
-          <h2 className="text-sm font-medium text-foreground">Repeat</h2>
-          <div className="mt-3 space-y-3">
-            <div>
-              <label className="text-xs font-medium text-foreground/80" htmlFor="frequency">Frequency</label>
-              <select id="frequency"
-                value={recurrenceFreq}
-                onChange={(e) => setRecurrenceFreq(e.target.value)}
-                className={field}
-              >
-                <option value="">Does not repeat</option>
-                {FREQUENCIES.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {recurrenceFreq && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div>
-                  <label className="text-xs font-medium text-foreground/80" htmlFor="interval">Interval</label>
-                  <input id="interval"
-                    type="number"
-                    min="1"
-                    value={recurrenceInterval}
-                    onChange={(e) => setRecurrenceInterval(e.target.value)}
-                    className={field}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-foreground/80" htmlFor="ends">Ends</label>
-                  <select id="ends"
-                    value={recurrenceEndType}
-                    onChange={(e) => setRecurrenceEndType(e.target.value as EndType)}
-                    className={field}
-                  >
-                    <option value="COUNT">After N occurrences</option>
-                    <option value="UNTIL">On a date</option>
-                    <option value="NEVER">Never</option>
-                  </select>
-                </div>
-                {recurrenceEndType === 'COUNT' && (
-                  <div>
-                    <label className="text-xs font-medium text-foreground/80" htmlFor="occurrences">Occurrences</label>
-                    <input id="occurrences"
-                      type="number"
-                      min="2"
-                      value={recurrenceCount}
-                      onChange={(e) => setRecurrenceCount(e.target.value)}
-                      className={field}
-                    />
-                  </div>
-                )}
-                {recurrenceEndType === 'UNTIL' && (
-                  <div>
-                    <label className="text-xs font-medium text-foreground/80" htmlFor="until">Until</label>
-                    <input id="until"
-                      type="date"
-                      value={recurrenceUntil}
-                      onChange={(e) => setRecurrenceUntil(e.target.value)}
-                      className={field}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
+        <RepeatFields
+          value={recurrence}
+          onChange={setRecurrence}
+          idPrefix="new-repeat"
+          startAt={startAt}
+        />
 
         {!isPublic && (
           <SectionHeading
