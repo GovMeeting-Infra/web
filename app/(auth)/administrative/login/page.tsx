@@ -11,6 +11,7 @@ import { ShieldCheck, CalendarCheck2, LockKeyhole } from 'lucide-react';
 import { SierraLeoneFlag } from '@/components/SierraLeoneFlag';
 import { PasswordInput } from '@/components/ui/password-input';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+import { purgeCachedPages } from '@/components/offline/ServiceWorkerRegistrar';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -86,6 +87,13 @@ export default function LoginPage() {
         setError(errorData.message || 'Login failed');
         return;
       }
+
+      // Whoever used this device before is not who is using it now. Cached
+      // pages belong to the session that produced them, and the service worker
+      // cannot read an HttpOnly cookie to tell one person from another — so the
+      // handover is where they get dropped. Signing out does the same, but a
+      // session that simply expired never reaches that path.
+      purgeCachedPages();
 
       // Read at submit time rather than with useSearchParams, which would
       // require wrapping this client page in a Suspense boundary.

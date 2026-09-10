@@ -1,13 +1,16 @@
+import { FIXTURE } from '../fixtures/accounts';
+
 describe('Dashboard', () => {
   beforeEach(() => {
-    cy.login('staff@moh.gov.sl', 'not-a-real-password');
+    cy.login();
     cy.visit('/administrative/dashboard');
   });
 
   describe('Layout and Navigation', () => {
     it('should display dashboard header', () => {
       cy.contains('Welcome back').should('be.visible');
-      cy.contains('Monitor your meetings').should('be.visible');
+      // The subtitle is now about what is running, not a standing strapline.
+      cy.get('main').contains(/Nothing running right now|in progress/i).should('exist');
     });
 
     it('should display sidebar navigation', () => {
@@ -19,7 +22,9 @@ describe('Dashboard', () => {
     });
 
     it('should display topbar with ministry name', () => {
-      cy.contains('Ministry of Health').should('be.visible');
+      // Whatever ministry the fixture belongs to, rather than one that only
+      // existed in somebody's seed data.
+      cy.contains(FIXTURE.ministry.name).should('be.visible');
     });
 
     it('should have working navigation links', () => {
@@ -32,33 +37,40 @@ describe('Dashboard', () => {
 
   describe('Stats Cards', () => {
     it('should display all stats cards', () => {
-      cy.contains('Total Events').should('be.visible');
-      cy.contains('Avg Attendance').should('be.visible');
-      cy.contains('Minutes Recorded').should('be.visible');
-      cy.contains('Action Items').should('be.visible');
+      // The four cards as they are labelled now. 'Total Events',
+      // 'Avg Attendance' and 'Minutes Recorded' were a different dashboard.
+      cy.get('main').contains('Upcoming').should('be.visible');
+      cy.get('main').contains('Organized').should('be.visible');
+      cy.get('main').contains('Attended').should('be.visible');
+      cy.get('main').contains('Open actions').should('be.visible');
     });
 
     it('should display stats with values', () => {
       cy.get('h1, h2, h3, span').contains(/\d+/).should('exist');
     });
 
-    it('should display trend indicators', () => {
-      cy.contains(/↑|↓/).should('exist');
-    });
+    /*
+     * No trend-arrow test any more.
+     *
+     * The stat cards do not carry one: the comment in DashboardView explains
+     * the choice — a count beside an arrow reads as accounting rather than as
+     * something to act on. Asserting on arrows tested a design that was
+     * deliberately replaced.
+     */
   });
 
-  describe('Recent Events Section', () => {
-    it('should display recent events', () => {
-      cy.contains('Recent Events').should('be.visible');
+  describe('Coming up section', () => {
+    it('lists the meetings ahead', () => {
+      cy.get('main').contains('Coming up').should('be.visible');
     });
 
-    it('should display event details', () => {
-      cy.get('p').contains('Cabinet Meeting').should('exist');
-      cy.get('p').contains(/\d{4}/).should('exist'); // Date
-    });
-
-    it('should display status badge', () => {
-      cy.contains('Completed').should('be.visible');
+    it('shows a meeting once there is one', () => {
+      // Made here rather than assumed: 'Cabinet Meeting' was a seeded row, and
+      // 'Completed' a status none of these ever had.
+      cy.createEvent({ title: `Dashboard check ${Date.now()}` }).then((made) => {
+        cy.visit('/administrative/dashboard');
+        cy.get('main').contains(made.title).should('be.visible');
+      });
     });
   });
 

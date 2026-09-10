@@ -227,7 +227,7 @@ export function SidebarNav({
     onNavigate?.();
     setIsSigningOut(true);
     // Shared with the profile menu, so both routes out behave identically.
-    signOut();
+    signOut(currentUser?.id);
   };
 
   return (

@@ -11,32 +11,29 @@
  * cookie.
  */
 
-const ORGANIZER = { email: 'staff@moh.gov.sl', password: 'not-a-real-password' };
-/** A ministry admin, but of a different ministry. */
-const OUTSIDER = { email: 'admin@med.gov.sl', password: 'not-a-real-password' };
-
 const WALK_IN = {
   name: 'Register Test Attendee',
   email: 'register-test@moh.gov.sl',
 };
 
-/** An event this account organizes, so the manage guard lets it record a walk-in. */
+/**
+ * A meeting this account organizes, so the manage guard lets it record a
+ * walk-in.
+ *
+ * Made rather than found. This used to search the list for one whose organizer
+ * matched, which worked while somebody kept a development database stocked and
+ * failed the moment that stopped — with a message about an event that does not
+ * exist, from a spec that is about downloading a register.
+ */
 function withOwnEvent(run: (eventId: string) => void) {
-  cy.request('/api/v1/me').then((me) => {
-    cy.request('/api/v1/events').then((events) => {
-      const list = events.body?.data ?? events.body;
-      const event = list.find(
-        (e: { organizerId?: string }) => e.organizerId === me.body.id,
-      );
-      expect(event, 'an event this account organizes').to.not.equal(undefined);
-      run(event.id);
-    });
+  cy.createEvent({ title: `Export test ${Date.now()}` }).then((event) => {
+    run(event.id);
   });
 }
 
 describe('Attendance export', () => {
   beforeEach(() => {
-    cy.login(ORGANIZER.email, ORGANIZER.password);
+    cy.login();
   });
 
   it('offers both formats on the attendees page, and lists the check-in in full', () => {
@@ -58,10 +55,26 @@ describe('Attendance export', () => {
       cy.contains('th', 'Location').should('be.visible');
       cy.contains('th', 'Signature').should('be.visible');
 
-      cy.contains('td', WALK_IN.name).should('be.visible');
+      // Scrolled to first: the register table is deliberately overflow-x-auto,
+      // so a column can sit outside the viewport at this width and Cypress
+      // rightly calls it not visible. Reachable is the property that matters —
+      // asserting it merely exists would pass for a cell nobody could ever
+      // read.
+      cy.contains('td', WALK_IN.name).scrollIntoView().should('be.visible');
       // Nobody signed for a walk-in, and the row has to say so.
       cy.contains('No signature').should('exist');
-      cy.contains('body', 'undefined').should('not.exist');
+      /*
+       * Rendered text, not the whole document.
+       *
+       * cy.contains('body', 'undefined') also reads the RSC payload Next
+       * serialises into <script> tags, which legitimately contains the literal
+       * word — so this reported a field rendering as "undefined" on a page
+       * where every empty cell correctly showed a dash. innerText is what a
+       * person can actually read.
+       */
+      cy.get('main').should(($main) => {
+        expect(($main[0] as HTMLElement).innerText).to.not.contain('undefined');
+      });
 
       cy.contains('button', 'CSV').should('be.visible');
       cy.contains('button', 'PDF').should('be.visible');
@@ -121,7 +134,7 @@ describe('Attendance export', () => {
   it('refuses someone from another ministry', () => {
     withOwnEvent((eventId) => {
       cy.logout();
-      cy.login(OUTSIDER.email, OUTSIDER.password);
+      cy.login('outsider');
 
       cy.request({
         url: `/api/v1/events/${eventId}/attendance/export?format=csv&set=checked-in`,

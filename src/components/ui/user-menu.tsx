@@ -132,7 +132,7 @@ export function UserMenu({
               disabled={isSigningOut}
               onClick={() => {
                 setIsSigningOut(true);
-                signOut();
+                signOut(currentUser?.id);
               }}
               className="flex w-full items-center gap-3 px-4 py-2.5 text-sm font-medium text-destructive transition-colors hover:bg-destructive/5 disabled:opacity-60"
             >

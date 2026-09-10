@@ -83,7 +83,7 @@ describe('Tooltips — no account needed', () => {
 describe('Tooltips — signed in', () => {
   beforeEach(() => {
     cy.viewport(1280, 800);
-    cy.login('staff@moh.gov.sl', 'not-a-real-password');
+    cy.login();
   });
 
   // Collapsed, this rail is the entire navigation and nothing on it is
@@ -121,12 +121,41 @@ describe('Tooltips — signed in', () => {
   // The reason for the portal: the attendees table wraps itself in
   // overflow-hidden with overflow-x-auto inside it.
   it('is not clipped by the table it sits in', () => {
-    cy.visit('/administrative/events');
-    cy.get('a[href*="/administrative/events/"]').first().click();
-    cy.contains('a', 'Attendees').click();
+    /*
+     * Its own meeting, and straight to the page.
+     *
+     * This used to open the events list, click the first meeting it found and
+     * then hunt for an 'Attendees' link — three assumptions about somebody
+     * else's data, any of which failing reads as a tooltip bug. The tooltip is
+     * what is under test; getting to the table is not.
+     */
+    cy.createEvent({ title: `Tooltip check ${Date.now()}` }).then((meeting) => {
+      // Somebody has to be on the register: the table renders no headers at
+      // all when nobody has checked in, and a tooltip anchored to a header
+      // that does not exist cannot be tested.
+      cy.request({
+        method: 'POST',
+        url: `/api/v1/checkin/${meeting.id}/manual`,
+        body: { name: 'Tooltip Attendee', email: 'tooltip@cypress.gov.sl' },
+        failOnStatusCode: false,
+      });
+
+      cy.visit(`/administrative/events/${meeting.id}/attendees`);
+      cy.contains('button', 'Checked In').click();
+    });
 
     cy.get('[role="tooltip"]').should('not.exist');
-    cy.get('th').contains('Name').trigger('pointerover').trigger('pointermove');
+    /*
+     * The export button, not a column header.
+     *
+     * There is no tooltip on 'Name' and there does not appear ever to have
+     * been one — the tooltips on this page are on the row actions and on the
+     * export buttons. The property worth holding is the one this test is
+     * named for: a tooltip opened beside the register table must not be
+     * clipped by the table's own overflow-x. The CSV button sits right there
+     * and does carry one.
+     */
+    cy.contains('button', 'CSV').trigger('pointerover').trigger('pointermove');
     cy.get('[role="tooltip"]')
       .should('be.visible')
       .then(($t) => {

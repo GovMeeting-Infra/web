@@ -14,6 +14,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { apiFetch, ApiError, messageFor } from '@/lib/api/client';
+import { newId } from '@/lib/offline/ids';
 import { useCurrentUser } from '@/components/SessionProvider';
 import {
   useUnsavedWarning,
@@ -108,6 +109,8 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const [isAddingActionItem, setIsAddingActionItem] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  /** True when the last save went into the queue rather than to the server. */
+  const [queued, setQueued] = useState(false);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
 
   const { data: event } = useQuery({
@@ -211,7 +214,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   }
 
   useUnsavedWarning(isDirty);
-  const restorableDraft = useDraftBackup(id, decisions, nextSteps, isDirty);
+  const restorableDraft = useDraftBackup(currentUser?.id ?? null, id, decisions, nextSteps, isDirty);
 
   // The 2-day edit window and its ministry-admin override live on the server;
   // ask rather than re-deriving them here.
@@ -299,13 +302,26 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       nextSteps: nextSteps.map((s) => s.trim()).filter(Boolean),
     });
     try {
-      await apiFetch(`/api/v1/events/${id}/minutes`, {
-        method: minutes ? 'PATCH' : 'POST',
-        body: payload,
-      });
+      const saved = await apiFetch<{ __pending?: boolean }>(
+        `/api/v1/events/${id}/minutes`,
+        {
+          method: minutes ? 'PATCH' : 'POST',
+          body: payload,
+        },
+        {
+          // What this edit was made against. The server writes either way —
+          // last write wins — but with this it can say whether it landed on
+          // top of someone else's save, and hand back the lines it replaced.
+          baseUpdatedAt: minutes?.updatedAt ?? null,
+        },
+      );
       queryClient.invalidateQueries({ queryKey: ['minutes', id] });
       queryClient.invalidateQueries({ queryKey: ['minutes-can-edit', id] });
-      discardDraftBackup(id);
+      discardDraftBackup(currentUser?.id ?? null, id);
+      // A queued save resolves rather than throwing, so this path runs offline
+      // too. Saying "Saved" would be a lie by omission: it is on the device,
+      // not at the ministry.
+      setQueued(Boolean(saved?.__pending));
       setSavedAt(
         new Date().toLocaleTimeString('en-GB', {
           hour: '2-digit',
@@ -352,6 +368,15 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       await apiFetch(`/api/v1/events/${id}/minutes/action-items`, {
         method: 'POST',
         body: JSON.stringify({
+          /*
+           * Named here, because an action item has no natural key.
+           *
+           * The same title, owner and due date is a perfectly ordinary thing to
+           * record twice, so nothing else could tell a retry apart from a
+           * second item — and a queue that could not be sure its write landed
+           * would turn one into three. The primary key answers it.
+           */
+          id: newId(),
           title: newActionItem.title,
           dueDate: new Date(newActionItem.dueDate).toISOString(),
           // A guest: id is a marker for someone with no account, not something
@@ -537,8 +562,28 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       {/* Announced, because a save that worked is the thing the person is
           waiting to be told and nothing was telling them. */}
       <p role="status" aria-live="polite" className="sr-only">
-        {savedAt ? `Minutes saved at ${savedAt}.` : ''}
+        {savedAt
+          ? queued
+            ? `Minutes saved on this device at ${savedAt}. They will be sent when you are back online.`
+            : `Minutes saved at ${savedAt}.`
+          : ''}
       </p>
+
+      {/* Deliberately visible, not only announced. A save that went into the
+          queue looks identical to one that reached the ministry, and the
+          difference is exactly what someone deciding whether to close a laptop
+          needs to know. */}
+      {queued && savedAt && (
+        <div className="rounded-lg border border-stat-blue-border bg-stat-blue-bg p-4 text-sm text-primary">
+          <p className="font-medium">
+            Saved on this device at {savedAt} — not sent yet.
+          </p>
+          <p className="mt-1">
+            These minutes are safe here and will go to the ministry on their own
+            once you have a connection. You can close this page.
+          </p>
+        </div>
+      )}
 
       {conflictVersion && (
         <div
@@ -575,7 +620,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
               onClick={() => {
                 setDecisions(restorableDraft.decisions);
                 setNextSteps(restorableDraft.nextSteps);
-                discardDraftBackup(id);
+                discardDraftBackup(currentUser?.id ?? null, id);
               }}
               className="rounded-[1.25rem] bg-primary px-4 py-2 text-xs font-medium text-primary-foreground"
             >
@@ -583,7 +628,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
             </button>
             <button
               type="button"
-              onClick={() => discardDraftBackup(id)}
+              onClick={() => discardDraftBackup(currentUser?.id ?? null, id)}
               className="rounded-[1.25rem] border border-border px-4 py-2 text-xs font-medium text-foreground"
             >
               Discard them

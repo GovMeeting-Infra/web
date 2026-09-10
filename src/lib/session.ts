@@ -10,6 +10,18 @@ import {
 } from './roles';
 import { API_BASE } from './api-base';
 
+/**
+ * How long a server-rendered page waits for the API before giving up on it.
+ *
+ * These calls run on the instance, so they never see a client's dead uplink —
+ * but a NestJS process that is up and not answering hangs them for the platform
+ * default, and the administrative layout awaits one of them before it renders
+ * anything at all. Every admin page therefore hung, rather than reaching the
+ * 'unavailable' branch below that exists precisely to say so. Well under a
+ * page-load budget, because the honest fallback is better than the wait.
+ */
+const SESSION_FETCH_TIMEOUT_MS = 4_000;
+
 export interface CurrentUser {
   id: string;
   email: string;
@@ -48,6 +60,7 @@ export async function getSessionState(): Promise<SessionState> {
     const response = await fetch(`${API_BASE}/api/v1/auth/session`, {
       headers: { Cookie: `authToken=${authToken}` },
       cache: 'no-store',
+      signal: AbortSignal.timeout(SESSION_FETCH_TIMEOUT_MS),
     });
 
     // 401/403 is an answer: the token is no longer good. A 5xx is not.
@@ -87,6 +100,7 @@ export async function getSupportEmail(): Promise<string> {
     const response = await fetch(`${API_BASE}/api/v1/auth/session`, {
       headers: { Cookie: `authToken=${authToken}` },
       cache: 'no-store',
+      signal: AbortSignal.timeout(SESSION_FETCH_TIMEOUT_MS),
     });
     if (!response.ok) return '';
     const data = await response.json();
@@ -139,6 +153,7 @@ export async function getMyPreferences(): Promise<MyPreferences | null> {
     const response = await fetch(`${API_BASE}/api/v1/me/preferences`, {
       headers: { Cookie: `authToken=${authToken}` },
       cache: 'no-store',
+      signal: AbortSignal.timeout(SESSION_FETCH_TIMEOUT_MS),
     });
 
     if (!response.ok) return null;
@@ -201,6 +216,7 @@ export async function getMinistryName(
       {
         headers: { Cookie: `authToken=${authToken}` },
         cache: 'no-store',
+        signal: AbortSignal.timeout(SESSION_FETCH_TIMEOUT_MS),
       },
     );
     if (!response.ok) return null;

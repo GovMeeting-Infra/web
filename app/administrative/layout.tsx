@@ -4,37 +4,14 @@ import { AdminLayout } from '@/components/ui/admin-layout';
 import { SessionProvider } from '@/components/SessionProvider';
 import { PlatformTour } from '@/components/tour/PlatformTour';
 import { SessionTimeoutWarning } from '@/components/ui/session-timeout-warning';
+import { OfflineAdminShell } from '@/components/offline/OfflineAdminShell';
+import { SessionSnapshotWriter } from '@/components/offline/SessionSnapshotWriter';
+import { SyncProvider } from '@/components/offline/SyncProvider';
 import {
   getSessionState,
   getMinistryName,
   getMyPreferences,
 } from '@/lib/session';
-
-/**
- * Shown when the API cannot be reached at all, in place of the workspace.
- *
- * No sidebar and no navigation, because none of it would work — but no login
- * prompt either, because signing in is not the missing thing.
- */
-function ServiceUnavailable() {
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="max-w-md rounded-[1.5rem] border border-border bg-card p-8 text-center">
-        <h1 className="text-xl font-bold text-primary">
-          We can&rsquo;t reach the service
-        </h1>
-        <p className="mt-3 text-sm text-muted-foreground">
-          Your sign-in is fine — the server behind this workspace is not
-          answering right now. Nothing you have saved is affected.
-        </p>
-        <p className="mt-4 text-sm text-muted-foreground">
-          Try again in a few minutes. If it keeps happening, tell your IT
-          support that the meetings API is unreachable.
-        </p>
-      </div>
-    </main>
-  );
-}
 
 export default async function AdministrativeLayout({
   children,
@@ -59,8 +36,14 @@ export default async function AdministrativeLayout({
   // Deliberately not a redirect. Sending someone to sign in because the API is
   // unreachable would blame them for an outage and hand them a login form that
   // cannot work either.
+  //
+  // No longer a dead end either. This branch is reached both when the browser
+  // has no connection and when the API is down behind a working nginx, and in
+  // either case the device usually already holds who is signed in and most of
+  // what they were reading. The shell draws itself from that, and falls back to
+  // the card below only when there is genuinely nothing.
   if (session.status === 'unavailable') {
-    return <ServiceUnavailable />;
+    return <OfflineAdminShell>{children}</OfflineAdminShell>;
   }
 
   // Past both branches above, so there is definitely a user — the `user &&`
@@ -79,6 +62,17 @@ export default async function AdministrativeLayout({
         userEmail={user.email}
         compact={preferences?.compactMode ?? false}
       >
+        {/* Leaves behind who is signed in, so the branch above has something to
+            draw the workspace from next time the API cannot be asked. */}
+        <SessionSnapshotWriter
+          user={user}
+          ministryName={ministryName}
+          compact={preferences?.compactMode ?? false}
+        />
+        {/* Drains the queue and reports the two outcomes worth interrupting
+            for. In the layout so it survives navigation — a sync that stopped
+            every time someone changed page would never finish. */}
+        <SyncProvider />
         {children}
         {/* Same reasoning as the tour: the clock has to survive navigation,
             and an inactivity sign-out can land on any page. */}

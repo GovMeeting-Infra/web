@@ -6,6 +6,8 @@ import { useQuery } from '@tanstack/react-query';
 import Link from 'next/link';
 import { ArrowLeft, X, Building2, Globe, Upload } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
+import { newId } from '@/lib/offline/ids';
+import { useIsOffline } from '@/lib/offline/connectivity';
 import {
   useUnsavedWarning,
   confirmLeave,
@@ -108,6 +110,7 @@ export default function NewEventPage() {
   const [contactEmail, setContactEmail] = useState(currentUser?.email ?? '');
   const [contactPhone, setContactPhone] = useState('');
   const [externalUrl, setExternalUrl] = useState('');
+  const offline = useIsOffline();
   const [bannerImage, setBannerImage] = useState('');
 
   const [coOrganizers, setCoOrganizers] = useState<string[]>([]);
@@ -277,10 +280,25 @@ export default function NewEventPage() {
         }
       }
 
-      const event = await apiFetch<EventDetail>('/api/v1/events', {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      });
+      /*
+       * The meeting is named here rather than by the database.
+       *
+       * Done on every save, not only offline ones, so there is one behaviour
+       * to reason about: the address this page is about to navigate to is the
+       * record's real id either way. A meeting created during an outage
+       * therefore keeps its link when it syncs instead of moving, and a retry
+       * that the queue could not confirm collides on the primary key rather
+       * than creating a second meeting.
+       */
+      payload.id = newId();
+
+      const event = await apiFetch<EventDetail & { __pending?: boolean }>(
+        '/api/v1/events',
+        {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        },
+      );
 
       // Recurrence is a second call: the series is built from a saved event.
       if (recurrenceFreq) {
@@ -312,7 +330,19 @@ export default function NewEventPage() {
         }
       }
 
-      router.push(`/administrative/events/${event.id}`);
+      /*
+       * Carried in the address rather than held in state, because this page is
+       * about to stop existing — the same reason recurrenceError above is
+       * passed this way.
+       *
+       * It matters because creating a meeting normally sends its invitations
+       * at once. Queued, nothing goes out until the connection returns, which
+       * may be after the meeting itself. The organizer is the only person who
+       * can judge whether that is acceptable, and only if somebody tells them.
+       */
+      router.push(
+        `/administrative/events/${event.id}${event?.__pending ? '?queued=1' : ''}`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create event');
     } finally {
@@ -703,12 +733,26 @@ export default function NewEventPage() {
                 id="bannerImageFile"
                 accept="image/png,image/jpeg,image/webp"
                 onChange={handleBannerFile}
+                disabled={offline}
                 className="sr-only"
               />
               <div className="mt-1 flex items-center gap-2">
+                {/*
+                  The one part of this form that cannot wait for a connection.
+                  The image goes straight from the browser to Cloudinary, not
+                  through our API, so there is nothing to queue — and queuing it
+                  would mean holding a multi-megabyte file against an upload
+                  signature that expires. Said plainly, because a picker that
+                  silently did nothing would read as a broken page.
+                */}
                 <label
                   htmlFor="bannerImageFile"
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/50"
+                  aria-disabled={offline}
+                  className={
+                    offline
+                      ? 'inline-flex items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium opacity-50'
+                      : 'inline-flex cursor-pointer items-center gap-2 rounded-xl border border-border bg-background px-4 py-2.5 text-sm font-medium transition-colors hover:bg-muted/50'
+                  }
                 >
                   <Upload className="h-4 w-4" />
                   {isUploading ? 'Uploading…' : 'Choose Image'}
@@ -723,6 +767,12 @@ export default function NewEventPage() {
                   </button>
                 )}
               </div>
+              {offline && (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Images can&rsquo;t be uploaded without a connection. You can
+                  create the meeting now and add a banner once it has synced.
+                </p>
+              )}
 
               {uploadError && (
                 <p className="mt-2 text-xs text-destructive">{uploadError}</p>

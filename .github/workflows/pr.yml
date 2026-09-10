@@ -38,6 +38,21 @@ jobs:
         continue-on-error: true
         run: npm run lint
 
+      # Blocking, unlike the lint step above, and deliberately so.
+      #
+      # These cover the offline write path — which routes may be deferred, what
+      # collapses onto what, which failures are worth retrying, what the
+      # connectivity store reports. They need no server and no database, run in
+      # about a second, and are green today, so there is no reason to let them
+      # rot the way the cypress suite did: those specs sign in with the literal
+      # string 'not-a-real-password' and nothing has ever run them.
+      #
+      # Scoped to these tests on purpose. Making the lint step blocking is a
+      # separate job that means fixing pre-existing errors, and bundling the two
+      # would hold unrelated work behind it.
+      - name: Unit tests
+        run: npm test
+
       # INTERNAL_API_URL must be set for the BUILD, not just at runtime: the
       # /api/:path* rewrite in next.config.ts is resolved here and written into
       # .next/routes-manifest.json. Building without it bakes in the default,
