@@ -21,6 +21,7 @@ import { apiFetch, apiDownload, messageFor } from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeaderSkeleton, StatCardsSkeleton } from '@/components/ui/skeletons';
 import { uploadImage } from '@/lib/upload';
+import { avatarUrl } from '@/lib/avatar-url';
 import { PageContainer } from '@/components/ui/page-container';
 import { PasswordInput } from '@/components/ui/password-input';
 import { useUnsavedWarning } from '@/lib/hooks/useUnsavedWarning';
@@ -472,7 +473,10 @@ function AccountLoaded({
           {profile.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={profile.image}
+              // Cropped by Cloudinary rather than by the browser: these are
+              // camera photographs, and this one was sending 4.3MB down to
+              // fill a 96px circle.
+              src={avatarUrl(profile.image, 256) ?? profile.image}
               alt=""
               className="h-24 w-24 shrink-0 rounded-full border-4 border-white/20 object-cover"
             />
@@ -679,7 +683,7 @@ function AccountLoaded({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={image}
-                src={image}
+                src={avatarUrl(image, 192) ?? image}
                 alt=""
                 className="mb-3 mt-2 h-20 w-20 rounded-full border border-border object-cover"
                 // keyed on the URL so a previously broken image is re-rendered
