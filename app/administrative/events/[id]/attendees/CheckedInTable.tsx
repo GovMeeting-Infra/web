@@ -7,6 +7,7 @@ import {
   ArrowUp,
   ArrowDown,
   MapPin,
+  Pencil,
   ShieldAlert,
 } from 'lucide-react';
 import {
@@ -240,11 +241,19 @@ export function CheckedInTable({
   eventId,
   canRemove,
   onRemove,
+  onEdit,
 }: {
   checkIns: AttendanceRecord[];
   eventId: string;
   canRemove: boolean;
   onRemove: (attendanceId: string, name: string) => void;
+  /**
+   * Correct a row. Same people as removing one, so it rides on canRemove
+   * rather than a second flag — until now a name mistyped at a busy desk could
+   * only be fixed by deleting the record and taking it again, which moved the
+   * arrival time to whenever somebody noticed.
+   */
+  onEdit?: (record: AttendanceRecord) => void;
 }) {
   // Newest first out of the API, which is the order a desk wants during a
   // meeting; name order is for reading the register afterwards.
@@ -382,13 +391,24 @@ export function CheckedInTable({
                   </td>
                   {canRemove && (
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => onRemove(c.id, c.signedName || c.user?.name || "this attendee")}
-                        aria-label={`Remove check-in for ${c.signedName}`}
-                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-1">
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(c)}
+                            aria-label={`Correct the check-in for ${c.signedName}`}
+                            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => onRemove(c.id, c.signedName || c.user?.name || "this attendee")}
+                          aria-label={`Remove check-in for ${c.signedName}`}
+                          className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
                   )}
                 </tr>
@@ -429,13 +449,24 @@ export function CheckedInTable({
                 )}
               </div>
               {canRemove && (
-                <button
-                  onClick={() => onRemove(c.id, c.signedName || c.user?.name || "this attendee")}
-                  aria-label={`Remove check-in for ${c.signedName}`}
-                  className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  {onEdit && (
+                    <button
+                      onClick={() => onEdit(c)}
+                      aria-label={`Correct the check-in for ${c.signedName}`}
+                      className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onRemove(c.id, c.signedName || c.user?.name || "this attendee")}
+                    aria-label={`Remove check-in for ${c.signedName}`}
+                    className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               )}
             </div>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import {
@@ -19,7 +19,7 @@ import { apiFetch, apiDownload } from '@/lib/api/client';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { PageContainer } from '@/components/ui/page-container';
 import { CheckedInTable } from './CheckedInTable';
-import { ConfirmDialog } from '@/components/ui/modal';
+import { ConfirmDialog, Modal } from '@/components/ui/modal';
 import { Tooltip } from '@/components/ui/tooltip';
 import {
   PersonPicker,
@@ -37,6 +37,14 @@ import {
   type ResendInviteResult,
 } from '@/lib/types/events';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+
+/** Shared by the desk form's inputs, which were five copies of one string. */
+const walkInField =
+  'rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary';
+import {
+  SignaturePad,
+  type SignaturePadHandle,
+} from '@/components/ui/signature-pad';
 
 const STATUS_PILL: Record<AttendeeStatus, string> = {
   CONFIRMED: 'bg-stat-green-bg text-success',
@@ -188,6 +196,93 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
 
   const [walkInName, setWalkInName] = useState('');
   const [walkInEmail, setWalkInEmail] = useState('');
+  const [walkInTitle, setWalkInTitle] = useState('');
+  const [walkInOrganisation, setWalkInOrganisation] = useState('');
+  const [walkInPhone, setWalkInPhone] = useState('');
+
+  // Whether the email was picked from the directory, which is the only way
+  // this form can know the person has an account before it asks the server.
+  // A typed address might be anybody's, so the requirement is the server's to
+  // enforce; this only decides what the form says it needs.
+  const [walkInIsColleague, setWalkInIsColleague] = useState(false);
+
+  // The same pad the attendee-facing form uses, including its "type it
+  // instead" mode — somebody at the desk can be handed the screen, or their
+  // name can be typed for them. The pad renders a typed signature in italic
+  // serif so an auditor can tell the two apart.
+  const walkInSignature = useRef<SignaturePadHandle>(null);
+
+  // Correcting a row already on the register. Held as the record rather than
+  // an id so the form can be seeded without another request, and so the dialog
+  // can say whose check-in it is amending.
+  const [editing, setEditing] = useState<AttendanceRecord | null>(null);
+  const [editForm, setEditForm] = useState({
+    signedName: '',
+    guestName: '',
+    guestEmail: '',
+    guestTitle: '',
+    guestOrganisation: '',
+    guestPhone: '',
+  });
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isEditSaving, setIsEditSaving] = useState(false);
+  const editSignature = useRef<SignaturePadHandle>(null);
+
+  /**
+   * Save a correction.
+   *
+   * Only who the person is. When they arrived is not sent and the server would
+   * refuse it anyway — that is the record of what happened rather than data
+   * entry, and a register that can be backdated is not evidence of anything.
+   */
+  const handleEditSave = async () => {
+    if (!editing) return;
+
+    const name = editForm.signedName.trim();
+    if (!name) {
+      setEditError('A name is required.');
+      return;
+    }
+
+    setIsEditSaving(true);
+    setEditError(null);
+    try {
+      const signature = editSignature.current?.getSignature();
+      await apiFetch(
+        `/api/v1/events/${id}/checkins/${editing.id}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            signedName: name,
+            guestTitle: editForm.guestTitle.trim() || undefined,
+            guestOrganisation: editForm.guestOrganisation.trim() || undefined,
+            guestPhone: editForm.guestPhone.trim() || undefined,
+            // A row filed against an account takes its name and email from
+            // there, and the server refuses to re-file one as somebody else —
+            // so these only travel for a guest.
+            ...(editing.userId
+              ? {}
+              : {
+                  guestName: editForm.guestName.trim() || undefined,
+                  guestEmail: editForm.guestEmail.trim() || undefined,
+                }),
+            // Only when something was actually signed in this dialog: an
+            // untouched pad must not erase a signature already on the record.
+            ...(signature ? { signature } : {}),
+          }),
+        },
+      );
+      setNotice(`Check-in for ${name} corrected.`);
+      setEditing(null);
+      queryClient.invalidateQueries({ queryKey: ['checkins', id] });
+    } catch (err) {
+      setEditError(
+        err instanceof Error ? err.message : 'Could not save the correction.',
+      );
+    } finally {
+      setIsEditSaving(false);
+    }
+  };
   // Colleagues picked from the directory, and outside guests typed by hand.
   // Both accumulate so several can go out in one invitation.
   const [invitees, setInvitees] = useState<DirectoryPerson[]>([]);
@@ -510,15 +605,29 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
     setError(null);
     setNotice(null);
     try {
-      // No signature: the attendee never touches this device. The server
-      // stores null and the record is shown as unsigned.
+      // A signature is offered, never required: an organizer vouching in
+      // person is the point of this path, and the record says so by carrying
+      // none. Trimmed values only — an empty field must not travel as '' and
+      // fail an @IsString @Length on the far side.
       await apiFetch(`/api/v1/checkin/${id}/manual`, {
         method: 'POST',
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({
+          name,
+          email,
+          guestTitle: walkInTitle.trim() || undefined,
+          guestOrganisation: walkInOrganisation.trim() || undefined,
+          guestPhone: walkInPhone.trim() || undefined,
+          signature: walkInSignature.current?.getSignature() ?? undefined,
+        }),
       });
       setNotice(`${name} checked in.`);
       setWalkInName('');
       setWalkInEmail('');
+      setWalkInTitle('');
+      setWalkInOrganisation('');
+      setWalkInPhone('');
+      setWalkInIsColleague(false);
+      walkInSignature.current?.clear();
       queryClient.invalidateQueries({ queryKey: ['checkins', id] });
       queryClient.invalidateQueries({ queryKey: ['attendees-confirmed', id] });
       queryClient.invalidateQueries({ queryKey: ['event', id] });
@@ -722,9 +831,9 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Records attendance at the desk. If the email belongs to an
-              account, the check-in is filed against it; otherwise it is
-              recorded as a guest. No signature is taken — people signing for
-              themselves use the QR code.
+              account, the check-in is filed against it and their details come
+              from there; otherwise it is recorded as a visitor, and who they
+              came on behalf of is asked for.
             </p>
           </div>
 
@@ -739,6 +848,9 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               if (!person) return;
               setWalkInName(person.name);
               setWalkInEmail(person.email);
+              // Chosen from the directory, so the platform holds their title
+              // and ministry already and the form stops asking for them.
+              setWalkInIsColleague(true);
             }}
             placeholder="Search colleagues and staff…"
             endpoint="/api/v1/users/directory/people?sources=accounts,staff"
@@ -751,15 +863,61 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               value={walkInName}
               onChange={(e) => setWalkInName(e.target.value)}
               aria-label="Full name" placeholder="Full name"
-              className="rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary"
+              className={walkInField}
             />
             <input
               type="email"
               value={walkInEmail}
-              onChange={(e) => setWalkInEmail(e.target.value)}
+              onChange={(e) => {
+                setWalkInEmail(e.target.value);
+                // Typed over, so whatever the directory said no longer holds.
+                setWalkInIsColleague(false);
+              }}
               aria-label="Email" placeholder="Email"
-              className="rounded-2xl border border-border bg-input px-4 py-3 text-sm focus:border-primary"
+              className={walkInField}
             />
+            <input
+              type="text"
+              value={walkInTitle}
+              onChange={(e) => setWalkInTitle(e.target.value)}
+              aria-label="Job title" placeholder="Job title"
+              className={walkInField}
+            />
+            <input
+              type="text"
+              value={walkInOrganisation}
+              onChange={(e) => setWalkInOrganisation(e.target.value)}
+              aria-label="Organisation" placeholder="Organisation"
+              className={walkInField}
+            />
+            <input
+              type="tel"
+              value={walkInPhone}
+              onChange={(e) => setWalkInPhone(e.target.value)}
+              aria-label="Phone" placeholder="Phone"
+              className={walkInField}
+            />
+          </div>
+
+          {/* Said rather than enforced here: this form cannot know whether a
+              typed address belongs to an account, so the server decides and
+              this only sets the expectation. Picking someone from the search
+              above is the one case it can be sure of. */}
+          <p className="text-xs text-muted-foreground">
+            {walkInIsColleague
+              ? 'Job title, organisation and phone come from their account — fill them in only to record something different.'
+              : 'Job title, organisation and phone are required for a visitor with no account. For a colleague, leave them blank and their account is used.'}
+          </p>
+
+          <div>
+            <p className="text-sm font-medium text-foreground">
+              Signature <span className="text-muted-foreground">(optional)</span>
+            </p>
+            <p className="mt-1 mb-2 text-xs text-muted-foreground">
+              Hand over the screen, or use Type it instead. Leave it blank and
+              the record shows that you vouched for them at the desk.
+            </p>
+            <SignaturePad ref={walkInSignature} disabled={isSaving} />
           </div>
 
           <button
@@ -966,6 +1124,18 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               onRemove={(attendanceId, name) =>
                 setPendingRemoval({ id: attendanceId, name })
               }
+              onEdit={(record) => {
+                setEditing(record);
+                setEditError(null);
+                setEditForm({
+                  signedName: record.signedName ?? '',
+                  guestName: record.guestName ?? '',
+                  guestEmail: record.guestEmail ?? '',
+                  guestTitle: record.guestTitle ?? '',
+                  guestOrganisation: record.guestOrganisation ?? '',
+                  guestPhone: record.guestPhone ?? '',
+                });
+              }}
             />
           )}
 
@@ -1018,6 +1188,141 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           )}
         </div>
       </div>
+
+      {/* Correcting a row, not re-taking it. Everything about who the person
+          is can be changed; when they arrived and how they checked in are not
+          here and the server would refuse them anyway. */}
+      <Modal
+        open={!!editing}
+        onClose={() => setEditing(null)}
+        title="Correct this check-in"
+        description={
+          editing
+            ? `Recorded ${new Date(editing.checkInAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}. The arrival time and how they checked in are part of the record and cannot be changed.`
+            : undefined
+        }
+        footer={
+          <div className="flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className="rounded-xl px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleEditSave}
+              disabled={isEditSaving}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            >
+              {isEditSaving ? 'Saving…' : 'Save correction'}
+            </button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          {editError && (
+            <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {editError}
+            </p>
+          )}
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="text-xs font-medium text-foreground/80">
+              Signed name
+              <input
+                type="text"
+                value={editForm.signedName}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, signedName: e.target.value }))
+                }
+                className={walkInField + ' mt-1 w-full'}
+              />
+            </label>
+
+            {/* A check-in filed against an account takes these from the
+                account, so offering them here would promise an edit the
+                server refuses — it will not re-file attendance as somebody
+                else without anyone saying so. */}
+            {editing && !editing.userId && (
+              <>
+                <label className="text-xs font-medium text-foreground/80">
+                  Guest name
+                  <input
+                    type="text"
+                    value={editForm.guestName}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, guestName: e.target.value }))
+                    }
+                    className={walkInField + ' mt-1 w-full'}
+                  />
+                </label>
+                <label className="text-xs font-medium text-foreground/80">
+                  Email
+                  <input
+                    type="email"
+                    value={editForm.guestEmail}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, guestEmail: e.target.value }))
+                    }
+                    className={walkInField + ' mt-1 w-full'}
+                  />
+                </label>
+              </>
+            )}
+
+            <label className="text-xs font-medium text-foreground/80">
+              Job title
+              <input
+                type="text"
+                value={editForm.guestTitle}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, guestTitle: e.target.value }))
+                }
+                className={walkInField + ' mt-1 w-full'}
+              />
+            </label>
+            <label className="text-xs font-medium text-foreground/80">
+              Organisation
+              <input
+                type="text"
+                value={editForm.guestOrganisation}
+                onChange={(e) =>
+                  setEditForm((f) => ({
+                    ...f,
+                    guestOrganisation: e.target.value,
+                  }))
+                }
+                className={walkInField + ' mt-1 w-full'}
+              />
+            </label>
+            <label className="text-xs font-medium text-foreground/80">
+              Phone
+              <input
+                type="tel"
+                value={editForm.guestPhone}
+                onChange={(e) =>
+                  setEditForm((f) => ({ ...f, guestPhone: e.target.value }))
+                }
+                className={walkInField + ' mt-1 w-full'}
+              />
+            </label>
+          </div>
+
+          {editing && (
+            <div>
+              <p className="text-sm font-medium text-foreground">Signature</p>
+              <p className="mt-1 mb-2 text-xs text-muted-foreground">
+                {editing.signatureState === 'SIGNED'
+                  ? 'Already signed. Sign again only to replace it — leaving this blank keeps what is on the record.'
+                  : 'Not signed. Hand over the screen, or use Type it instead.'}
+              </p>
+              <SignaturePad ref={editSignature} disabled={isEditSaving} />
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <ConfirmDialog
         open={!!pendingRemoval}
