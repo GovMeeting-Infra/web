@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useEffect, useRef, useCallback } from 'react';
+import { use, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
@@ -21,15 +21,6 @@ interface GeneratePayload {
   rotate?: boolean;
 }
 
-/**
- * How close to expiry the page replaces the code on its own.
- *
- * Early rather than on the stroke of zero: the outgoing token stays valid until
- * its own expiry, so minting a few seconds ahead hands over with an overlap
- * instead of a window where whoever is mid-scan gets an error.
- */
-const AUTO_ROTATE_AT_SECONDS = 10;
-
 export default function CheckInCodePage({
   params,
 }: {
@@ -37,29 +28,12 @@ export default function CheckInCodePage({
 }) {
   const { id } = use(params);
   const queryClient = useQueryClient();
-  const [countdown, setCountdown] = useState<string>('');
-  // null until the first tick, so the code is never painted as expired during
-  // the frame before the timer has run.
-  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
   const [notice, setNotice] = useTransientMessage();
   const [actionError, setActionError] = useTransientMessage();
 
-  // Set when the organizer closes check-in, so the page does not immediately
-  // mint a replacement for the code they just revoked and make that button
-  // useless. Cleared the moment they ask for a code again.
+  // Set when the organizer closes check-in, so the page can say the code was
+  // revoked rather than leaving an empty screen with no explanation.
   const [checkInClosed, setCheckInClosed] = useState(false);
-
-  // One refused rotation turns automatic refreshing off for good, and the page
-  // falls back to the expired code and the button. The countdown ticks every
-  // second, so without this a rotation the server keeps refusing — an event
-  // whose check-in area was cleared, say — would be retried once a second for
-  // as long as the tab stayed open.
-  const [autoRefreshStopped, setAutoRefreshStopped] = useState(false);
-
-  // The token a replacement has already been requested for. The threshold below
-  // holds true for several ticks, and without this each one would ask for
-  // another code.
-  const rotatedFrom = useRef<string | null>(null);
 
   const {
     data: qrCode,
@@ -131,102 +105,26 @@ export default function CheckInCodePage({
   });
 
   /**
-   * Whether the page will replace the code by itself.
+   * When the code stops working, as a sentence rather than a countdown.
    *
-   * A code lasting five minutes and then simply dying meant an organizer
-   * holding a phone up at a door had to keep glancing at it and pressing a
-   * button, and a queue would go on scanning something expired in the meantime.
-   * The page renews it instead. The button stays, because taking over by hand
-   * is still a reasonable thing to want.
-   *
-   * Every condition here exists to stop the page minting codes nobody is
-   * standing in front of — a tab left open used to produce an endless stream of
-   * them, which is why generating was made an explicit act in the first place.
+   * There used to be a clock here, because the code lasted five minutes and
+   * was replaced over and over. That made the organizer responsible for
+   * watching it: anyone who arrived while the screen showed a dead code could
+   * not get in. One code now lasts the whole meeting, so the only thing worth
+   * saying is when check-in closes.
    */
-  const autoRefreshing = !cannotGenerate && !checkInClosed && !autoRefreshStopped;
+  const closesAt = event?.endAt
+    ? new Date(event.endAt).toLocaleTimeString(undefined, {
+        hour: "numeric",
+        minute: "2-digit",
+      })
+    : null;
 
-  const rotateAutomatically = useCallback(() => {
-    if (!autoRefreshing || generate.isPending) return;
-
-    // Nobody is looking at a backgrounded tab, so nobody is scanning what it
-    // shows. It catches up when the organizer comes back.
-    if (document.visibilityState !== 'visible') return;
-
-    const token = qrCode?.token;
-    if (!token || !qrCode?.expiresAt) return;
-    if (rotatedFrom.current === token) return;
-
-    const remaining = new Date(qrCode.expiresAt).getTime() - Date.now();
-    if (remaining > AUTO_ROTATE_AT_SECONDS * 1000) return;
-
-    rotatedFrom.current = token;
-    // Rotate only, exactly as the button does: no coordinates, so a code that
-    // renews itself while the organizer walks about cannot drag the check-in
-    // area along behind them.
-    generate.mutate(
-      { rotate: true },
-      { onError: () => setAutoRefreshStopped(true) },
-    );
-  }, [autoRefreshing, generate, qrCode]);
-
-  // Held in a ref so the countdown below can call the current version without
-  // listing it as a dependency, which would tear down and rebuild the interval
-  // on every render.
-  const rotateRef = useRef(rotateAutomatically);
-  useEffect(() => {
-    rotateRef.current = rotateAutomatically;
-  });
-
-  // Coming back to the tab. The countdown keeps running while it is hidden, so
-  // by now the code has usually expired and the organizer is about to hold the
-  // screen up to somebody.
-  useEffect(() => {
-    const onVisibilityChange = () => rotateRef.current();
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () =>
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-  }, []);
-
-  useEffect(() => {
-    // No token means the countdown is not rendered at all, so there is nothing
-    // to clear — and clearing here would be a synchronous setState in an
-    // effect body.
-    if (!qrCode?.expiresAt) return;
-    const expiresAt = new Date(qrCode.expiresAt).getTime();
-
-    const tick = () => {
-      const remaining = expiresAt - Date.now();
-
-      // Asked on every tick rather than scheduled for the moment of expiry: a
-      // timer set five minutes out drifts, is suspended by a sleeping laptop,
-      // and would have to be torn down and rebuilt every time anything else
-      // here changed. The function itself decides whether it is time.
-      rotateRef.current();
-
-      if (remaining <= 0) {
-        // Telling someone to generate a new code next to a button that
-        // refuses to is worse than saying nothing.
-        setCountdown(
-          autoRefreshing
-            ? 'Refreshing…'
-            : cannotGenerate
-              ? 'Expired'
-              : 'Expired — generate a new code',
-        );
-        setSecondsLeft(0);
-        return;
-      }
-      const total = Math.ceil(remaining / 1000);
-      setSecondsLeft(total);
-      const mins = Math.floor(total / 60);
-      const secs = total % 60;
-      setCountdown(`Expires in ${mins}:${String(secs).padStart(2, '0')}`);
-    };
-
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [qrCode, cannotGenerate, autoRefreshing]);
+  // The code and the meeting end together, so a code still on screen after
+  // that is spent — check-in refuses a scan once the meeting is over whatever
+  // the code says.
+  const expired =
+    !!qrCode?.expiresAt && new Date(qrCode.expiresAt) <= new Date();
 
   /**
    * Capture the organizer's location and generate. When no fix is available we
@@ -236,10 +134,8 @@ export default function CheckInCodePage({
   const generateWithLocation = async (extra: GeneratePayload = {}) => {
     setActionError(null);
     setNotice(null);
-    // Asking for a code is the opposite of closing check-in, and it is also
-    // how someone retries after a refusal turned automatic refreshing off.
+    // Asking for a code is the opposite of closing check-in.
     setCheckInClosed(false);
-    setAutoRefreshStopped(false);
 
     try {
       const fix = await requestLocation();
@@ -308,8 +204,7 @@ export default function CheckInCodePage({
         </p>
         <h1 className="text-3xl font-bold text-primary">QR Code</h1>
         <p className="mt-2 text-muted-foreground">
-          Generate a code for attendees to scan. It replaces itself every 5
-          minutes while this page is open.
+          One code for the whole meeting. Generate it in the room, on the day.
         </p>
       </div>
 
@@ -375,11 +270,9 @@ export default function CheckInCodePage({
                 loss, and at 256px plus this card's and the page's padding the
                 code was 472px wide on a 375px screen — a quarter of it cut
                 off, on the page whose whole job is being pointed at. */}
-            {/* A dead code looked exactly like a live one: the countdown line
-                changed wording in body-weight text and the QR carried on
-                rendering. An organiser holding the phone up glanced at it and
-                could not tell, while a queue kept scanning something expired —
-                a silent, multi-person attendance loss. */}
+            {/* A dead code looks exactly like a live one, so it is covered
+                rather than left to be pointed at. That now only happens once
+                the meeting is over or check-in has been closed by hand. */}
             <div className="relative w-full max-w-[18rem]">
               <div className="rounded-2xl border-4 border-border bg-white p-3 sm:p-6">
                 <QRCodeSVG
@@ -391,63 +284,47 @@ export default function CheckInCodePage({
                   title="Check-in QR code"
                 />
               </div>
-              {/* Only when the code is genuinely dead. While the page is
-                  refreshing it, covering the QR would hide a code that is
-                  about to be replaced within the second — and telling somebody
-                  to press a button the page is already pressing for them
-                  contradicts what they can see happening. */}
-              {secondsLeft === 0 && !autoRefreshing && (
+              {expired && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-scrim/75 p-4 text-center">
                   <span className="text-base font-bold text-white">
-                    This code has expired
+                    {checkInClosed ? 'Check-in is closed' : 'Check-in has ended'}
                   </span>
                   <span className="text-sm text-white/85">
                     {cannotGenerate
                       ? 'Ask a ministry admin to reopen check-in.'
                       : checkInClosed
-                        ? 'Check-in is closed. Tap New code below to reopen it.'
-                        : 'Tap New code below, then hold the phone up again.'}
+                        ? 'Tap New code below to reopen it.'
+                        : 'This meeting is over. Record anyone missed from the attendees page.'}
                   </span>
                 </div>
               )}
             </div>
             <div className="space-y-1 text-center">
+              {/* One line, and it does not tick. Nobody has to watch this. */}
               <p
                 className={
-                  // A countdown running out is no longer alarming when the page
-                  // is about to replace the code, so it does not turn red.
-                  secondsLeft === 0 && !autoRefreshing
+                  expired
                     ? 'text-lg font-bold text-alert-fg'
-                    : secondsLeft !== null &&
-                        secondsLeft <= 60 &&
-                        !autoRefreshing
-                      ? 'text-lg font-bold text-stat-gold-muted'
-                      : 'text-sm font-medium text-foreground'
+                    : 'text-sm font-medium text-foreground'
                 }
               >
-                {countdown}
+                {expired
+                  ? checkInClosed
+                    ? 'Check-in closed'
+                    : 'Check-in has ended'
+                  : closesAt
+                    ? `Works until the meeting ends at ${closesAt}`
+                    : 'Works for the whole meeting'}
               </p>
               <p className="text-xs text-muted-foreground">
-                {autoRefreshing
-                  ? 'A code lasts 5 minutes. This page replaces it automatically — keep it open and on screen.'
-                  : checkInClosed
-                    ? 'Check-in is closed, so this page is no longer replacing the code.'
-                    : autoRefreshStopped
-                      ? 'Automatic refreshing stopped after a code could not be generated. Use New code to try again.'
-                      : 'A code lasts 5 minutes.'}
+                {expired
+                  ? 'Tap New code below to issue another.'
+                  : 'One code for the whole meeting — leave it up, or print it. Use New code only if it has been shared outside the room.'}
               </p>
-              {/* Announced at the two thresholds that matter. A per-second
+              {/* Announced when it changes, which is now once. A per-second
                   live region would talk over everything else on the page. */}
               <span role="status" aria-live="polite" className="sr-only">
-                {secondsLeft === 0
-                  ? autoRefreshing
-                    ? 'Replacing the check-in code.'
-                    : 'The check-in code has expired. Generate a new one.'
-                  : secondsLeft !== null &&
-                      secondsLeft <= 60 &&
-                      !autoRefreshing
-                    ? 'The check-in code expires in less than a minute.'
-                    : ''}
+                {expired ? 'Check-in is closed for this meeting.' : ''}
               </span>
               {/* The code as text. Someone whose camera will not focus, or who
                   is reading this aloud down a phone line, has no other way in. */}
@@ -465,24 +342,31 @@ export default function CheckInCodePage({
             <Tooltip
               content={
                 blockedReason ??
-                (autoRefreshing
-                  ? 'Replaces the code on screen now, without waiting for the automatic refresh. The check-in area stays where it was set, so refreshing from the corridor does not drag it with you.'
-                  : 'Replaces the code on screen, and starts refreshing it automatically again. The check-in area stays where it was set, so refreshing from the corridor does not drag it with you.')
+                'Issues a different code and stops the one on screen working. For a code that has been shared outside the room — nothing needs replacing otherwise. The check-in area stays where it was set, so doing this from the corridor does not drag it with you.'
               }
             >
             <button
               onClick={() => {
+                // Asked for, because it revokes the code people may be part way
+                // through scanning. Nothing replaces a code on its own now, so
+                // the only reason to be here is that one has got out.
+                if (
+                  qrCode?.token &&
+                  !window.confirm(
+                    'Replace this code? The one on screen stops working immediately, and anyone who has not checked in yet will need the new one.',
+                  )
+                )
+                  return;
                 setActionError(null);
                 setNotice(null);
                 setCheckInClosed(false);
-                setAutoRefreshStopped(false);
                 // Rotate only — the check-in area deliberately stays put, so a
-                // code refreshed from the corridor can't drag the fence along.
+                // code replaced from the corridor can't drag the fence along.
                 generate.mutate({ rotate: true });
               }}
-              // Rotating goes through the same endpoint, so it meets the same
-              // refusal once the meeting is over. Closing check-in below stays
-              // available — tidying up after the fact is still legitimate.
+              // Same endpoint as generating, so it meets the same refusal once
+              // the meeting is over. Closing check-in below stays available —
+              // tidying up after the fact is still legitimate.
               disabled={busy || cannotGenerate}
               className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-border bg-muted px-4 py-3 font-medium text-foreground hover:bg-border disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-muted"
             >
@@ -509,8 +393,8 @@ export default function CheckInCodePage({
             </button>
           </div>
 
-          {/* Says why "New code" is dead, and explains a countdown that has
-              run out and cannot be refreshed. */}
+          {/* Says why "New code" is dead, and why a spent code cannot be
+              replaced. */}
           {blockedReason && (
             <p className="text-sm text-muted-foreground">{blockedReason}</p>
           )}

@@ -76,7 +76,7 @@ function coreSteps(firstName: string): TourStep[] {
       element: 'h1',
       title: 'Checking people in',
       description:
-        'Open a meeting and choose QR Code. Attendees scan it, type their name and sign on screen. The code changes every five minutes, so a screenshot is no use — and the check-in area is anchored to wherever you are standing when you generate it, within 100 metres.',
+        'Open a meeting and choose QR Code. Attendees scan it, type their name and sign on screen. One code covers the whole meeting, so you can leave it up or print it — and the check-in area is anchored to wherever you are standing when you generate it, so a photograph is no use to anyone more than 100 metres away.',
     },
     {
       route: MINUTES,
