@@ -3,6 +3,7 @@
 import {
   forwardRef,
   useEffect,
+  useId,
   useImperativeHandle,
   useRef,
   useState,
@@ -34,13 +35,35 @@ export const SignaturePad = forwardRef<
     /** Fires with true once the pad holds a stroke, false when cleared. */
     onChange?: (hasSignature: boolean) => void;
     disabled?: boolean;
+    /**
+     * Typing only, with no drawing surface and no way back to one.
+     *
+     * For the desk, where the person holding the device is an organizer
+     * recording somebody else. A drawn mark there is the organizer's
+     * handwriting standing in for the attendee's, which is worth less than a
+     * typed name and looks like more — and a canvas is a slow thing to put in
+     * front of a queue. Self-service check-in keeps both, because there the
+     * person signing is the person attending.
+     */
+    typedOnly?: boolean;
+    /** Overrides "Type your full name…", which is wrong when signing for someone else. */
+    typedLabel?: string;
   }
->(function SignaturePad({ onChange, disabled = false }, ref) {
+>(function SignaturePad(
+  { onChange, disabled = false, typedOnly = false, typedLabel },
+  ref,
+) {
   const pad = useRef<SignatureCanvas | null>(null);
   const box = useRef<HTMLDivElement>(null);
   const [hasSignature, setHasSignature] = useState(false);
   const [width, setWidth] = useState(MAX_WIDTH);
-  const [mode, setMode] = useState<'draw' | 'type'>('draw');
+  const [mode, setMode] = useState<'draw' | 'type'>(
+    typedOnly ? 'type' : 'draw',
+  );
+  // Unique per instance: the id was hardcoded, so two pads on one page — the
+  // desk form and the correction dialog sit on the same screen — gave two
+  // inputs the same id and pointed both labels at whichever rendered first.
+  const typedId = useId();
   const [typed, setTyped] = useState('');
 
   // Match the pad to whatever the card actually gives it. Resizing a canvas
@@ -146,13 +169,13 @@ export const SignaturePad = forwardRef<
       ) : (
         <div className="w-full max-w-[400px]">
           <label
-            htmlFor="typed-signature"
+            htmlFor={typedId}
             className="block text-xs font-medium text-muted-foreground"
           >
-            Type your full name as your signature
+            {typedLabel ?? 'Type your full name as your signature'}
           </label>
           <input
-            id="typed-signature"
+            id={typedId}
             type="text"
             value={typed}
             disabled={disabled}
@@ -182,18 +205,24 @@ export const SignaturePad = forwardRef<
         </button>
         {/* The keyboard route through the one mandatory control in the check-in
             flow. Without it a canvas was the only way to sign, and nobody who
-            cannot use a pointer could check in at all. */}
-        <button
-          type="button"
-          onClick={() => {
-            clear();
-            setMode(mode === 'draw' ? 'type' : 'draw');
-          }}
-          disabled={disabled}
-          className="px-3 py-2.5 text-xs text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
-        >
-          {mode === 'draw' ? 'Type it instead' : 'Draw it instead'}
-        </button>
+            cannot use a pointer could check in at all.
+            
+            Absent when there is no drawing surface to go back to — offering
+            "Draw it instead" where drawing is deliberately not on offer would
+            be a control that contradicts itself. */}
+        {!typedOnly && (
+          <button
+            type="button"
+            onClick={() => {
+              clear();
+              setMode(mode === 'draw' ? 'type' : 'draw');
+            }}
+            disabled={disabled}
+            className="px-3 py-2.5 text-xs text-muted-foreground underline-offset-2 hover:underline disabled:opacity-50"
+          >
+            {mode === 'draw' ? 'Type it instead' : 'Draw it instead'}
+          </button>
+        )}
         {hasSignature && (
           <span
             role="status"
