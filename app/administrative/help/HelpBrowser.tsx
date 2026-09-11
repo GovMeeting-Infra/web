@@ -112,7 +112,7 @@ const GROUPS: Group[] = [
       },
       {
         q: 'Can someone check in using a screenshot of the code?',
-        a: 'No. A code lasts five minutes, and you can generate a new one whenever you want from the same screen. A photograph passed to someone stops working almost immediately, and even a code that is still valid will not let them in unless they are standing inside the check-in area.',
+        a: 'Not usefully. The code lasts the whole meeting, but the check-in area is what stops it travelling: whoever scans it has to be within 100 metres of where you stood when you generated it, so a photograph sent across town will not let anyone in. If a code does get shared inside the building, New code on the same screen replaces it and stops the old one working.',
       },
       {
         q: 'Someone without an account needs to check in. Can they?',
