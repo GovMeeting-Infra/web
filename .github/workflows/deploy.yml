@@ -167,8 +167,22 @@ jobs:
             echo "web responded $code"
             # Through the rewrite, so a working page with a broken API link is
             # still a failed deploy.
-            curl -fsS --max-time 10 http://127.0.0.1:3000/api/v1/health > /dev/null \
-              || { echo "::error::web is up but /api/* does not reach the API"; exit 1; }
+            #
+            # Retried on the same budget as the check above, because this box
+            # runs both apps and their deploys are triggered independently. A
+            # merge to each repository within a few seconds put this curl inside
+            # the API's own PM2 reload: it ran a second before the API process
+            # started, Next answered the refused upstream with a 500, and a
+            # deploy that had already shipped and reloaded correctly was marked
+            # failed. The API's own deploy hit the identical gap eleven seconds
+            # later and passed, because its check retries. This one did not.
+            api=""
+            for i in $(seq 1 12); do
+              if api=$(curl -fsS --max-time 5 http://127.0.0.1:3000/api/v1/health); then break; fi
+              echo "waiting for the API to come back ($i/12)"; sleep 5
+            done
+            [ -n "$api" ] || { echo "::error::web is up but /api/* does not reach the API"; exit 1; }
+            echo "$api"
           EOF
 
       - name: Report failure
