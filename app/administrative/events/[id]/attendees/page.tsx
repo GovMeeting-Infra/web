@@ -665,14 +665,20 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
       )}
 
       {/* Side by side when the viewer can do both — two tall forms stacked
-          down a full-width page pushed the lists themselves below the fold. */}
+          down a full-width page pushed the lists themselves below the fold.
+          
+          Stretched rather than top-aligned. items-start ended each card where
+          its own content ran out, so the shorter of the two left a column of
+          bare page under it — and the desk form is now much the taller of the
+          pair. Equal heights put that space inside a card, where it reads as
+          room left over rather than as something failing to line up. */}
       <div
-        className={`grid items-start gap-8 ${
+        className={`grid gap-8 ${
           canInvite && canDoWalkIn ? 'xl:grid-cols-2' : ''
         }`}
       >
         {canInvite && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col gap-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Invite Attendees</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -814,10 +820,14 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
+          {/* Pinned to the foot of the card. With the two columns now equal
+              height, an action floating wherever its own content happened to
+              end is what actually looked unfinished — both cards close on the
+              same line instead. */}
           <button
             onClick={handleInvite}
             disabled={isInviting}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
+            className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
           >
             <UserPlus className="h-4 w-4" />
             {isInviting ? 'Inviting…' : 'Send Invitations'}
@@ -826,7 +836,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         )}
 
         {canDoWalkIn && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col gap-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -914,16 +924,21 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               Signature <span className="text-muted-foreground">(optional)</span>
             </p>
             <p className="mt-1 mb-2 text-xs text-muted-foreground">
-              Hand over the screen, or use Type it instead. Leave it blank and
-              the record shows that you vouched for them at the desk.
+              Leave it blank and the record shows that you vouched for them at
+              the desk.
             </p>
-            <SignaturePad ref={walkInSignature} disabled={isSaving} />
+            <SignaturePad
+              ref={walkInSignature}
+              disabled={isSaving}
+              typedOnly
+              typedLabel="Type the attendee's full name"
+            />
           </div>
 
           <button
             onClick={handleWalkInCheckIn}
             disabled={isSaving}
-            className="w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
+            className="mt-auto w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
           >
             {isSaving ? 'Checking in…' : 'Check In'}
           </button>
@@ -1315,10 +1330,15 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               <p className="text-sm font-medium text-foreground">Signature</p>
               <p className="mt-1 mb-2 text-xs text-muted-foreground">
                 {editing.signatureState === 'SIGNED'
-                  ? 'Already signed. Sign again only to replace it — leaving this blank keeps what is on the record.'
-                  : 'Not signed. Hand over the screen, or use Type it instead.'}
+                  ? 'Already signed. Type a name only to replace it — leaving this blank keeps what is on the record.'
+                  : 'Not signed. Typing a name here records one on your behalf.'}
               </p>
-              <SignaturePad ref={editSignature} disabled={isEditSaving} />
+              <SignaturePad
+                ref={editSignature}
+                disabled={isEditSaving}
+                typedOnly
+                typedLabel="Type the attendee's full name"
+              />
             </div>
           )}
         </div>
