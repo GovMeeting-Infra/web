@@ -678,7 +678,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         }`}
       >
         {canInvite && (
-        <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col gap-5 self-start rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Invite Attendees</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -820,13 +820,14 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
-          {/* No mt-auto. Pinning the action to the foot did put both cards'
-              buttons on the same line, but it did it by collecting every bit
-              of slack into the single gap above the button — so the shorter
-              card read as a form that stopped early with a hole beneath it.
-              justify-between on the card spreads the same slack across every
-              row instead, which still lands the button on the foot and lets
-              the fields breathe on the way down. */}
+          {/* No mt-auto, and the card does not stretch. Making the two cards
+              equal height had to put the difference between them somewhere,
+              and every option was worse than leaving it outside: pooled above
+              this button it was a 180px hole in a bordered card, and shared
+              between the rows it pulled the form apart. Sitting at its own
+              height, the action lands right under the last field and the
+              leftover is page, which is what a shorter card is supposed to
+              look like. */}
           <button
             onClick={handleInvite}
             disabled={isInviting}
@@ -839,14 +840,12 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         )}
 
         {canDoWalkIn && (
-        <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col gap-5 self-start rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Records attendance at the desk. If the email belongs to an
-              account, the check-in is filed against it and their details come
-              from there; otherwise it is recorded as a visitor, and who they
-              came on behalf of is asked for.
+              Records attendance at the desk. A known email files the check-in
+              against that account; anyone else is recorded as a visitor.
             </p>
           </div>
 
@@ -870,7 +869,10 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             allowUnassign={false}
           />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Three across, so five fields take two rows rather than three.
+              This card is much the taller of the pair and every row it sheds
+              is a row of empty space the other one no longer has to absorb. */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <input
               type="text"
               value={walkInName}
@@ -922,21 +924,16 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               : 'Job title, organisation and phone are required for a visitor with no account. For a colleague, leave them blank and their account is used.'}
           </p>
 
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Signature <span className="text-muted-foreground">(optional)</span>
-            </p>
-            <p className="mt-1 mb-2 text-xs text-muted-foreground">
-              Leave it blank and the record shows that you vouched for them at
-              the desk.
-            </p>
-            <SignaturePad
-              ref={walkInSignature}
-              disabled={isSaving}
-              typedOnly
-              typedLabel="Type the attendee's full name"
-            />
-          </div>
+          {/* One label rather than a heading, a hint and a field label stacked
+              on top of each other. This card is the taller of the two and
+              every row it sheds is a row the other one no longer sits beside
+              as empty page. */}
+          <SignaturePad
+            ref={walkInSignature}
+            disabled={isSaving}
+            typedOnly
+            typedLabel="Signature (optional) — type the attendee's full name"
+          />
 
           <button
             onClick={handleWalkInCheckIn}
