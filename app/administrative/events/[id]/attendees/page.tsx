@@ -665,14 +665,20 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
       )}
 
       {/* Side by side when the viewer can do both — two tall forms stacked
-          down a full-width page pushed the lists themselves below the fold. */}
+          down a full-width page pushed the lists themselves below the fold.
+          
+          Stretched rather than top-aligned. items-start ended each card where
+          its own content ran out, so the shorter of the two left a column of
+          bare page under it — and the desk form is now much the taller of the
+          pair. Equal heights put that space inside a card, where it reads as
+          room left over rather than as something failing to line up. */}
       <div
-        className={`grid items-start gap-8 ${
+        className={`grid gap-8 ${
           canInvite && canDoWalkIn ? 'xl:grid-cols-2' : ''
         }`}
       >
         {canInvite && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col gap-5 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Invite Attendees</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -726,7 +732,11 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
-          <div className="space-y-2">
+          {/* flex-col with a gap rather than space-y, so the row below can add
+              to the spacing rather than losing to it: space-y's selector is
+              more specific than a plain mt-*, so a margin set on the child
+              would simply be overridden. */}
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">
               Guests <span className="text-muted-foreground">(no account)</span>
             </label>
@@ -745,7 +755,11 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               endpoint="/api/v1/users/directory/people?sources=accounts,staff"
               allowUnassign={false}
             />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
+            {/* Set apart from the search above it. Searching the roster and
+                typing somebody in by hand are two ways of doing the same
+                thing, and at an even eight pixels they ran together as one
+                block of fields. */}
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
               <input
                 type="text"
                 value={guestName}
@@ -814,10 +828,18 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
+          {/* Both cards stretch to the taller of the two and both actions sit
+              on its floor, so they line up whatever either form contains.
+              That leaves the shorter card with the difference between them
+              above its button — which is why the desk card opposite is packed
+              as tightly as it is. Every row shed there is a row of emptiness
+              here. Do not spread this gap between the rows instead: that was
+              tried, and growing every gap in step with the other card's
+              length pulls the form apart. */}
           <button
             onClick={handleInvite}
             disabled={isInviting}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
+            className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
           >
             <UserPlus className="h-4 w-4" />
             {isInviting ? 'Inviting…' : 'Send Invitations'}
@@ -826,14 +848,12 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         )}
 
         {canDoWalkIn && (
-        <div className="space-y-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col gap-5 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Records attendance at the desk. If the email belongs to an
-              account, the check-in is filed against it and their details come
-              from there; otherwise it is recorded as a visitor, and who they
-              came on behalf of is asked for.
+              Records attendance at the desk. A known email files the check-in
+              against that account; anyone else is recorded as a visitor.
             </p>
           </div>
 
@@ -857,7 +877,10 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             allowUnassign={false}
           />
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {/* Three across, so five fields take two rows rather than three.
+              This card is much the taller of the pair and every row it sheds
+              is a row of empty space the other one no longer has to absorb. */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <input
               type="text"
               value={walkInName}
@@ -909,21 +932,21 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               : 'Job title, organisation and phone are required for a visitor with no account. For a colleague, leave them blank and their account is used.'}
           </p>
 
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              Signature <span className="text-muted-foreground">(optional)</span>
-            </p>
-            <p className="mt-1 mb-2 text-xs text-muted-foreground">
-              Hand over the screen, or use Type it instead. Leave it blank and
-              the record shows that you vouched for them at the desk.
-            </p>
-            <SignaturePad ref={walkInSignature} disabled={isSaving} />
-          </div>
+          {/* One label rather than a heading, a hint and a field label stacked
+              on top of each other. This card is the taller of the two and
+              every row it sheds is a row the other one no longer sits beside
+              as empty page. */}
+          <SignaturePad
+            ref={walkInSignature}
+            disabled={isSaving}
+            typedOnly
+            typedLabel="Signature (optional) — type the attendee's full name"
+          />
 
           <button
             onClick={handleWalkInCheckIn}
             disabled={isSaving}
-            className="w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
+            className="mt-auto w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
           >
             {isSaving ? 'Checking in…' : 'Check In'}
           </button>
@@ -1315,10 +1338,15 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               <p className="text-sm font-medium text-foreground">Signature</p>
               <p className="mt-1 mb-2 text-xs text-muted-foreground">
                 {editing.signatureState === 'SIGNED'
-                  ? 'Already signed. Sign again only to replace it — leaving this blank keeps what is on the record.'
-                  : 'Not signed. Hand over the screen, or use Type it instead.'}
+                  ? 'Already signed. Type a name only to replace it — leaving this blank keeps what is on the record.'
+                  : 'Not signed. Typing a name here records one on your behalf.'}
               </p>
-              <SignaturePad ref={editSignature} disabled={isEditSaving} />
+              <SignaturePad
+                ref={editSignature}
+                disabled={isEditSaving}
+                typedOnly
+                typedLabel="Type the attendee's full name"
+              />
             </div>
           )}
         </div>
