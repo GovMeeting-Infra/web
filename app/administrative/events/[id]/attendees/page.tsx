@@ -732,7 +732,11 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
-          <div className="space-y-2">
+          {/* flex-col with a gap rather than space-y, so the row below can add
+              to the spacing rather than losing to it: space-y's selector is
+              more specific than a plain mt-*, so a margin set on the child
+              would simply be overridden. */}
+          <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-foreground">
               Guests <span className="text-muted-foreground">(no account)</span>
             </label>
@@ -751,7 +755,11 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               endpoint="/api/v1/users/directory/people?sources=accounts,staff"
               allowUnassign={false}
             />
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
+            {/* Set apart from the search above it. Searching the roster and
+                typing somebody in by hand are two ways of doing the same
+                thing, and at an even eight pixels they ran together as one
+                block of fields. */}
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto]">
               <input
                 type="text"
                 value={guestName}
