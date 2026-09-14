@@ -678,7 +678,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         }`}
       >
         {canInvite && (
-        <div className="flex flex-col gap-5 self-start rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col gap-5 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Invite Attendees</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -820,18 +820,18 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
-          {/* No mt-auto, and the card does not stretch. Making the two cards
-              equal height had to put the difference between them somewhere,
-              and every option was worse than leaving it outside: pooled above
-              this button it was a 180px hole in a bordered card, and shared
-              between the rows it pulled the form apart. Sitting at its own
-              height, the action lands right under the last field and the
-              leftover is page, which is what a shorter card is supposed to
-              look like. */}
+          {/* Both cards stretch to the taller of the two and both actions sit
+              on its floor, so they line up whatever either form contains.
+              That leaves the shorter card with the difference between them
+              above its button — which is why the desk card opposite is packed
+              as tightly as it is. Every row shed there is a row of emptiness
+              here. Do not spread this gap between the rows instead: that was
+              tried, and growing every gap in step with the other card's
+              length pulls the form apart. */}
           <button
             onClick={handleInvite}
             disabled={isInviting}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
+            className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
           >
             <UserPlus className="h-4 w-4" />
             {isInviting ? 'Inviting…' : 'Send Invitations'}
@@ -840,7 +840,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         )}
 
         {canDoWalkIn && (
-        <div className="flex flex-col gap-5 self-start rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col gap-5 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -938,7 +938,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           <button
             onClick={handleWalkInCheckIn}
             disabled={isSaving}
-            className="w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
+            className="mt-auto w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
           >
             {isSaving ? 'Checking in…' : 'Check In'}
           </button>
