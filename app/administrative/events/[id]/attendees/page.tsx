@@ -678,7 +678,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         }`}
       >
         {canInvite && (
-        <div className="flex flex-col gap-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Invite Attendees</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -820,14 +820,17 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
             )}
           </div>
 
-          {/* Pinned to the foot of the card. With the two columns now equal
-              height, an action floating wherever its own content happened to
-              end is what actually looked unfinished — both cards close on the
-              same line instead. */}
+          {/* No mt-auto. Pinning the action to the foot did put both cards'
+              buttons on the same line, but it did it by collecting every bit
+              of slack into the single gap above the button — so the shorter
+              card read as a form that stopped early with a hole beneath it.
+              justify-between on the card spreads the same slack across every
+              row instead, which still lands the button on the foot and lets
+              the fields breathe on the way down. */}
           <button
             onClick={handleInvite}
             disabled={isInviting}
-            className="mt-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-secondary px-4 py-3 font-medium text-secondary-foreground disabled:opacity-50"
           >
             <UserPlus className="h-4 w-4" />
             {isInviting ? 'Inviting…' : 'Send Invitations'}
@@ -836,7 +839,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
         )}
 
         {canDoWalkIn && (
-        <div className="flex flex-col gap-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
+        <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-border bg-card p-8 max-sm:p-4">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Walk-in Check-In</h2>
             <p className="mt-1 text-sm text-muted-foreground">
@@ -938,7 +941,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           <button
             onClick={handleWalkInCheckIn}
             disabled={isSaving}
-            className="mt-auto w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
+            className="w-full rounded-2xl bg-primary px-4 py-3 font-medium text-primary-foreground disabled:opacity-50"
           >
             {isSaving ? 'Checking in…' : 'Check In'}
           </button>
