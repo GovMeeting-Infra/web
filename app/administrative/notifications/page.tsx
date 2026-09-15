@@ -15,6 +15,7 @@ import {
   ClipboardCheck,
   FileText,
   ListChecks,
+  UserPlus,
 } from 'lucide-react';
 import { apiFetch, messageFor } from '@/lib/api/client';
 import { ListSkeleton } from '@/components/ui/skeletons';
@@ -73,6 +74,12 @@ const KINDS: Record<
     tint: 'border-stat-blue-border bg-stat-blue-bg text-stat-blue-fg',
     weight: 'normal',
   },
+  COORGANIZER_ADDED: {
+    label: 'Co-organizer',
+    icon: <UserPlus className="h-4 w-4" />,
+    tint: 'border-stat-violet-border bg-stat-violet-bg text-stat-violet-fg',
+    weight: 'normal',
+  },
   ACTION_ITEM_ASSIGNED: {
     label: 'Assigned to you',
     icon: <ClipboardList className="h-4 w-4" />,
@@ -127,7 +134,9 @@ type FilterKey = (typeof FILTERS)[number]['key'];
 function matchesFilter(n: Notification, filter: FilterKey): boolean {
   if (filter === 'all') return true;
   if (filter === 'unread') return !n.read;
-  if (filter === 'meetings') return n.type.startsWith('MEETING_');
+  if (filter === 'meetings') {
+    return n.type.startsWith('MEETING_') || n.type === 'COORGANIZER_ADDED';
+  }
   return n.type.startsWith('ACTION_ITEM_') || n.type === 'MINUTES_PUBLISHED';
 }
 

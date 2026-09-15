@@ -47,7 +47,8 @@ export type NotificationType =
   | 'MEETING_INVITATION'
   | 'MEETING_CHANGED'
   | 'MEETING_CANCELLED'
-  | 'MEETING_REMINDER';
+  | 'MEETING_REMINDER'
+  | 'COORGANIZER_ADDED';
 
 export interface Notification {
   id: string;
