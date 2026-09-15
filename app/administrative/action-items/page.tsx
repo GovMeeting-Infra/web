@@ -791,6 +791,23 @@ export default function ActionItemsPage() {
                 }
               : undefined
           }
+          onDelete={
+            // Only whoever created it, mirroring the server. The owner and
+            // helpers close work by marking it done or cancelled instead, which
+            // keeps a record of it; a delete does not.
+            currentUser && activeItem.assignedBy?.id === currentUser.id
+              ? async () => {
+                  await apiFetch(`/api/v1/action-items/${activeItem.id}`, {
+                    method: 'DELETE',
+                  });
+                  setSelectedId(null);
+                  setOpenedFromUrl(true);
+                  await queryClient.invalidateQueries({
+                    queryKey: ['action-items'],
+                  });
+                }
+              : undefined
+          }
         />
       )}
     </PageContainer>

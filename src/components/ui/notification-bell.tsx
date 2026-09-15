@@ -199,25 +199,19 @@ export function NotificationBell() {
 
                 return (
                   <li key={n.id}>
-                    {n.link ? (
-                      <Link
-                        href={n.link}
-                        onClick={() => {
-                          markRead(n.id);
-                          setOpen(false);
-                        }}
-                        className="block px-4 py-3 transition-colors hover:bg-muted/50"
-                      >
-                        {body}
-                      </Link>
-                    ) : (
-                      <button
-                        onClick={() => markRead(n.id)}
-                        className="block w-full px-4 py-3 text-left transition-colors hover:bg-muted/50"
-                      >
-                        {body}
-                      </button>
-                    )}
+                    {/* Every item opens on the Notifications page, picked out
+                        there. One without a link used to be a button that only
+                        marked it read, so clicking it appeared to do nothing. */}
+                    <Link
+                      href={`/administrative/notifications?id=${encodeURIComponent(n.id)}`}
+                      onClick={() => {
+                        markRead(n.id);
+                        setOpen(false);
+                      }}
+                      className="block px-4 py-3 transition-colors hover:bg-muted/50"
+                    >
+                      {body}
+                    </Link>
                   </li>
                 );
               })}
