@@ -231,9 +231,8 @@ export default function NewEventPage() {
       setError('A location is required.');
       return;
     }
-    // Mirrors the server. Public activities are exempt — they have no organizer
-    // to deputise for.
-    if (!isPublic && coOrganizers.length === 0) {
+    // Mirrors the server, which requires one for public activities as well.
+    if (coOrganizers.length === 0) {
       setError('Add at least one co-organizer.');
       return;
     }
@@ -550,83 +549,84 @@ export default function NewEventPage() {
                 ))}
               </select>
             </div>
-
-            <div>
-              <label className={label}>
-                Co-organizers <span className="text-destructive">*</span>
-              </label>
-
-              {coOrganizers.length > 0 && (
-                <div className="mb-3 mt-1 flex flex-wrap gap-2">
-                  {coOrganizers.map((id) => {
-                    const c = candidates.find((x) => x.id === id);
-                    return (
-                      <div
-                        key={id}
-                        // The last fallback is a raw cuid, which has no break
-                        // opportunity at all — without max-w-full it grew the
-                        // pill past the card and clipped the remove button.
-                        className="flex max-w-full items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
-                      >
-                        <span className="truncate">
-                          {c?.name ?? c?.email ?? id}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setCoOrganizers(coOrganizers.filter((x) => x !== id))
-                          }
-                          className="ml-1 shrink-0 text-primary/60 transition-colors hover:text-primary"
-                          aria-label="Remove co-organizer"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {candidatesError && (
-                <p
-                  role="alert"
-                  className="mt-1 rounded-md border border-alert-border bg-alert-bg px-3 py-2 text-sm text-alert-fg"
-                >
-                  We could not load your colleagues. This is a connection
-                  problem, not an empty ministry — reload the page before
-                  filling this in.
-                </p>
-              )}
-
-              <select
-                value=""
-                aria-label="Add a co-organizer"
-                onChange={(e) => {
-                  const id = e.target.value;
-                  if (id && !coOrganizers.includes(id)) {
-                    setCoOrganizers([...coOrganizers, id]);
-                  }
-                  e.target.value = '';
-                }}
-                className={field}
-              >
-                <option value="">+ Add co-organizer</option>
-                {candidates
-                  .filter((c) => !coOrganizers.includes(c.id))
-                  .map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name ?? c.email} ({c.email})
-                    </option>
-                  ))}
-              </select>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                At least one is required. Co-organizers can edit this event and
-                manage its attendees, so the meeting stays manageable when you
-                are unavailable.
-              </p>
-            </div>
           </>
         )}
+
+        {/* Both kinds. Required for public activities as well as internal
+            meetings, so neither is left with one person able to act on it. */}
+        <div>
+          <label className={label}>
+            Co-organizers <span className="text-destructive">*</span>
+          </label>
+
+          {coOrganizers.length > 0 && (
+            <div className="mb-3 mt-1 flex flex-wrap gap-2">
+              {coOrganizers.map((id) => {
+                const c = candidates.find((x) => x.id === id);
+                return (
+                  <div
+                    key={id}
+                    // The last fallback is a raw cuid, which has no break
+                    // opportunity at all — without max-w-full it grew the
+                    // pill past the card and clipped the remove button.
+                    className="flex max-w-full items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm text-primary"
+                  >
+                    <span className="truncate">
+                      {c?.name ?? c?.email ?? id}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setCoOrganizers(coOrganizers.filter((x) => x !== id))
+                      }
+                      className="ml-1 shrink-0 text-primary/60 transition-colors hover:text-primary"
+                      aria-label="Remove co-organizer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {candidatesError && (
+            <p
+              role="alert"
+              className="mt-1 rounded-md border border-alert-border bg-alert-bg px-3 py-2 text-sm text-alert-fg"
+            >
+              We could not load your colleagues. This is a connection problem,
+              not an empty ministry — reload the page before filling this in.
+            </p>
+          )}
+
+          <select
+            value=""
+            aria-label="Add a co-organizer"
+            onChange={(e) => {
+              const id = e.target.value;
+              if (id && !coOrganizers.includes(id)) {
+                setCoOrganizers([...coOrganizers, id]);
+              }
+              e.target.value = '';
+            }}
+            className={field}
+          >
+            <option value="">+ Add co-organizer</option>
+            {candidates
+              .filter((c) => !coOrganizers.includes(c.id))
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name ?? c.email} ({c.email})
+                </option>
+              ))}
+          </select>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {isPublic
+              ? 'At least one is required. Co-organizers can edit and cancel this activity, so it stays manageable when you are unavailable. They are told once an admin publishes it.'
+              : 'At least one is required. Co-organizers can edit this event and manage its attendees, so the meeting stays manageable when you are unavailable.'}
+          </p>
+        </div>
 
         {/* Public-only */}
         {isPublic && (
