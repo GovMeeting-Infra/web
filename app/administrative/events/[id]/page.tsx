@@ -118,6 +118,9 @@ export default function EventDetailPage({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [coOrganizer, setCoOrganizer] = useState<DirectoryPerson | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  // Read once, so the recurring card's held/coming-up split does not shift
+  // between renders.
+  const [nowMs] = useState(() => Date.now());
 
   const {
     data: event,
@@ -338,12 +341,23 @@ export default function EventDetailPage({
   // Drives the two-column split below — see the comment there.
   const hasSidePanel = Boolean((myInvite && !isCancelled) || event.series);
 
-  // Where this meeting sits in its series, for the recurring card.
+  // The series as it stands today, for the recurring card. Measured from now
+  // rather than from the date this page shows: counted from the page, the
+  // 18th's page said "2 of 3" and "next: the 25th" on the 15th, which read as
+  // two meetings already held and the 18th skipped.
   const occurrences = event.series?.events ?? [];
-  const position = occurrences.findIndex((o) => o.id === event.id);
-  const previousOccurrence = position > 0 ? occurrences[position - 1] : null;
-  const laterOccurrences =
-    position >= 0 ? occurrences.slice(position + 1, position + 5) : [];
+  const hasStarted = (o: { startAt: string }) =>
+    new Date(o.startAt).getTime() <= nowMs;
+  const heldCount = occurrences.filter(
+    (o) => hasStarted(o) && o.status !== 'CANCELLED',
+  ).length;
+  const upcomingOccurrences = occurrences
+    .filter((o) => !hasStarted(o))
+    .slice(0, 4);
+  const lastHeld =
+    [...occurrences]
+      .reverse()
+      .find((o) => hasStarted(o) && o.status !== 'CANCELLED') ?? null;
   const occurrenceDate = (iso: string) =>
     new Date(iso).toLocaleString(undefined, {
       weekday: 'short',
@@ -665,10 +679,12 @@ export default function EventDetailPage({
                     {describeRecurrence(event.series)}
                   </p>
 
-                  {position >= 0 && occurrences.length > 1 && (
+                  {occurrences.length > 1 && (
                     <div className="mt-4">
                       <p className="text-xs font-medium text-foreground">
-                        Occurrence {position + 1} of {occurrences.length}
+                        {heldCount === 0
+                          ? `None held yet · ${occurrences.length} dates`
+                          : `${heldCount} of ${occurrences.length} held`}
                       </p>
                       <div
                         className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"
@@ -677,46 +693,67 @@ export default function EventDetailPage({
                         <div
                           className="h-full rounded-full bg-primary"
                           style={{
-                            width: `${((position + 1) / occurrences.length) * 100}%`,
+                            width: `${(heldCount / occurrences.length) * 100}%`,
                           }}
                         />
                       </div>
                     </div>
                   )}
 
-                  {laterOccurrences.length > 0 && (
+                  {upcomingOccurrences.length > 0 && (
                     <div className="mt-4">
                       <p className="text-xs font-medium text-foreground">
-                        Next dates
+                        Coming up
                       </p>
                       <ul className="mt-1.5 space-y-1">
-                        {laterOccurrences.map((o) => (
-                          <li key={o.id}>
-                            <Link
-                              href={`/administrative/events/${o.id}`}
-                              className={cn(
-                                'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground hover:bg-muted',
-                                o.status === 'CANCELLED' &&
-                                  'text-muted-foreground line-through',
-                              )}
-                            >
+                        {upcomingOccurrences.map((o) => {
+                          const rowClass = cn(
+                            'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground',
+                            o.status === 'CANCELLED' &&
+                              'text-muted-foreground line-through',
+                          );
+                          const content = (
+                            <>
                               <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                              {occurrenceDate(o.startAt)}
-                            </Link>
-                          </li>
-                        ))}
+                              <span className="min-w-0 truncate">
+                                {occurrenceDate(o.startAt)}
+                              </span>
+                            </>
+                          );
+                          return (
+                            <li key={o.id}>
+                              {o.id === event.id ? (
+                                // The page being read, so not a link to itself.
+                                <div className={cn(rowClass, 'bg-muted')}>
+                                  {content}
+                                  <span className="ml-auto shrink-0 text-xs font-medium text-muted-foreground">
+                                    This meeting
+                                  </span>
+                                </div>
+                              ) : (
+                                <Link
+                                  href={`/administrative/events/${o.id}`}
+                                  className={cn(rowClass, 'hover:bg-muted')}
+                                >
+                                  {content}
+                                </Link>
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
 
-                  {(previousOccurrence || (canEdit && !isCancelled)) && (
+                  {((lastHeld && lastHeld.id !== event.id) ||
+                    (canEdit && !isCancelled)) && (
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
-                      {previousOccurrence ? (
+                      {lastHeld && lastHeld.id !== event.id ? (
                         <Link
-                          href={`/administrative/events/${previousOccurrence.id}`}
+                          href={`/administrative/events/${lastHeld.id}`}
                           className="text-sm text-muted-foreground hover:text-foreground"
                         >
-                          ← Previous: {occurrenceDate(previousOccurrence.startAt)}
+                          Last held: {occurrenceDate(lastHeld.startAt)}
                         </Link>
                       ) : (
                         <span />
