@@ -60,6 +60,70 @@ const RSVP_COLOR: Record<string, string> = {
   DECLINED: 'text-destructive',
 };
 
+const RSVP_SHORT: Record<string, string> = {
+  INVITED: 'Awaiting',
+  NO_RESPONSE: 'Awaiting',
+  CONFIRMED: 'Confirmed',
+  DECLINED: 'Declined',
+};
+
+/**
+ * One person on the organizers card. Initials rather than a bare
+ * "Name (email)" line, so the list reads as people at a glance, with room at
+ * the end for their role, their answer to the invitation, and a remove button.
+ */
+function PersonRow({
+  name,
+  email,
+  badge,
+  rsvp,
+  children,
+}: {
+  name: string;
+  email: string;
+  badge?: string;
+  rsvp?: string;
+  children?: React.ReactNode;
+}) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  return (
+    <li className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted">
+      <span
+        aria-hidden="true"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+      >
+        {initials}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-foreground">
+          {name}
+        </span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {email}
+        </span>
+      </span>
+      {badge && (
+        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          {badge}
+        </span>
+      )}
+      {rsvp && (
+        <span className={cn('shrink-0 text-xs font-medium', RSVP_COLOR[rsvp])}>
+          {RSVP_SHORT[rsvp]}
+        </span>
+      )}
+      {children}
+    </li>
+  );
+}
+
 function InfoCard({
   icon,
   label,
@@ -564,30 +628,44 @@ export default function EventDetailPage({
               hasSidePanel && 'xl:col-span-2',
             )}
           >
-            {/* Co-organizers. Stretches with the side panel so the two cards
-                on this row end level. */}
-            <div className="flex-1 rounded-xl border border-border bg-card p-6">
+            {/* Organizers. Stretches with the side panel so the two cards on
+                this row end level, and pins the add control to the bottom
+                rather than leaving the space under the list empty. */}
+            <div className="flex flex-1 flex-col rounded-xl border border-border bg-card p-6">
               <h2 className="text-sm font-semibold text-foreground">
-                Co-organizers
+                Organizers
               </h2>
-              {event.coOrganizers.length === 0 ? (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  None assigned.
-                </p>
-              ) : (
-                <ul className="mt-3 space-y-1">
-                  {event.coOrganizers.map((co) => (
-                    <li
-                      key={co.id}
-                      className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm text-foreground hover:bg-muted"
-                    >
-                      <span className="min-w-0 truncate">
-                        {co.user.name} ({co.user.email})
-                      </span>
-                      {canAdminister && (
-                        <Tooltip
-                          content={`${co.user.name} loses the ability to manage this meeting. They stay invited to it.`}
-                        >
+              <p className="mt-1 text-xs text-muted-foreground">
+                Co-organizers can edit and cancel this meeting alongside the
+                organizer.
+              </p>
+              <ul className="mt-3 space-y-1">
+                {event.organizer && (
+                  <PersonRow
+                    name={event.organizer.name}
+                    email={event.organizer.email}
+                    badge="Organizer"
+                    rsvp={
+                      event.attendees.find(
+                        (a) => a.userId === event.organizer?.id,
+                      )?.status
+                    }
+                  />
+                )}
+                {event.coOrganizers.map((co) => (
+                  <PersonRow
+                    key={co.id}
+                    name={co.user.name}
+                    email={co.user.email}
+                    rsvp={
+                      event.attendees.find((a) => a.userId === co.userId)
+                        ?.status
+                    }
+                  >
+                    {canAdminister && (
+                      <Tooltip
+                        content={`${co.user.name} loses the ability to manage this meeting. They stay invited to it.`}
+                      >
                         <button
                           type="button"
                           onClick={() => handleRemoveCoOrganizer(co.userId)}
@@ -597,14 +675,18 @@ export default function EventDetailPage({
                         >
                           <X className="h-4 w-4" />
                         </button>
-                        </Tooltip>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                      </Tooltip>
+                    )}
+                  </PersonRow>
+                ))}
+              </ul>
+              {event.coOrganizers.length === 0 && (
+                <p className="mt-2 px-2 text-sm text-muted-foreground">
+                  No co-organizers yet.
+                </p>
               )}
               {canAdminister && (
-                <div className="mt-4 flex flex-wrap items-start gap-2">
+                <div className="mt-auto flex flex-wrap items-start gap-2 pt-4">
                   <div className="min-w-0 flex-1 sm:min-w-[16rem]">
                     {/* Was a free-text User ID box, which meant asking an
                         administrator for an internal identifier before you could
