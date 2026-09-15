@@ -501,10 +501,23 @@ export default function EventDetailPage({
           />
         </div>
 
-        {/* Two columns once there is room for them: what the event *is* on the
-            left, your standing with it on the right. Below xl the whole thing
-            stacks in this same order, which is the reading order the narrow
-            layout had.
+        {/* Its own row. Beside the side panel it was squeezed into two thirds of
+            the width and set a short "Recurring event" card against a long
+            block of prose. */}
+        {event.description && (
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h2 className="text-sm font-semibold text-foreground">
+              Description
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {event.description}
+            </p>
+          </div>
+        )}
+
+        {/* Two columns once there is room for them: who runs the event on the
+            left, your standing with it and how it repeats on the right. Below
+            xl the whole thing stacks in this same order.
             Both side panels are conditional, and an organiser looking at a
             one-off meeting has neither — so the split only happens when there is
             something to put in the second column, rather than leaving a third of
@@ -516,17 +529,6 @@ export default function EventDetailPage({
           )}
         >
           <div className={cn('space-y-8', hasSidePanel && 'xl:col-span-2')}>
-            {event.description && (
-              <div className="rounded-xl border border-border bg-card p-6">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Description
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {event.description}
-                </p>
-              </div>
-            )}
-
             {/* Co-organizers */}
             <div className="rounded-xl border border-border bg-card p-6">
               <h2 className="text-sm font-semibold text-foreground">
