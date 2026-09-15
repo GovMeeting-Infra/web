@@ -338,6 +338,22 @@ export default function EventDetailPage({
   // Drives the two-column split below — see the comment there.
   const hasSidePanel = Boolean((myInvite && !isCancelled) || event.series);
 
+  // Where this meeting sits in its series, for the recurring card.
+  const occurrences = event.series?.events ?? [];
+  const position = occurrences.findIndex((o) => o.id === event.id);
+  const previousOccurrence = position > 0 ? occurrences[position - 1] : null;
+  const laterOccurrences =
+    position >= 0 ? occurrences.slice(position + 1, position + 5) : [];
+  const occurrenceDate = (iso: string) =>
+    new Date(iso).toLocaleString(undefined, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
   return (
     // flex-1 fills the viewport so Manage can sit at the bottom rather than
     // leaving a gap under it. space-y-0 cancels the container's default: the
@@ -528,9 +544,15 @@ export default function EventDetailPage({
             hasSidePanel && 'xl:grid-cols-3',
           )}
         >
-          <div className={cn('space-y-8', hasSidePanel && 'xl:col-span-2')}>
-            {/* Co-organizers */}
-            <div className="rounded-xl border border-border bg-card p-6">
+          <div
+            className={cn(
+              'flex flex-col gap-8',
+              hasSidePanel && 'xl:col-span-2',
+            )}
+          >
+            {/* Co-organizers. Stretches with the side panel so the two cards
+                on this row end level. */}
+            <div className="flex-1 rounded-xl border border-border bg-card p-6">
               <h2 className="text-sm font-semibold text-foreground">
                 Co-organizers
               </h2>
@@ -597,7 +619,7 @@ export default function EventDetailPage({
           </div>
 
           {hasSidePanel && (
-            <div className="space-y-8">
+            <div className="flex flex-col gap-8">
               {/* Your RSVP — only when the viewer is actually on the invitee list */}
               {myInvite && !isCancelled && (
                 <div className="rounded-xl border border-border bg-card p-6">
@@ -629,9 +651,10 @@ export default function EventDetailPage({
                 </div>
               )}
 
-              {/* Recurrence */}
+              {/* Recurrence. Grows to the co-organizers' height, and fills it
+                  with the rest of the series rather than white space. */}
               {event.series && (
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="flex flex-1 flex-col rounded-xl border border-border bg-card p-6">
                   <div className="flex items-center gap-2">
                     <Repeat className="h-4 w-4 text-muted-foreground" />
                     <h2 className="text-sm font-semibold text-foreground">
@@ -641,6 +664,73 @@ export default function EventDetailPage({
                   <p className="mt-2 text-sm text-muted-foreground">
                     {describeRecurrence(event.series)}
                   </p>
+
+                  {position >= 0 && occurrences.length > 1 && (
+                    <div className="mt-4">
+                      <p className="text-xs font-medium text-foreground">
+                        Occurrence {position + 1} of {occurrences.length}
+                      </p>
+                      <div
+                        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"
+                        aria-hidden="true"
+                      >
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{
+                            width: `${((position + 1) / occurrences.length) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {laterOccurrences.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs font-medium text-foreground">
+                        Next dates
+                      </p>
+                      <ul className="mt-1.5 space-y-1">
+                        {laterOccurrences.map((o) => (
+                          <li key={o.id}>
+                            <Link
+                              href={`/administrative/events/${o.id}`}
+                              className={cn(
+                                'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground hover:bg-muted',
+                                o.status === 'CANCELLED' &&
+                                  'text-muted-foreground line-through',
+                              )}
+                            >
+                              <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              {occurrenceDate(o.startAt)}
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {(previousOccurrence || (canEdit && !isCancelled)) && (
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+                      {previousOccurrence ? (
+                        <Link
+                          href={`/administrative/events/${previousOccurrence.id}`}
+                          className="text-sm text-muted-foreground hover:text-foreground"
+                        >
+                          ← Previous: {occurrenceDate(previousOccurrence.startAt)}
+                        </Link>
+                      ) : (
+                        <span />
+                      )}
+                      {canEdit && !isCancelled && (
+                        <Link
+                          href={`/administrative/events/${event.id}/edit`}
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          Change repeat
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

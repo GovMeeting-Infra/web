@@ -37,6 +37,8 @@ export interface EventSeries {
   count: number | null;
   until: string | null;
   createdAt: string;
+  /** Every date in the series, earliest first. Only the detail endpoint sends it. */
+  events?: { id: string; startAt: string; status: EventStatus }[];
 }
 
 export const FREQUENCY_LABELS: Record<Frequency, string> = {
