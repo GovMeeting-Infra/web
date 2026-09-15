@@ -60,6 +60,70 @@ const RSVP_COLOR: Record<string, string> = {
   DECLINED: 'text-destructive',
 };
 
+const RSVP_SHORT: Record<string, string> = {
+  INVITED: 'Awaiting',
+  NO_RESPONSE: 'Awaiting',
+  CONFIRMED: 'Confirmed',
+  DECLINED: 'Declined',
+};
+
+/**
+ * One person on the organizers card. Initials rather than a bare
+ * "Name (email)" line, so the list reads as people at a glance, with room at
+ * the end for their role, their answer to the invitation, and a remove button.
+ */
+function PersonRow({
+  name,
+  email,
+  badge,
+  rsvp,
+  children,
+}: {
+  name: string;
+  email: string;
+  badge?: string;
+  rsvp?: string;
+  children?: React.ReactNode;
+}) {
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+  return (
+    <li className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-muted">
+      <span
+        aria-hidden="true"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary"
+      >
+        {initials}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-medium text-foreground">
+          {name}
+        </span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {email}
+        </span>
+      </span>
+      {badge && (
+        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+          {badge}
+        </span>
+      )}
+      {rsvp && (
+        <span className={cn('shrink-0 text-xs font-medium', RSVP_COLOR[rsvp])}>
+          {RSVP_SHORT[rsvp]}
+        </span>
+      )}
+      {children}
+    </li>
+  );
+}
+
 function InfoCard({
   icon,
   label,
@@ -118,6 +182,9 @@ export default function EventDetailPage({
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [coOrganizer, setCoOrganizer] = useState<DirectoryPerson | null>(null);
   const [isBusy, setIsBusy] = useState(false);
+  // Read once, so the recurring card's held/coming-up split does not shift
+  // between renders.
+  const [nowMs] = useState(() => Date.now());
 
   const {
     data: event,
@@ -338,6 +405,33 @@ export default function EventDetailPage({
   // Drives the two-column split below — see the comment there.
   const hasSidePanel = Boolean((myInvite && !isCancelled) || event.series);
 
+  // The series as it stands today, for the recurring card. Measured from now
+  // rather than from the date this page shows: counted from the page, the
+  // 18th's page said "2 of 3" and "next: the 25th" on the 15th, which read as
+  // two meetings already held and the 18th skipped.
+  const occurrences = event.series?.events ?? [];
+  const hasStarted = (o: { startAt: string }) =>
+    new Date(o.startAt).getTime() <= nowMs;
+  const heldCount = occurrences.filter(
+    (o) => hasStarted(o) && o.status !== 'CANCELLED',
+  ).length;
+  const upcomingOccurrences = occurrences
+    .filter((o) => !hasStarted(o))
+    .slice(0, 4);
+  const lastHeld =
+    [...occurrences]
+      .reverse()
+      .find((o) => hasStarted(o) && o.status !== 'CANCELLED') ?? null;
+  const occurrenceDate = (iso: string) =>
+    new Date(iso).toLocaleString(undefined, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
   return (
     // flex-1 fills the viewport so Manage can sit at the bottom rather than
     // leaving a gap under it. space-y-0 cancels the container's default: the
@@ -501,10 +595,23 @@ export default function EventDetailPage({
           />
         </div>
 
-        {/* Two columns once there is room for them: what the event *is* on the
-            left, your standing with it on the right. Below xl the whole thing
-            stacks in this same order, which is the reading order the narrow
-            layout had.
+        {/* Its own row. Beside the side panel it was squeezed into two thirds of
+            the width and set a short "Recurring event" card against a long
+            block of prose. */}
+        {event.description && (
+          <div className="rounded-xl border border-border bg-card p-6">
+            <h2 className="text-sm font-semibold text-foreground">
+              Description
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              {event.description}
+            </p>
+          </div>
+        )}
+
+        {/* Two columns once there is room for them: who runs the event on the
+            left, your standing with it and how it repeats on the right. Below
+            xl the whole thing stacks in this same order.
             Both side panels are conditional, and an organiser looking at a
             one-off meeting has neither — so the split only happens when there is
             something to put in the second column, rather than leaving a third of
@@ -515,41 +622,50 @@ export default function EventDetailPage({
             hasSidePanel && 'xl:grid-cols-3',
           )}
         >
-          <div className={cn('space-y-8', hasSidePanel && 'xl:col-span-2')}>
-            {event.description && (
-              <div className="rounded-xl border border-border bg-card p-6">
-                <h2 className="text-sm font-semibold text-foreground">
-                  Description
-                </h2>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {event.description}
-                </p>
-              </div>
+          <div
+            className={cn(
+              'flex flex-col gap-8',
+              hasSidePanel && 'xl:col-span-2',
             )}
-
-            {/* Co-organizers */}
-            <div className="rounded-xl border border-border bg-card p-6">
+          >
+            {/* Organizers. Stretches with the side panel so the two cards on
+                this row end level, and pins the add control to the bottom
+                rather than leaving the space under the list empty. */}
+            <div className="flex flex-1 flex-col rounded-xl border border-border bg-card p-6">
               <h2 className="text-sm font-semibold text-foreground">
-                Co-organizers
+                Organizers
               </h2>
-              {event.coOrganizers.length === 0 ? (
-                <p className="mt-2 text-sm text-muted-foreground">
-                  None assigned.
-                </p>
-              ) : (
-                <ul className="mt-3 space-y-1">
-                  {event.coOrganizers.map((co) => (
-                    <li
-                      key={co.id}
-                      className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-sm text-foreground hover:bg-muted"
-                    >
-                      <span className="min-w-0 truncate">
-                        {co.user.name} ({co.user.email})
-                      </span>
-                      {canAdminister && (
-                        <Tooltip
-                          content={`${co.user.name} loses the ability to manage this meeting. They stay invited to it.`}
-                        >
+              <p className="mt-1 text-xs text-muted-foreground">
+                Co-organizers can edit and cancel this meeting alongside the
+                organizer.
+              </p>
+              <ul className="mt-3 space-y-1">
+                {event.organizer && (
+                  <PersonRow
+                    name={event.organizer.name}
+                    email={event.organizer.email}
+                    badge="Organizer"
+                    rsvp={
+                      event.attendees.find(
+                        (a) => a.userId === event.organizer?.id,
+                      )?.status
+                    }
+                  />
+                )}
+                {event.coOrganizers.map((co) => (
+                  <PersonRow
+                    key={co.id}
+                    name={co.user.name}
+                    email={co.user.email}
+                    rsvp={
+                      event.attendees.find((a) => a.userId === co.userId)
+                        ?.status
+                    }
+                  >
+                    {canAdminister && (
+                      <Tooltip
+                        content={`${co.user.name} loses the ability to manage this meeting. They stay invited to it.`}
+                      >
                         <button
                           type="button"
                           onClick={() => handleRemoveCoOrganizer(co.userId)}
@@ -559,14 +675,18 @@ export default function EventDetailPage({
                         >
                           <X className="h-4 w-4" />
                         </button>
-                        </Tooltip>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                      </Tooltip>
+                    )}
+                  </PersonRow>
+                ))}
+              </ul>
+              {event.coOrganizers.length === 0 && (
+                <p className="mt-2 px-2 text-sm text-muted-foreground">
+                  No co-organizers yet.
+                </p>
               )}
               {canAdminister && (
-                <div className="mt-4 flex flex-wrap items-start gap-2">
+                <div className="mt-auto flex flex-wrap items-start gap-2 pt-4">
                   <div className="min-w-0 flex-1 sm:min-w-[16rem]">
                     {/* Was a free-text User ID box, which meant asking an
                         administrator for an internal identifier before you could
@@ -595,7 +715,7 @@ export default function EventDetailPage({
           </div>
 
           {hasSidePanel && (
-            <div className="space-y-8">
+            <div className="flex flex-col gap-8">
               {/* Your RSVP — only when the viewer is actually on the invitee list */}
               {myInvite && !isCancelled && (
                 <div className="rounded-xl border border-border bg-card p-6">
@@ -627,9 +747,10 @@ export default function EventDetailPage({
                 </div>
               )}
 
-              {/* Recurrence */}
+              {/* Recurrence. Grows to the co-organizers' height, and fills it
+                  with the rest of the series rather than white space. */}
               {event.series && (
-                <div className="rounded-xl border border-border bg-card p-6">
+                <div className="flex flex-1 flex-col rounded-xl border border-border bg-card p-6">
                   <div className="flex items-center gap-2">
                     <Repeat className="h-4 w-4 text-muted-foreground" />
                     <h2 className="text-sm font-semibold text-foreground">
@@ -639,6 +760,96 @@ export default function EventDetailPage({
                   <p className="mt-2 text-sm text-muted-foreground">
                     {describeRecurrence(event.series)}
                   </p>
+
+                  {occurrences.length > 1 && (
+                    <div className="mt-4">
+                      <p className="text-xs font-medium text-foreground">
+                        {heldCount === 0
+                          ? `None held yet · ${occurrences.length} dates`
+                          : `${heldCount} of ${occurrences.length} held`}
+                      </p>
+                      <div
+                        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted"
+                        aria-hidden="true"
+                      >
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{
+                            width: `${(heldCount / occurrences.length) * 100}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {upcomingOccurrences.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs font-medium text-foreground">
+                        Coming up
+                      </p>
+                      <ul className="mt-1.5 space-y-1">
+                        {upcomingOccurrences.map((o) => {
+                          const rowClass = cn(
+                            'flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-foreground',
+                            o.status === 'CANCELLED' &&
+                              'text-muted-foreground line-through',
+                          );
+                          const content = (
+                            <>
+                              <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              <span className="min-w-0 truncate">
+                                {occurrenceDate(o.startAt)}
+                              </span>
+                            </>
+                          );
+                          return (
+                            <li key={o.id}>
+                              {o.id === event.id ? (
+                                // The page being read, so not a link to itself.
+                                <div className={cn(rowClass, 'bg-muted')}>
+                                  {content}
+                                  <span className="ml-auto shrink-0 text-xs font-medium text-muted-foreground">
+                                    This meeting
+                                  </span>
+                                </div>
+                              ) : (
+                                <Link
+                                  href={`/administrative/events/${o.id}`}
+                                  className={cn(rowClass, 'hover:bg-muted')}
+                                >
+                                  {content}
+                                </Link>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+
+                  {((lastHeld && lastHeld.id !== event.id) ||
+                    (canEdit && !isCancelled)) && (
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+                      {lastHeld && lastHeld.id !== event.id ? (
+                        <Link
+                          href={`/administrative/events/${lastHeld.id}`}
+                          className="text-sm text-muted-foreground hover:text-foreground"
+                        >
+                          Last held: {occurrenceDate(lastHeld.startAt)}
+                        </Link>
+                      ) : (
+                        <span />
+                      )}
+                      {canEdit && !isCancelled && (
+                        <Link
+                          href={`/administrative/events/${event.id}/edit`}
+                          className="text-sm font-medium text-primary hover:underline"
+                        >
+                          Change repeat
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
