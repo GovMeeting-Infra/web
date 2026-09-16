@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   ArrowUpRight,
   CheckCheck,
@@ -168,6 +169,11 @@ export default function NotificationsPage() {
   const [isMarking, setIsMarking] = useState(false);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [limit, setLimit] = useState(PAGE_SIZE);
+  // ?id= picks one notification out; it is where a click in the bell's
+  // dropdown lands. Scrolled to once per id, not again on every refetch.
+  const searchParams = useSearchParams();
+  const highlightId = searchParams.get('id');
+  const scrolledTo = useRef<string | null>(null);
 
   const {
     data: page,
@@ -409,10 +415,30 @@ export default function NotificationsPage() {
                       ? 'border-border bg-card'
                       : 'border-stat-blue-border bg-stat-blue-bg';
 
-                const cls = `block rounded-[1.5rem] border p-5 transition-colors ${emphasis}`;
+                // The one the bell's dropdown sent the reader to.
+                const isHighlighted = n.id === highlightId;
+                const cls = `block rounded-[1.5rem] border p-5 transition-colors ${emphasis}${
+                  isHighlighted ? ' ring-2 ring-primary' : ''
+                }`;
 
                 return (
-                  <li key={n.id}>
+                  <li
+                    key={n.id}
+                    aria-current={isHighlighted ? 'true' : undefined}
+                    ref={
+                      isHighlighted
+                        ? (el) => {
+                            if (el && scrolledTo.current !== n.id) {
+                              scrolledTo.current = n.id;
+                              el.scrollIntoView({
+                                block: 'center',
+                                behavior: 'smooth',
+                              });
+                            }
+                          }
+                        : undefined
+                    }
+                  >
                     {n.link ? (
                       <Link
                         href={n.link}

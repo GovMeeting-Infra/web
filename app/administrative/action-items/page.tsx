@@ -692,7 +692,9 @@ export default function ActionItemsPage() {
           {/* Notion closes a table with its row count. Outside the scroller, or
               it drifts off-screen along with the columns. */}
           <p className="px-3 py-2 text-[13px] text-muted-foreground">
-            {visible.length} {visible.length === 1 ? 'item' : 'items'}
+            {visible.length} {visible.length === 1 ? 'item' : 'items'} · Done
+            items drop off 7 days after they are closed, and stay in the
+            meeting&apos;s minutes
           </p>
         </div>
       )}
@@ -785,6 +787,23 @@ export default function ActionItemsPage() {
                     `/api/v1/action-items/${activeItem.id}/assistants/${userId}`,
                     { method: 'DELETE' },
                   );
+                  await queryClient.invalidateQueries({
+                    queryKey: ['action-items'],
+                  });
+                }
+              : undefined
+          }
+          onDelete={
+            // Only whoever created it, mirroring the server. The owner and
+            // helpers close work by marking it done or cancelled instead, which
+            // keeps a record of it; a delete does not.
+            currentUser && activeItem.assignedBy?.id === currentUser.id
+              ? async () => {
+                  await apiFetch(`/api/v1/action-items/${activeItem.id}`, {
+                    method: 'DELETE',
+                  });
+                  setSelectedId(null);
+                  setOpenedFromUrl(true);
                   await queryClient.invalidateQueries({
                     queryKey: ['action-items'],
                   });

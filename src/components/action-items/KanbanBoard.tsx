@@ -30,7 +30,9 @@ import {
 const COLUMN_EMPTY: Record<string, string> = {
   TODO: 'Nothing waiting to start',
   IN_PROGRESS: 'Nothing under way',
-  COMPLETED: 'Nothing finished yet',
+  // Says the week out loud: an empty Done column after a busy month otherwise
+  // reads as "nothing was finished" rather than "nothing in the last week".
+  COMPLETED: 'Nothing finished in the last 7 days',
 };
 
 /**

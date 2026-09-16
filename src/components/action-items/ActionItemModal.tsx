@@ -14,6 +14,7 @@ import {
   CircleDot,
   Flag,
   FileText,
+  Trash2,
 } from 'lucide-react';
 import {
   PersonPicker,
@@ -72,6 +73,7 @@ export function ActionItemModal({
   onStatusChange,
   onAddAssistant,
   onRemoveAssistant,
+  onDelete,
 }: {
   item: BoardActionItem;
   onClose: () => void;
@@ -88,7 +90,12 @@ export function ActionItemModal({
   onStatusChange?: (status: ActionItemStatus) => Promise<void>;
   onAddAssistant?: (person: DirectoryPerson) => Promise<void>;
   onRemoveAssistant?: (userId: string) => Promise<void>;
+  /** Omitted unless the viewer created the item — only they may delete it. */
+  onDelete?: () => Promise<void>;
 }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useTransientMessage();
   const [isReassigning, setIsReassigning] = useState(false);
   const [reassignError, setReassignError] = useTransientMessage();
   const [notes, setNotes] = useState(item.progressNotes ?? '');
@@ -505,6 +512,65 @@ export function ActionItemModal({
           {item.assignedBy?.name ? ` by ${item.assignedBy.name}` : ''} · Last
           changed {dt(item.updatedAt)}
         </p>
+
+        {/* Asked twice, inline rather than with a browser confirm: it removes
+            the item for everyone and there is no undo. */}
+        {onDelete && (
+          <div className="mt-6 border-t border-border pt-4">
+            {confirmingDelete ? (
+              <div>
+                <p className="text-sm text-foreground">
+                  Delete “{item.title}”? It is removed for everyone, including
+                  its owner and helpers, and cannot be undone.
+                </p>
+                {deleteError && (
+                  <p role="alert" className="mt-2 text-sm text-destructive">
+                    {deleteError}
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={isDeleting}
+                    className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                  >
+                    Keep it
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsDeleting(true);
+                      setDeleteError(null);
+                      try {
+                        await onDelete();
+                      } catch (err) {
+                        setDeleteError(
+                          err instanceof Error
+                            ? err.message
+                            : 'This action item could not be deleted.',
+                        );
+                        setIsDeleting(false);
+                      }
+                    }}
+                    disabled={isDeleting}
+                    className="rounded-lg bg-destructive px-4 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-50"
+                  >
+                    {isDeleting ? 'Deleting…' : 'Delete'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="flex items-center gap-2 text-sm font-medium text-destructive hover:underline"
+              >
+                <Trash2 className="h-4 w-4" /> Delete action item
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </Modal>
   );
