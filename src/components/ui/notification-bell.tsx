@@ -199,11 +199,16 @@ export function NotificationBell() {
 
                 return (
                   <li key={n.id}>
-                    {/* Every item opens on the Notifications page, picked out
-                        there. One without a link used to be a button that only
-                        marked it read, so clicking it appeared to do nothing. */}
+                    {/* Straight to what it is about: the action item, the
+                        meeting, the minutes. Only one with nowhere to go opens
+                        the Notifications page instead, picked out there — it
+                        used to be a button that just marked itself read, so
+                        clicking it appeared to do nothing. */}
                     <Link
-                      href={`/administrative/notifications?id=${encodeURIComponent(n.id)}`}
+                      href={
+                        n.link ??
+                        `/administrative/notifications?id=${encodeURIComponent(n.id)}`
+                      }
                       onClick={() => {
                         markRead(n.id);
                         setOpen(false);

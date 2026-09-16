@@ -692,7 +692,9 @@ export default function ActionItemsPage() {
           {/* Notion closes a table with its row count. Outside the scroller, or
               it drifts off-screen along with the columns. */}
           <p className="px-3 py-2 text-[13px] text-muted-foreground">
-            {visible.length} {visible.length === 1 ? 'item' : 'items'}
+            {visible.length} {visible.length === 1 ? 'item' : 'items'} · Done
+            items drop off 7 days after they are closed, and stay in the
+            meeting&apos;s minutes
           </p>
         </div>
       )}
