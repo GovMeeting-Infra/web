@@ -9,6 +9,7 @@ import {
   SW_URL,
   TEARDOWN_RELOAD_KEY,
 } from '@/lib/pwa/config';
+import { startCapturingInstallPrompt } from '@/lib/pwa/install';
 import { UpdateToast } from './UpdateToast';
 
 /** How often an open tab asks whether a new version has been deployed. */
@@ -39,6 +40,12 @@ export function ServiceWorkerManager() {
   const updateRequested = useRef(false);
 
   useEffect(() => {
+    // Before anything else, and regardless of whether a worker is wanted:
+    // beforeinstallprompt fires once and early, and is lost if nothing was
+    // listening. This component is in the root layout, so it is the earliest
+    // client code on every route.
+    startCapturingInstallPrompt();
+
     if (!('serviceWorker' in navigator)) return;
 
     let cancelled = false;

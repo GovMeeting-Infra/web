@@ -11,6 +11,7 @@ import {
   ClipboardList,
   UserCircle,
   Mail,
+  Download,
 } from 'lucide-react';
 
 interface Faq {
@@ -166,6 +167,35 @@ const GROUPS: Group[] = [
         // item is due — no advance warning exists, despite the old wording.
         // BOARD_COLUMNS has three columns, not five.
         a: 'They are the tasks a meeting produces, recorded against its minutes with an owner and a due date. The board collects them from every meeting so nothing falls between one and the next. It has three columns — To Do, In Progress and Done — with blocked items sitting in To Do and cancelled ones in Done. Owners get an email at 8am on the day an item is due. There is no earlier warning, so treat the due date as the day it lands, not the deadline you are reminded to prepare for.',
+      },
+    ],
+  },
+  {
+    title: 'Installing the app',
+    icon: <Download className="h-5 w-5" />,
+    tint: 'border-stat-blue-border bg-stat-blue-bg text-primary',
+    faqs: [
+      {
+        // app/manifest.ts — display: standalone, start_url is the dashboard.
+        q: 'Can I put this on my phone or tablet home screen?',
+        a: 'Yes. Installed, it gets its own icon and opens in its own window with no address bar, starting at your dashboard instead of the sign-in page. It is the same system either way — nothing is added and nothing is missing, it just stops looking like a web page. Install it on a phone or tablet that is yours. On a shared device, use the browser instead: an icon that looks like an app makes it much easier to forget somebody is still signed in behind it.',
+      },
+      {
+        q: 'How do I install it on an iPhone or iPad?',
+        // No beforeinstallprompt on iOS; other iOS browsers cannot do it.
+        a: 'Open the site in Safari, then use Share and choose "Add to Home Screen". The Share button is at the bottom of the screen on an iPhone and at the top right on an iPad. It has to be Safari — Chrome, Firefox and Edge on iOS cannot add anything to the home screen. Once it is installed, expect to sign in one more time inside it: the installed app keeps its own sign-in, separate from Safari, and that is normal rather than a fault.',
+      },
+      {
+        q: 'How do I install it on Android or a computer?',
+        // useInstallPrompt / InstallMenuItem — only rendered when the browser
+        // has actually offered a prompt.
+        a: 'Open the menu under your name and choose "Install app". If that entry is not there, your browser has either installed it already or has not offered to; Chrome and Edge also put an install control in the address bar. Firefox on Android and browsers opened inside another app cannot install it.',
+      },
+      {
+        q: 'What happens when there is no connection?',
+        // Honest scope: the worker serves an offline page. There is no offline
+        // write path yet — see public/sw.js, CACHE_AUTHENTICATED_PAGES.
+        a: 'You get a page telling you the device is offline, instead of the browser\u2019s error screen, and it retries when you tap Try again. That is the whole of it for now: you cannot yet read your meetings or write minutes without a connection, and nothing you type while offline is queued up to send later. Anything you had already saved is on the server and is not affected.',
       },
     ],
   },
