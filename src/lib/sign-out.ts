@@ -1,3 +1,5 @@
+import { purgePageCaches } from '@/lib/pwa/caches';
+
 /**
  * Ends the session and leaves for the sign-in page.
  *
@@ -14,6 +16,17 @@ export async function signOut(): Promise<void> {
     // The session is what matters, and the server drops it on receipt. If the
     // request never landed, leaving the browser is still the right move.
   }
+
+  // The same reasoning one layer down. Discarding the in-memory query cache is
+  // not enough once a service worker is involved, because anything it stored
+  // outlives the document, the tab and the browser being closed — on a shared
+  // tablet that is the next person's problem rather than a stale render.
+  //
+  // Awaited rather than fired off: the redirect below tears this context down,
+  // and a deletion that had not finished would simply not happen. It cannot
+  // throw; purgePageCaches swallows its own failures, because failing to clear
+  // a cache must not leave someone unable to sign out.
+  await purgePageCaches();
 
   // A full document load, not router.push: the session is read by server
   // components, so a client-side navigation would keep rendering the cached

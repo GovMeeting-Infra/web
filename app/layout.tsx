@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { ServiceWorkerManager } from "@/components/pwa/ServiceWorkerManager";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -100,6 +101,12 @@ export default function RootLayout({
           not the document, so there is nothing to scroll that strip back into
           view. */}
       <body className="h-dvh bg-background text-foreground">
+        {/* Renders nothing. It decides whether this browser should hold a
+            service worker at all — which today means removing any it finds,
+            since registration is off unless a build is explicitly told
+            otherwise. At the root so that removal reaches every page, not only
+            the ones behind a sign-in. */}
+        <ServiceWorkerManager />
         <Providers>{children}</Providers>
       </body>
     </html>
