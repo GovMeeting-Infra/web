@@ -215,6 +215,12 @@ const GROUPS: Group[] = [
         a: 'Open Profile from the sidebar. Your details, your password and your data each have their own section, and each saves on its own. Your name is worth getting right because it appears on every attendance record you sign. Your work phone is optional and gets recorded against your attendance so an organiser can reach you. Your email address, ministry and access level are set by your administrator and cannot be changed here.',
       },
       {
+        q: 'Can my phone tell me about meetings without me opening this?',
+        // PushNotificationSetting on the profile page. Per device, because a
+        // subscription belongs to one browser on one machine.
+        a: 'Yes, if you turn it on. Open Profile and look for "Notifications on this device", then turn it on and allow it when the browser asks. It is per device, so doing it on your laptop does not do it on your phone — each one is turned on separately, and each can be turned off again from the same place. On an iPhone or iPad, add the app to your Home Screen first; notifications do not reach a Safari tab. If you refused the browser\u2019s question at some point, the app cannot ask a second time — you have to allow it again in your browser\u2019s settings for this site.',
+      },
+      {
         q: 'Can I turn off the emails this sends me?',
         // Settings was folded into Profile, and the notification toggles were
         // removed before that (commit 740aadd) because these emails became

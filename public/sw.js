@@ -244,25 +244,26 @@ function registerProductionHandlers() {
   });
 
   // =========================================================================
-  // PUSH — seams only, deliberately inert
+  // PUSH
   // =========================================================================
-  // The shape is settled here so the server half can be built against it
-  // without a second negotiation, but nothing is delivered and nothing asks for
-  // permission yet. Payload matches the in-app notification row:
-  //   { id, type, title, body, link }
+  // Payload is whatever PushProcessor sent, which mirrors the in-app row:
+  //   { title, body, link, tag }
   self.addEventListener('push', (event) => {
-    if (!PUSH_ENABLED) return;
     event.waitUntil(showPush(event));
   });
 
   self.addEventListener('notificationclick', (event) => {
-    if (!PUSH_ENABLED) return;
     event.notification.close();
     event.waitUntil(openFromNotification(event));
   });
-}
 
-const PUSH_ENABLED = false;
+  // Browsers rotate a subscription's keys on their own schedule. Until the
+  // client re-subscribes, the server is encrypting to keys nothing can read,
+  // so the page is told to redo it the next time one is open.
+  self.addEventListener('pushsubscriptionchange', (event) => {
+    event.waitUntil(tellClients({ type: 'PUSH_SUBSCRIPTION_STALE' }));
+  });
+}
 
 // ===========================================================================
 // STRATEGIES
@@ -465,8 +466,13 @@ async function destroySelf() {
   } catch {
     /* already gone */
   }
+  await tellClients({ type: 'SW_REMOVED' });
+}
+
+/** Posts a message to every open window this worker knows about. */
+async function tellClients(message) {
   const clients = await self.clients.matchAll({ type: 'window' });
-  for (const client of clients) client.postMessage({ type: 'SW_REMOVED' });
+  for (const client of clients) client.postMessage(message);
 }
 
 function isOurs(name) {
@@ -479,7 +485,7 @@ function isOurs(name) {
 }
 
 // ===========================================================================
-// PUSH HELPERS (unreachable while PUSH_ENABLED is false)
+// PUSH HELPERS
 // ===========================================================================
 
 async function showPush(event) {
@@ -493,9 +499,10 @@ async function showPush(event) {
 
   await self.registration.showNotification(payload.title, {
     body: payload.body || '',
-    // The notification id, so the same alert arriving twice replaces itself
-    // rather than stacking.
-    tag: payload.id || payload.type || 'govmeeting',
+    // Set by the server to "<type>:<entityId>", so the same alert about the
+    // same thing replaces itself rather than stacking. A reminder raised twice
+    // for one meeting buzzes once.
+    tag: payload.tag || 'govmeeting',
     data: { link: payload.link || '/administrative/notifications' },
     icon: ICON_URL,
     badge: '/icons/badge-96.png',

@@ -15,8 +15,10 @@ import {
   ShieldCheck,
   Monitor,
   Download,
+  Bell,
   AlertCircle,
 } from 'lucide-react';
+import { PushNotificationSetting } from '@/components/pwa/PushNotificationSetting';
 import { apiFetch, apiDownload, messageFor } from '@/lib/api/client';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeaderSkeleton, StatCardsSkeleton } from '@/components/ui/skeletons';
@@ -879,6 +881,20 @@ function AccountLoaded({
       </Section>
 
       {/* ---- Display --------------------------------------------------- */}
+      {/* ---- Notifications on this device ------------------------------ */}
+      {/* Renders nothing where push cannot work — an unsupported browser, a
+          deployment with no VAPID keys — rather than showing a control that
+          would fail. Nothing here asks the browser for permission until the
+          button is pressed: a refusal cannot be taken back by the app, so a
+          prompt on load would cost people push permanently. */}
+      <Section
+        icon={<Bell className="h-5 w-5" />}
+        title="Notifications on this device"
+        description="Subscriptions are per device, so each phone or computer is turned on separately."
+      >
+        <PushNotificationSetting />
+      </Section>
+
       <Section icon={<Monitor className="h-5 w-5" />} title="Display">
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0">
