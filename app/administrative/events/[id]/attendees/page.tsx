@@ -298,7 +298,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [isResendingAll, setIsResendingAll] = useState(false);
   // Which format is being prepared, so only that button reads as busy.
-  const [downloading, setDownloading] = useState<'csv' | 'pdf' | null>(null);
+  const [downloading, setDownloading] = useState<'csv' | 'xlsx' | 'pdf' | null>(null);
   // Not the first tab, deliberately: this page is mostly open while a meeting
   // is running, and who has actually turned up is the live question. The full
   // invite list stays first because that is the set the others are drawn from.
@@ -435,7 +435,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
    * Download the list the open tab is showing. The tab keys and the sets the
    * API knows are the same five, named differently on each side.
    */
-  const handleExport = async (format: 'csv' | 'pdf') => {
+  const handleExport = async (format: 'csv' | 'xlsx' | 'pdf') => {
     const set = EXPORT_SETS[activeTab];
     setDownloading(format);
     setError(null);
@@ -1003,7 +1003,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
               whether to offer it. */}
           {canExport && (
             <div className="flex items-center gap-2 pb-2">
-              <Tooltip content="A spreadsheet for analysis. Signatures cannot fit in a cell, so each row only says whether one was given.">
+              <Tooltip content="Plain data, for importing into another system. Signatures cannot fit in a cell, so each row only says whether one was given.">
                 <button
                   type="button"
                   onClick={() => handleExport('csv')}
@@ -1012,6 +1012,17 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
                 >
                   <Download className="h-4 w-4" />
                   {downloading === 'csv' ? 'Preparing…' : 'CSV'}
+                </button>
+              </Tooltip>
+              <Tooltip content="An Excel workbook, headed with the meeting's details, ready to sort and filter. Like the CSV, each row says whether a signature was given rather than showing it.">
+                <button
+                  type="button"
+                  onClick={() => handleExport('xlsx')}
+                  disabled={downloading !== null}
+                  className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+                >
+                  <Download className="h-4 w-4" />
+                  {downloading === 'xlsx' ? 'Preparing…' : 'Excel'}
                 </button>
               </Tooltip>
               <Tooltip content="The signed register, with each signature beside the name. This is the sheet to file.">
