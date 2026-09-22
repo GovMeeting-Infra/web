@@ -35,6 +35,7 @@ import { PageContainer } from '@/components/ui/page-container';
 import { CardSkeleton } from '@/components/ui/skeletons';
 import { MinutesRecord, pointsOfType } from '@/components/minutes/MinutesRecord';
 import { PointList } from './PointList';
+import { TranscriptSuggestions } from '@/components/minutes/TranscriptSuggestions';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
 
 /**
@@ -681,6 +682,32 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
             <MinutesRecord points={minutes.points} actionItems={actionItems} />
           )}
         </div>
+      )}
+
+      {canEdit && (
+        <TranscriptSuggestions
+          eventId={id}
+          decisions={decisions}
+          nextSteps={nextSteps}
+          onAddDecision={(text) => setDecisions((prev) => [...prev, text])}
+          onAddNextStep={(text) => setNextSteps((prev) => [...prev, text])}
+          onUseActionItem={(item) => {
+            // Title and deadline carry over. The owner does not: a name heard
+            // in a meeting is not an account, so it goes in the description
+            // for the organizer to pick the right person.
+            setNewActionItem((prev) => ({
+              ...prev,
+              title: item.title,
+              dueDate: item.dueDate ?? prev.dueDate,
+              description: item.ownerName
+                ? `Suggested owner: ${item.ownerName}`
+                : prev.description,
+            }));
+            document.getElementById('ai-title')?.focus();
+          }}
+          canDraft={isOrganizer || isCoOrganizer}
+          disabled={isSaving}
+        />
       )}
 
       {canEdit && (
