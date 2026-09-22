@@ -350,7 +350,7 @@ export default function EventDetailPage({
       return (
         <PageContainer className="text-center">
           <p className="text-muted-foreground">
-            This event doesn&apos;t exist. It may have been deleted.
+            This event doesn&apos;t exist, or you weren&apos;t invited to it.
           </p>
           <Link
             href="/administrative/events"
