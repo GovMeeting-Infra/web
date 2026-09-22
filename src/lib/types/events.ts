@@ -294,6 +294,11 @@ export interface CheckInCodeResponse {
   allowGuestCheckIn: boolean;
   eventStatus: EventStatus;
   endAt: string;
+  /**
+   * When a code can first be generated: a set time before the meeting
+   * starts, so the area is set at the venue on the day.
+   */
+  codeOpensAt: string | null;
 }
 
 /** Why a scanned token can or cannot be used right now. */
