@@ -110,7 +110,7 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [confirmingPublish, setConfirmingPublish] = useState(false);
 
-  const { data: event } = useQuery({
+  const { data: event, error: eventError } = useQuery({
     queryKey: ['event', id],
     queryFn: () => apiFetch<EventDetail>(`/api/v1/events/${id}`),
   });
@@ -395,6 +395,27 @@ export default function MinutesPage({ params }: { params: Promise<{ id: string }
       setError(messageFor(err, "That change wasn't saved. Try again."));
     }
   };
+
+  /**
+   * The server answers 404 both for a deleted meeting and for one this person
+   * wasn't invited to. Without this the page carried on regardless and showed
+   * an empty editor, since the minutes 404 reads as "none drafted yet".
+   */
+  if (eventError instanceof ApiError && eventError.status === 404) {
+    return (
+      <PageContainer className="text-center">
+        <p className="text-muted-foreground">
+          This event doesn&apos;t exist, or you weren&apos;t invited to it.
+        </p>
+        <Link
+          href="/administrative/events"
+          className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+        >
+          <ArrowLeft className="h-4 w-4" /> Back to Events
+        </Link>
+      </PageContainer>
+    );
+  }
 
   /**
    * Public activities have no minutes — the server refuses to create them and

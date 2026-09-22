@@ -195,6 +195,96 @@ export async function acquireLocation(options?: {
   }
 }
 
+/** How long the organizer's phone gets to settle on a precise fix. */
+const ANCHOR_TIMEOUT_MS = 20_000;
+/** Matches ANCHOR_MAX_ACCURACY_METERS on the server. */
+export const ANCHOR_MAX_ACCURACY_METERS = 50;
+
+/**
+ * The organizer's position, for setting a meeting's check-in area.
+ *
+ * Stricter and more patient than acquireLocation. The server refuses an area
+ * vaguer than ANCHOR_MAX_ACCURACY_METERS, so a coarse fallback is useless here,
+ * but a phone indoors often needs well over one try's worth of seconds to get
+ * there — and a single getCurrentPosition gave up on the first poor reading.
+ * This watches for up to ANCHOR_TIMEOUT_MS, stops as soon as a reading is good
+ * enough, and otherwise returns the best it saw, so the server can say exactly
+ * how far off it was.
+ *
+ * `onProgress` reports each improvement, so the page can show the accuracy
+ * closing in rather than a spinner that might be stuck.
+ */
+export function acquireAnchorLocation(options?: {
+  onProgress?: (accuracy: number) => void;
+}): Promise<GeolocationFix> {
+  return new Promise((resolve, reject) => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      reject(
+        new GeolocationError(
+          'UNSUPPORTED',
+          'This browser cannot share your location.',
+        ),
+      );
+      return;
+    }
+    if (!isSecureContextOk()) {
+      reject(
+        new GeolocationError(
+          'INSECURE',
+          'This page is not on a secure connection, so the browser will not share your location.',
+        ),
+      );
+      return;
+    }
+
+    let best: GeolocationFix | null = null;
+    let watchId: number | null = null;
+    let done = false;
+
+    const finish = (error?: GeolocationError) => {
+      if (done) return;
+      done = true;
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      clearTimeout(timer);
+      if (best) resolve(best);
+      else
+        reject(
+          error ??
+            new GeolocationError(
+              'TIMEOUT',
+              'Timed out finding your location. Move somewhere with a clearer view of the sky and try again.',
+            ),
+        );
+    };
+
+    const timer = setTimeout(() => finish(), ANCHOR_TIMEOUT_MS);
+
+    watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        const fix = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        };
+        if (!best || fix.accuracy < best.accuracy) {
+          best = fix;
+          options?.onProgress?.(fix.accuracy);
+        }
+        if (fix.accuracy <= ANCHOR_MAX_ACCURACY_METERS) finish();
+      },
+      (error) => {
+        // A block is final. Anything else only ends this reading, not the
+        // wait — unless it is all there will be.
+        if (error.code === error.PERMISSION_DENIED) {
+          best = null;
+          finish(toGeolocationError(error));
+        }
+      },
+      { enableHighAccuracy: true, timeout: ANCHOR_TIMEOUT_MS, maximumAge: 0 },
+    );
+  });
+}
+
 /**
  * Ask the device for its location, once, on demand.
  *

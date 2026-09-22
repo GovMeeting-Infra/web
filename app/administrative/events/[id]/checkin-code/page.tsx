@@ -1,12 +1,15 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { ArrowLeft, RefreshCw, MapPin, QrCode, XCircle } from 'lucide-react';
 import { apiFetch } from '@/lib/api/client';
-import { requestLocation, GeolocationError } from '@/lib/hooks/useGeolocation';
+import {
+  acquireAnchorLocation,
+  GeolocationError,
+} from '@/lib/hooks/useGeolocation';
 import type { CheckInCodeResponse, EventDetail } from '@/lib/types/events';
 import { PageContainer } from '@/components/ui/page-container';
 import { CardSkeleton } from '@/components/ui/skeletons';
@@ -35,6 +38,13 @@ export default function CheckInCodePage({
   // revoked rather than leaving an empty screen with no explanation.
   const [checkInClosed, setCheckInClosed] = useState(false);
 
+  // While the organizer's position settles: whether we are waiting, and the
+  // accuracy of the best reading so far.
+  const [locating, setLocating] = useState(false);
+  const [locatingAccuracy, setLocatingAccuracy] = useState<number | null>(
+    null,
+  );
+
   const {
     data: qrCode,
     isLoading,
@@ -58,10 +68,44 @@ export default function CheckInCodePage({
   // Mirrors issueCheckInCode on the server, which refuses both of these. The
   // button used to stay live and the refusal arrived as an error after the
   // click — worth knowing before pressing, not after.
+  const geofence = qrCode?.geofence;
+
   const hasEnded = !!event && new Date(event.endAt) < new Date();
   const notPublished =
     !!event && (event.status === 'DRAFT' || event.status === 'CANCELLED');
-  const cannotGenerate = hasEnded || notPublished;
+
+  // The server only issues a code from a set time before the meeting starts,
+  // so the area is set at the venue on the day. Re-rendered when that moment
+  // arrives, so a page opened early does not need reloading.
+  const opensAtMs = qrCode?.codeOpensAt
+    ? new Date(qrCode.codeOpensAt).getTime()
+    : null;
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (opensAtMs == null) return;
+    const wait = opensAtMs - Date.now();
+    if (wait <= 0) return;
+    // setTimeout overflows past ~24.8 days; nobody keeps the tab open that long.
+    const t = setTimeout(
+      () => setTick((n) => n + 1),
+      Math.min(wait + 500, 2 ** 31 - 1),
+    );
+    return () => clearTimeout(t);
+  }, [opensAtMs]);
+  const notOpenYet = opensAtMs != null && new Date(opensAtMs) > new Date();
+
+  const cannotGenerate = hasEnded || notPublished || notOpenYet;
+
+  const opensAtText =
+    opensAtMs != null
+      ? new Date(opensAtMs).toLocaleString(undefined, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+      : null;
 
   /** Why generating is unavailable, or null when it is. */
   const blockedReason = hasEnded
@@ -70,7 +114,9 @@ export default function CheckInCodePage({
       ? 'This meeting was cancelled, so a check-in code cannot be generated.'
       : event?.status === 'DRAFT'
         ? 'Publish this event before generating a check-in code.'
-        : null;
+        : notOpenYet
+          ? `Available from ${opensAtText}, two hours before the meeting. Generate it at the venue: your location sets the check-in area for this day only.`
+          : null;
 
   const generate = useMutation({
     mutationFn: (body: GeneratePayload) =>
@@ -127,18 +173,26 @@ export default function CheckInCodePage({
     !!qrCode?.expiresAt && new Date(qrCode.expiresAt) <= new Date();
 
   /**
-   * Capture the organizer's location and generate. When no fix is available we
-   * still generate, but only after the organizer accepts what that costs —
-   * silently minting an unfenced code would be a surprise.
+   * Capture the organizer's location and generate.
+   *
+   * There is no way round a missing location: the server refuses to issue a
+   * code without a check-in area, and refuses to move an area to a fix it
+   * cannot trust. This used to offer "generate without location verification",
+   * which the server then declined — so the offer was a dead end, and on a
+   * reset it was the path that wiped the area.
    */
   const generateWithLocation = async (extra: GeneratePayload = {}) => {
     setActionError(null);
     setNotice(null);
     // Asking for a code is the opposite of closing check-in.
     setCheckInClosed(false);
+    setLocating(true);
+    setLocatingAccuracy(null);
 
     try {
-      const fix = await requestLocation();
+      const fix = await acquireAnchorLocation({
+        onProgress: setLocatingAccuracy,
+      });
       generate.mutate({
         lat: fix.latitude,
         lng: fix.longitude,
@@ -148,16 +202,25 @@ export default function CheckInCodePage({
     } catch (err) {
       const reason =
         err instanceof GeolocationError ? err.message : 'Location unavailable.';
-      const proceed = window.confirm(
-        `${reason}\n\nGenerate a code without location verification? Attendees will be able to check in from anywhere, and their check-ins will be recorded as unverified.`,
+      setActionError(
+        extra.resetAnchor && geofence?.enabled
+          ? `${reason} The check-in area has not been moved.`
+          : `${reason} A check-in code needs your location to set the area attendees must be inside. If you cannot share it, record people at the desk from the attendees page instead.`,
       );
-      if (!proceed) return;
-      generate.mutate(extra);
+    } finally {
+      setLocating(false);
+      setLocatingAccuracy(null);
     }
   };
 
-  const busy = generate.isPending || closeCheckIn.isPending;
-  const geofence = qrCode?.geofence;
+  const busy = locating || generate.isPending || closeCheckIn.isPending;
+
+  /** What the generate buttons say while they work. */
+  const workingLabel = locating
+    ? locatingAccuracy != null
+      ? `Getting a precise location… ±${Math.round(locatingAccuracy)} m`
+      : 'Getting your location…'
+    : null;
 
   if (isLoading) {
     return (
@@ -234,9 +297,16 @@ export default function CheckInCodePage({
                   this at the venue" copy above it reads as a fault. */}
               {blockedReason ?? (
                 <>
-                  Your current location becomes the check-in area. Attendees
-                  must be within {geofence?.radiusMeters ?? 100} m of where you
-                  stand now. Generate this at the venue.
+                  Generate this at the venue. Your current location becomes
+                  the check-in area for this day only: attendees must be within{' '}
+                  {geofence?.radiusMeters ?? 100} m of where you stand now.
+                  {event?.seriesId && (
+                    <>
+                      {' '}
+                      Each day of this series needs its own code, generated
+                      where that day&apos;s meeting is held.
+                    </>
+                  )}
                   {geofence?.required && (
                     <>
                       {' '}
@@ -257,7 +327,7 @@ export default function CheckInCodePage({
             className="inline-flex items-center gap-2 rounded-[1.25rem] bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:opacity-50"
           >
             <QrCode className="h-4 w-4" />
-            {generate.isPending ? 'Generating…' : 'Generate QR code'}
+            {workingLabel ?? (generate.isPending ? 'Generating…' : 'Generate QR code')}
           </button>
         </div>
       ) : (
@@ -433,7 +503,7 @@ export default function CheckInCodePage({
                   disabled={busy}
                   className="mt-3 text-xs font-medium text-primary underline underline-offset-2 disabled:opacity-50"
                 >
-                  Reset check-in area
+                  {workingLabel ?? 'Reset check-in area'}
                 </button>
               </>
             ) : (
@@ -447,7 +517,7 @@ export default function CheckInCodePage({
                   disabled={busy}
                   className="mt-3 text-xs font-medium text-primary underline underline-offset-2 disabled:opacity-50"
                 >
-                  Set check-in area from my location
+                  {workingLabel ?? 'Set check-in area from my location'}
                 </button>
               </>
             )}
