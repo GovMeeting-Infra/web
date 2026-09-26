@@ -228,9 +228,12 @@ export function TranscriptSuggestions({
         <div className="max-h-96 space-y-3 overflow-y-auto rounded-2xl bg-muted/30 p-4">
           {transcript.segments.map((s, i) => (
             <p key={s.id ?? i} className="text-sm leading-relaxed text-foreground">
-              <span className="mr-2 font-semibold text-primary">
-                {s.speaker === null ? 'Speaker' : `Speaker ${s.speaker + 1}`}
-              </span>
+              {/* Nothing where the provider gave no speaker labels. */}
+              {s.speaker !== null && (
+                <span className="mr-2 font-semibold text-primary">
+                  Speaker {s.speaker + 1}
+                </span>
+              )}
               {s.text}
             </p>
           ))}

@@ -24,20 +24,27 @@ function clock(ms: number): string {
 }
 
 /** Speaker numbers are the recogniser's guess, so they read as "Speaker 1", not a name. */
-function speakerLabel(speaker: number | null): string {
-  return speaker === null ? 'Speaker' : `Speaker ${speaker + 1}`;
+function speakerLabel(speaker: number | null): string | null {
+  // Some providers return no speaker at all. Labelling those lines "Speaker"
+  // would be noise on every paragraph, so they go unlabelled.
+  return speaker === null ? null : `Speaker ${speaker + 1}`;
 }
 
 /**
  * Consecutive lines from the same voice read as one paragraph. Without this a
  * long answer is a column of fragments, each repeating the same label.
+ * Unlabelled lines are never merged — with no speaker to change, the whole
+ * meeting would become a single unbroken block.
  */
 function groupBySpeaker(segments: TranscriptSegment[]) {
   const groups: { speaker: number | null; text: string; key: string }[] = [];
   segments.forEach((s, i) => {
     const last = groups[groups.length - 1];
-    if (last && last.speaker === s.speaker) last.text += ` ${s.text}`;
-    else groups.push({ speaker: s.speaker, text: s.text, key: s.id ?? `live-${i}` });
+    if (last && last.speaker === s.speaker && s.speaker !== null) {
+      last.text += ` ${s.text}`;
+    } else {
+      groups.push({ speaker: s.speaker, text: s.text, key: s.id ?? `live-${i}` });
+    }
   });
   return groups;
 }
@@ -263,13 +270,19 @@ export default function RecordMeetingPage({ params }: { params: Promise<{ id: st
           <div className="max-h-[60vh] space-y-4 overflow-y-auto rounded-[1.75rem] border border-border bg-card p-6 sm:p-8">
             {groups.map((g) => (
               <p key={g.key} className="text-sm leading-relaxed text-foreground">
-                <span className="mr-2 font-semibold text-primary">{speakerLabel(g.speaker)}</span>
+                {speakerLabel(g.speaker) && (
+                  <span className="mr-2 font-semibold text-primary">
+                    {speakerLabel(g.speaker)}
+                  </span>
+                )}
                 {g.text}
               </p>
             ))}
             {interim && (
               <p className="text-sm leading-relaxed text-muted-foreground">
-                <span className="mr-2 font-semibold">{speakerLabel(interim.speaker)}</span>
+                {speakerLabel(interim.speaker) && (
+                  <span className="mr-2 font-semibold">{speakerLabel(interim.speaker)}</span>
+                )}
                 {interim.text}
               </p>
             )}
