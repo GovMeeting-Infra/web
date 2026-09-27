@@ -20,6 +20,7 @@ import {
   Repeat,
   Check,
   X,
+  Mic,
 } from 'lucide-react';
 import { apiFetch, ApiError } from '@/lib/api/client';
 import { cn } from '@/lib/utils/cn';
@@ -225,6 +226,8 @@ export default function EventDetailPage({
   const canEdit = canAdminister || isCoOrganizer || isMinistryAdmin;
   const canCancel = canAdminister || isCoOrganizer;
   const isCancelled = event?.status === 'CANCELLED';
+  const canRecord =
+    !!event && !event.isPublic && !isCancelled && (isOrganizer || isCoOrganizer);
 
   const myInvite =
     currentUser && event
@@ -867,7 +870,11 @@ export default function EventDetailPage({
         </h2>
         <div
           className={`grid grid-cols-1 gap-4 ${
-            event.isPublic ? 'sm:grid-cols-2' : 'sm:grid-cols-3'
+            event.isPublic
+              ? 'sm:grid-cols-2'
+              : canRecord
+                ? 'sm:grid-cols-2 lg:grid-cols-4'
+                : 'sm:grid-cols-3'
           }`}
         >
           <ActionTile
@@ -888,6 +895,15 @@ export default function EventDetailPage({
               href={`/administrative/events/${event.id}/minutes`}
               icon={<FileText className="h-5 w-5" />}
               label="Meeting Minutes"
+            />
+          )}
+          {/* Recording is the organizers' call, as drafting minutes is; the
+              server enforces the same rule. */}
+          {canRecord && (
+            <ActionTile
+              href={`/administrative/events/${event.id}/record`}
+              icon={<Mic className="h-5 w-5" />}
+              label="Record meeting"
             />
           )}
         </div>
