@@ -6,6 +6,7 @@ import { PlatformTour } from '@/components/tour/PlatformTour';
 import { SessionTimeoutWarning } from '@/components/ui/session-timeout-warning';
 import { LaunchScreen } from '@/components/pwa/LaunchScreen';
 import { OfflinePageKeeper } from '@/components/pwa/OfflinePageKeeper';
+import { OfflineDataKeeper } from '@/components/pwa/OfflineDataKeeper';
 import {
   getSessionState,
   getMinistryName,
@@ -97,6 +98,8 @@ async function Workspace({ children }: { children: ReactNode }) {
 
   return (
     <SessionProvider user={user}>
+      {/* Installed app only: keeps what it reads, for reading offline. */}
+      <OfflineDataKeeper userId={user.id}>
       <AdminLayout
         ministryName={ministryName ?? undefined}
         userName={user.name}
@@ -118,6 +121,7 @@ async function Workspace({ children }: { children: ReactNode }) {
           completedVersion={preferences?.tourCompletedVersion ?? null}
         />
       </AdminLayout>
+      </OfflineDataKeeper>
     </SessionProvider>
   );
 }
