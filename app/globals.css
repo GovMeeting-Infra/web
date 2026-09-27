@@ -95,6 +95,7 @@
      close, so there is nothing left to animate out. */
   --animate-drawer-in: drawer-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
   --animate-fade-in: fade-in 180ms ease-out;
+  --animate-launch-progress: launch-progress 1.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
 }
 
 @keyframes drawer-in {
@@ -115,9 +116,20 @@
   }
 }
 
+/* A bar a third as wide as its track, sliding across and off again. */
+@keyframes launch-progress {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-drawer-in,
-  .animate-fade-in {
+  .animate-fade-in,
+  .animate-launch-progress {
     animation: none;
   }
 }

@@ -59,6 +59,15 @@ const nextConfig: NextConfig = {
         { key: "Content-Type", value: "application/javascript; charset=utf-8" },
       ],
     },
+    {
+      // nginx buffers a proxied response until it is complete, which would
+      // hold back the launch screen app/administrative/layout.tsx streams
+      // ahead of the session lookup — the blank screen it exists to replace.
+      // This header is nginx's per-response opt-out, so the instance config
+      // needs no change. Scoped to the workspace, the only place that streams.
+      source: "/administrative/:path*",
+      headers: [{ key: "X-Accel-Buffering", value: "no" }],
+    },
   ],
   // Browser calls hit /api/v1/* on the web origin and are proxied to the NestJS
   // API from here, so client components never need an absolute URL and there is
