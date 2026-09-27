@@ -4,26 +4,27 @@ import { useState } from 'react';
 import { Download } from 'lucide-react';
 import { useInstallPrompt } from '@/lib/hooks/useInstallPrompt';
 import { promptInstall } from '@/lib/pwa/install';
-import { IosInstallSheet } from './IosInstallSheet';
+import { InstallSheet } from './InstallSheet';
 
 /**
  * "Install app", for the profile menu.
  *
- * Renders nothing unless this browser can actually do something — a button that
- * does nothing when tapped is worse than no button, and beforeinstallprompt is
- * absent on iOS, inside in-app webviews, on Firefox for Android, and on Chrome
- * for a while after someone dismisses the prompt once.
+ * Shown until the app is installed, whether or not the browser has offered a
+ * prompt. It used to hide without one, which on phones meant it was almost never
+ * there: iOS never fires beforeinstallprompt, and Chrome on Android withholds it
+ * until it judges the site engaging enough and for months after one dismissal.
+ * With a prompt in hand it shows the browser's dialog; without one it opens
+ * steps for this browser's own menu, which installs in all of those cases.
  *
  * It also has to disappear once installed: the menu is height-capped (see the
  * comment on the panel in user-menu.tsx) and a permanent extra row would push
  * Sign out under the fold on a landscape phone.
  */
 export function InstallMenuItem({ onDone }: { onDone: () => void }) {
-  const { canInstall, isInstalled, isIosSafari } = useInstallPrompt();
+  const { canInstall, isInstalled } = useInstallPrompt();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   if (isInstalled) return null;
-  if (!canInstall && !isIosSafari) return null;
 
   const activate = async () => {
     if (canInstall) {
@@ -31,7 +32,7 @@ export function InstallMenuItem({ onDone }: { onDone: () => void }) {
       await promptInstall();
       return;
     }
-    // iOS: instructions are the only route there is.
+    // No prompt to show: point at the browser's own menu instead.
     setSheetOpen(true);
   };
 
@@ -49,7 +50,7 @@ export function InstallMenuItem({ onDone }: { onDone: () => void }) {
         Install app
       </button>
 
-      <IosInstallSheet
+      <InstallSheet
         open={sheetOpen}
         onClose={() => {
           setSheetOpen(false);

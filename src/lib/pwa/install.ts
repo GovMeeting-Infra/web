@@ -21,8 +21,6 @@ export interface InstallState {
   isInstalled: boolean;
   /** iPhone, iPad or iPod — including iPadOS, which claims to be a Mac. */
   isIos: boolean;
-  /** iOS *and* Safari: the only browser on iOS that can install anything. */
-  isIosSafari: boolean;
 }
 
 interface Store {
@@ -119,7 +117,6 @@ const SERVER_STATE: InstallState = Object.freeze({
   canInstall: false,
   isInstalled: false,
   isIos: false,
-  isIosSafari: false,
 });
 
 /** The server cannot know any of this, and it is prerendered. */
@@ -135,16 +132,10 @@ function compute(s: Store): InstallState {
     /iPad|iPhone|iPod/.test(ua) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-  // Chrome, Firefox, Edge and Opera on iOS are all WebKit underneath but none
-  // of them can add to the home screen. Offering the Safari steps there sends
-  // someone hunting for a menu item that does not exist.
-  const isIosSafari = isIos && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
-
   return {
     canInstall: !!s.deferred,
     isInstalled: s.installed || isStandalone(),
     isIos,
-    isIosSafari,
   };
 }
 
