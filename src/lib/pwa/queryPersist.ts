@@ -56,10 +56,19 @@ const KEPT = new Set([
   'action-items',
 ]);
 
-/** Only answers: persisting an error would replay one that has likely passed. */
+/**
+ * Anything with an answer to show, including one whose latest refresh failed.
+ *
+ * Not `status === 'success'`, which reads as the same thing and is not: a
+ * query showing kept data offline tries to refresh, fails, and becomes 'error'
+ * with its data still in hand. Keeping only successes dropped it at the next
+ * save — so reading a meeting offline erased that meeting from the device, and
+ * it could not be opened again until the connection came back. A query that
+ * never had an answer has nothing worth keeping, error or not.
+ */
 export function shouldKeepQuery(query: Query): boolean {
   return (
-    query.state.status === 'success' &&
+    query.state.data !== undefined &&
     typeof query.queryKey[0] === 'string' &&
     KEPT.has(query.queryKey[0])
   );
@@ -127,22 +136,38 @@ export function createOfflinePersister(userId: string): Persister {
   let pending: PersistedClient | null = null;
   const madeUnder = generation();
 
+  const write = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    if (!pending || generation() !== madeUnder) return;
+    const value: Saved = { userId, client: pending };
+    pending = null;
+    void run('readwrite', (s) => s.put(value, KEY));
+  };
+
+  // A save still waiting out the throttle when the app is closed or switched
+  // away from would be lost — and "opened the meeting, then locked the phone"
+  // is exactly the page someone wants to read offline later.
+  if (typeof window !== 'undefined') {
+    window.addEventListener('pagehide', write);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') write();
+    });
+  }
+
   return {
     persistClient(client) {
       pending = client;
-      if (timer) return;
-      timer = setTimeout(() => {
-        timer = null;
-        if (generation() !== madeUnder) return;
-        const value: Saved = { userId, client: pending! };
-        void run('readwrite', (s) => s.put(value, KEY));
-      }, 1000);
+      if (!timer) timer = setTimeout(write, 300);
     },
     async restoreClient() {
       const saved = await run<Saved | undefined>('readonly', (s) => s.get(KEY));
       if (!saved) return undefined;
       if (saved.userId !== userId) {
-        await purgeOfflineQueries();
+        // Deleted directly, not through purgeOfflineQueries: that also ends
+        // this persister's own generation, and the person now signed in would
+        // then have nothing saved for the rest of the session.
+        await run('readwrite', (s) => s.delete(KEY));
         return undefined;
       }
       return saved.client;
