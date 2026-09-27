@@ -1,9 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { AdminLayout } from '@/components/ui/admin-layout';
 import { SessionProvider } from '@/components/SessionProvider';
 import { PlatformTour } from '@/components/tour/PlatformTour';
 import { SessionTimeoutWarning } from '@/components/ui/session-timeout-warning';
+import { LaunchScreen } from '@/components/pwa/LaunchScreen';
 import {
   getSessionState,
   getMinistryName,
@@ -36,11 +37,33 @@ function ServiceUnavailable() {
   );
 }
 
-export default async function AdministrativeLayout({
+/**
+ * Not async on purpose: everything that waits on the API happens below the
+ * Suspense boundary, so the launch screen streams while it does.
+ *
+ * Before this the layout awaited the session and then the ministry and
+ * preferences before returning anything, and no HTML at all was sent in that
+ * time — an installed app opened onto a blank screen for as long as those round
+ * trips took. Only full page loads see the fallback; navigating between pages
+ * keeps this layout mounted, so there is no flash between them.
+ *
+ * A redirect() below a boundary that has already streamed cannot be a 307 any
+ * more; Next turns it into a client-side redirect. The expired-session case
+ * still lands on the login page, one hop later.
+ */
+export default function AdministrativeLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+  return (
+    <Suspense fallback={<LaunchScreen />}>
+      <Workspace>{children}</Workspace>
+    </Suspense>
+  );
+}
+
+async function Workspace({ children }: { children: ReactNode }) {
   const session = await getSessionState();
 
   // No session, no shell. This used to render the whole administrative layout
