@@ -37,14 +37,18 @@ const STEPS: Record<Platform, InstallHelp> = {
     ],
   },
   'ios-other': {
-    headline: 'Open this page in Safari first',
+    // Since iOS 16.4 every iOS browser can add to the Home Screen through its
+    // own Share button — not only Safari, which is what an earlier version of
+    // this said, sending Chrome users off to a different browser for nothing.
+    headline: 'Add it to your Home Screen',
+    shareGlyph: true,
     steps: [
-      'Copy this page’s address, or tap the share or menu button and choose Open in Safari.',
-      'In Safari, tap the Share button.',
-      'Tap "Add to Home Screen", then "Add".',
+      'Tap the Share button — in Chrome it is in the address bar; in Edge or Firefox open the menu first, then tap Share',
+      'Scroll down and tap "Add to Home Screen"',
+      'Tap "Add"',
     ],
     notes: [
-      'On an iPhone or iPad only Safari can add apps to the Home Screen — Chrome, Edge and Firefox there have no way to do it.',
+      'If "Add to Home Screen" is missing, your iPhone is older than iOS 16.4 — open this page in Safari and add it from there instead.',
       SEPARATE_SIGN_IN,
     ],
   },
