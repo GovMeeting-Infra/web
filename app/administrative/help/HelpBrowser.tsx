@@ -182,8 +182,9 @@ const GROUPS: Group[] = [
       },
       {
         q: 'How do I install it on an iPhone or iPad?',
-        // No beforeinstallprompt on iOS; other iOS browsers cannot do it.
-        a: 'Open the site in Safari, then use Share and choose "Add to Home Screen". The Share button is at the bottom of the screen on an iPhone and at the top right on an iPad. It has to be Safari — Chrome, Firefox and Edge on iOS cannot add anything to the home screen. Once it is installed, expect to sign in one more time inside it: the installed app keeps its own sign-in, separate from Safari, and that is normal rather than a fault.',
+        // No beforeinstallprompt on iOS. Since iOS 16.4 every browser there can
+        // add to the Home Screen from its Share button, not only Safari.
+        a: 'Open the site in Safari, then use Share and choose "Add to Home Screen". The Share button is at the bottom of the screen on an iPhone and at the top right on an iPad. Chrome, Edge and Firefox can do it too: in Chrome the Share button is in the address bar, and in Edge and Firefox it is inside the menu. If "Add to Home Screen" is not offered, the iPhone is older than iOS 16.4 and only Safari can do it. Once it is installed, expect to sign in one more time inside it: the installed app keeps its own sign-in, separate from Safari, and that is normal rather than a fault.',
       },
       {
         q: 'How do I install it on Android or a computer?',
