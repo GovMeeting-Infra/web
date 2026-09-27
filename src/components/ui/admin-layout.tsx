@@ -3,9 +3,10 @@
 import { ReactNode } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { MobileNavDrawer } from './mobile-nav-drawer';
+import { PullToRefresh } from './pull-to-refresh';
 import { SidebarNav } from './sidebar-nav';
 import { Topbar } from './topbar';
 import { Tooltip } from './tooltip';
@@ -28,6 +29,7 @@ export function AdminLayout({
 }: AdminLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
 
   return (
     // data-density drives the compact-mode rules in globals.css, which tighten
@@ -146,16 +148,23 @@ export function AdminLayout({
             height on the parent, and this wrapper's is content-driven, so it
             resolved to nothing. flex-1 has no such dependency, and still lets
             taller content grow past the viewport and scroll. */}
-        <main
-          id="main-content"
-          tabIndex={-1}
-          aria-label="Page content"
-          className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden"
-        >
-          <div className="flex min-w-0 flex-1 flex-col bg-background">
-            {children}
-          </div>
-        </main>
+        {/* The wrapper is only there to give the pull-to-refresh indicator a
+            box to sit at the top of, and to clip it while it is parked. */}
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+          <PullToRefresh scrollRef={mainRef} />
+          <main
+            ref={mainRef}
+            id="main-content"
+            tabIndex={-1}
+            aria-label="Page content"
+            // overscroll-y-contain: see PullToRefresh.
+            className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden overscroll-y-contain"
+          >
+            <div className="flex min-w-0 flex-1 flex-col bg-background">
+              {children}
+            </div>
+          </main>
+        </div>
       </div>
 
       {/* Last, so it paints over the shell without needing to out-stack the
