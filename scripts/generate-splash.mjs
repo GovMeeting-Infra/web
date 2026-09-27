@@ -10,6 +10,10 @@
  * takes over the badge stays still and the text and progress bar appear under
  * it. Re-run after changing either; the geometry below mirrors that component.
  *
+ * Also writes public/splash/crest.webp: the crest at 3x the size those screens
+ * draw it. The source JPEG is 1600px and 464 KB, for something shown 96px wide
+ * on the one screen that has to paint before anything else.
+ *
  * Sizes come from src/lib/pwa/splash-devices.json, which app/layout.tsx also
  * reads for the matching media queries. iOS picks an image only on an exact
  * match of width, height and pixel ratio, so a missing device gets white.
@@ -38,6 +42,14 @@ const CREST_H = 93;
 const GROUP = BADGE + 28 + 15 + 6 + 28 + 32 + 4;
 
 fs.mkdirSync(outDir, { recursive: true });
+
+// Flattened onto the badge grey rather than given transparency: it only ever
+// sits on that badge, and the JPEG has no alpha to begin with.
+await sharp(crest)
+  .resize(CREST_W * 3, CREST_H * 3, { fit: 'contain', background: BADGE_FILL })
+  .webp({ quality: 82 })
+  .toFile(path.join(outDir, 'crest.webp'));
+console.log('public/splash/crest.webp');
 
 for (const d of devices) {
   const s = d.dpr;

@@ -22,13 +22,14 @@ export function LaunchScreen() {
     >
       {/* The crest's JPEG has a flat #f7f7f7 ground rather than transparency;
           the badge is that same grey, so the image has no visible edge. 96px
-          wide keeps the corners of the motto ribbon inside the circle. */}
+          wide keeps the corners of the motto ribbon inside the circle. A 3x
+          copy made by scripts/generate-splash.mjs, not the 464 KB original. */}
       <div className="flex h-36 w-36 items-center justify-center rounded-full bg-[#f7f7f7] shadow-[0_18px_50px_rgba(0,53,128,0.10)] ring-1 ring-[#e3ebf5]">
         {/* eslint-disable-next-line @next/next/no-img-element -- next/image
             would add a client component and a srcset round trip to the one
             thing that has to paint before anything else. */}
         <img
-          src="/coat_of_arms.jpeg"
+          src="/splash/crest.webp"
           alt=""
           width={96}
           height={93}
