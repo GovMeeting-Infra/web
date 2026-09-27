@@ -162,10 +162,8 @@ export function UserMenu({
                 </Link>
               </li>
             ))}
-            {/* Renders nothing unless this browser can actually install
-                something, and nothing once it has — the panel above is
-                height-capped, and a permanent extra row would put Sign out back
-                under the fold on a landscape phone. */}
+            {/* Gone once installed. Until then it is always here — the panel
+                above scrolls, so the extra row cannot hide Sign out. */}
             <InstallMenuItem onDone={() => setOpen(false)} />
           </ul>
 

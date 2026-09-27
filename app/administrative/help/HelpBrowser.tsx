@@ -187,9 +187,9 @@ const GROUPS: Group[] = [
       },
       {
         q: 'How do I install it on Android or a computer?',
-        // useInstallPrompt / InstallMenuItem — only rendered when the browser
-        // has actually offered a prompt.
-        a: 'Open the menu under your name and choose "Install app". If that entry is not there, your browser has either installed it already or has not offered to; Chrome and Edge also put an install control in the address bar. Firefox on Android and browsers opened inside another app cannot install it.',
+        // InstallMenuItem — the browser's own prompt when it has offered one,
+        // otherwise the steps from src/lib/pwa/installHelp.ts.
+        a: 'Open the menu under your name and choose "Install app". If your browser offers a one-tap install you get that; otherwise you are shown the steps for your browser. On an Android phone it is usually the three-dot menu, then "Install app" or "Add to Home screen". On a computer, Chrome and Edge also have an install icon at the right of the address bar. Firefox on a computer, and browsers built into other apps such as Facebook, cannot install it.',
       },
       {
         q: 'What happens when there is no connection?',
