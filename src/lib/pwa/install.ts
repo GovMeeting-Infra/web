@@ -139,7 +139,7 @@ function compute(s: Store): InstallState {
   };
 }
 
-function isStandalone(): boolean {
+export function isStandalone(): boolean {
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
     window.matchMedia('(display-mode: minimal-ui)').matches ||

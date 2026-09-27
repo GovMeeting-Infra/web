@@ -400,7 +400,9 @@ export default function ActionItemsPage() {
         </div>
       </div>
 
-      {(error || loadError) && (
+      {/* Only when there is nothing to show instead: the installed app shows
+          what it saved when a refresh fails offline, and OfflineBanner says so. */}
+      {(error || (loadError && items.length === 0)) && (
         <div
           role="alert"
           className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive"

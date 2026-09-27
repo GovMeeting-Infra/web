@@ -1,3 +1,5 @@
+import { reportReachable, reportUnreachable } from '@/lib/pwa/connectivity';
+
 export class ApiError extends Error {
   status: number;
   /**
@@ -116,27 +118,42 @@ export async function apiFetch<T = unknown>(
   path: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(path, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      ...options,
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  } catch (err) {
+    // Never left the device, or never came back. See lib/pwa/connectivity.ts.
+    reportUnreachable();
+    throw err;
+  }
 
   if (!response.ok) {
     let message = `Request failed (${response.status})`;
     let code: string | undefined;
+    let answered = false;
     try {
       const body = await response.json();
+      answered = true;
       message = normalizeMessage(body.message, message);
       code = typeof body.code === 'string' ? body.code : undefined;
     } catch {
       // response had no JSON body
     }
+    // A 5xx with no JSON body is the Next rewrite saying the API never
+    // answered; anything the API itself said, even a refusal, means reachable.
+    if (response.status >= 500 && !answered) reportUnreachable();
+    else reportReachable();
     throw new ApiError(humanMessage(message, response.status), response.status, code);
   }
+
+  reportReachable();
 
   if (response.status === 204) {
     return undefined as T;

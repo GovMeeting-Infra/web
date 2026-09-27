@@ -124,7 +124,9 @@ export default function CalendarDayPage() {
         </div>
       </div>
 
-      {error && (
+      {/* Only when there is nothing to show instead: the installed app shows
+          what it saved when a refresh fails offline, and OfflineBanner says so. */}
+      {error && !data && (
         <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
           {error instanceof Error ? error.message : 'Failed to load the agenda'}
         </div>

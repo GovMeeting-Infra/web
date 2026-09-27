@@ -7,6 +7,7 @@ import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils/cn';
 import { MobileNavDrawer } from './mobile-nav-drawer';
 import { PullToRefresh } from './pull-to-refresh';
+import { OfflineBanner } from '@/components/pwa/OfflineBanner';
 import { SidebarNav } from './sidebar-nav';
 import { Topbar } from './topbar';
 import { Tooltip } from './tooltip';
@@ -140,6 +141,10 @@ export function AdminLayout({
           menuOpen={mobileNavOpen}
           onMenuClick={() => setMobileNavOpen(true)}
         />
+
+        {/* Between the topbar and the page, so it reads as being about the
+            page rather than about the chrome. Renders nothing while online. */}
+        <OfflineBanner />
 
         {/* Page Content */}
         {/* A flex column all the way down, so a page can opt into filling the

@@ -194,9 +194,10 @@ const GROUPS: Group[] = [
       },
       {
         q: 'What happens when there is no connection?',
-        // Honest scope: the worker serves an offline page. There is no offline
-        // write path yet — see public/sw.js, CACHE_AUTHENTICATED_PAGES.
-        a: 'You get a page telling you the device is offline, instead of the browser\u2019s error screen, and it retries when you tap Try again. That is the whole of it for now: you cannot yet read your meetings or write minutes without a connection, and nothing you type while offline is queued up to send later. Anything you had already saved is on the server and is not affected.',
+        // Honest scope. Reading only, installed app only, seven days — see
+        // CACHE_AUTHENTICATED_PAGES in public/sw.js and lib/pwa/queryPersist.ts.
+        // There is no offline write path.
+        a: 'In the installed app, pages you have opened in the last seven days still open without a connection, showing what was on them when you last had one. A bar across the top says you are offline and how old what you are looking at is. You cannot change anything while offline, and nothing you type is queued up to send later. After the app updates, open a page once with a connection before it will open offline again. A page you have never opened, and anything in a browser tab rather than the installed app, shows a page telling you the device is offline, with Try again. Signing out removes everything the app kept on the device.',
       },
     ],
   },

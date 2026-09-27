@@ -61,15 +61,31 @@ const ASSET_TIMEOUT_MS = 3000;
 /**
  * Whether signed-in pages may be stored.
  *
- * OFF, and deliberately one constant rather than a condition spread through the
- * fetch handler, because this is the single decision governing whether one
- * ministry user's dashboard can be served to the next person holding a shared
- * tablet. Everything this worker exists to do — an installable app, a shell
- * that opens offline, a real offline page instead of the browser's error —
- * works with it off. Turning it on needs an allowlist, a TTL and the user
- * marker below, and is its own decision.
+ * ON, for the installed app only. This is the single decision governing
+ * whether one person's dashboard can be shown to the next person holding the
+ * device, so the conditions live here rather than being spread through the
+ * handlers:
+ *
+ * - Pages are stored only when the installed app asks (KEEP_PAGE, sent by
+ *   OfflinePageKeeper when display-mode is standalone). A browser tab never
+ *   asks, and navigations are never stored on their own, because this worker
+ *   cannot tell the installed app from a tab: on Android both share it.
+ * - A stored page older than PAGE_MAX_AGE_MS is treated as missing.
+ * - A different user signing in (SET_USER) drops every stored page, and so do
+ *   sign-in and sign-out from the page side (purgeOfflineData), since a session
+ *   that merely expired never reaches sign-out.
+ *
+ * The data those pages show is kept by the page, not here — see
+ * src/lib/pwa/queryPersist.ts, which follows the same rules.
  */
-const CACHE_AUTHENTICATED_PAGES = false;
+const CACHE_AUTHENTICATED_PAGES = true;
+
+/** How long a stored page may be served offline. Mirrors queryPersist.ts. */
+const PAGE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+/** Oldest go first beyond this, so the cache cannot grow without bound. */
+const PAGE_LIMIT = 60;
+/** Set on every stored page; how its age is known. */
+const STORED_AT = 'x-stored-at';
 
 /**
  * Never stored, whatever else is true.
@@ -143,6 +159,9 @@ function registerProductionHandlers() {
         await Promise.all(
           names.filter((n) => isOurs(n) && !OURS.includes(n)).map((n) => caches.delete(n)),
         );
+        // Pages that have outlived PAGE_MAX_AGE_MS go now, not only when the
+        // next one is stored.
+        await trimPages(await caches.open(PAGES));
 
         await self.clients.claim();
 
@@ -249,6 +268,11 @@ function registerProductionHandlers() {
       case 'SET_USER':
         event.waitUntil(rememberUser(data.id));
         break;
+      case 'KEEP_PAGE':
+        if (CACHE_AUTHENTICATED_PAGES && typeof data.url === 'string') {
+          event.waitUntil(keepPage(data.url));
+        }
+        break;
       case 'KILL':
         event.waitUntil(destroySelf());
         break;
@@ -290,20 +314,107 @@ async function handleNavigation(event) {
     // preloadResponse is undefined when preload is unsupported, and rejects
     // when the network is gone — both end up handled.
     const preloaded = await event.preloadResponse;
-    const response = preloaded || (await withTimeout(fetch(request), NAV_TIMEOUT_MS));
-
-    if (await isStorableDocument(request, response)) {
-      const cache = await caches.open(PAGES);
-      cache.put(request, response.clone());
-    }
-    return response;
+    // Not stored here: only the installed app keeps pages, and a navigation
+    // does not say which it came from. See CACHE_AUTHENTICATED_PAGES.
+    return preloaded || (await withTimeout(fetch(request), NAV_TIMEOUT_MS));
   } catch {
     if (CACHE_AUTHENTICATED_PAGES) {
-      const cached = await caches.match(request, { cacheName: PAGES });
-      if (cached) return cached;
+      const kept = await keptPage(request.url);
+      if (kept) return kept;
     }
     return offlineDocument();
   }
+}
+
+/**
+ * A stored page for this URL, if there is one young enough to show.
+ *
+ * Exact URL first, then ignoring the query string: a list reached with
+ * different filters is still more use than the offline page.
+ */
+async function keptPage(url) {
+  const cache = await caches.open(PAGES);
+  const hit =
+    (await cache.match(url)) || (await cache.match(url, { ignoreSearch: true }));
+  if (!hit) return null;
+  const storedAt = Number(hit.headers.get(STORED_AT));
+  if (!storedAt || Date.now() - storedAt > PAGE_MAX_AGE_MS) return null;
+  return hit;
+}
+
+/**
+ * Stores the document at `url`, when the installed app asks for it.
+ *
+ * Fetched afresh rather than taken from a navigation: most page changes in
+ * this app are client-side, so the worker never sees their documents at all.
+ *
+ * Next marks every signed-in page `no-store`, and that is ignored here on
+ * purpose. It is the right instruction for HTTP caches between here and the
+ * server; this cache is the device's own, and the rules in
+ * CACHE_AUTHENTICATED_PAGES stand in for it.
+ */
+async function keepPage(rawUrl) {
+  let url;
+  try {
+    url = new URL(rawUrl, self.location.origin);
+  } catch {
+    return;
+  }
+  if (url.origin !== self.location.origin) return;
+  if (!url.pathname.startsWith('/administrative/')) return;
+  if (NEVER_CACHE.some((p) => url.pathname.startsWith(p))) return;
+
+  let response;
+  try {
+    response = await withTimeout(
+      // manual: a bounce to the sign-in page must never be stored as the page.
+      fetch(url.href, { credentials: 'same-origin', redirect: 'manual' }),
+      NAV_TIMEOUT_MS,
+    );
+  } catch {
+    return;
+  }
+  if (!isStorableDocument(response)) return;
+
+  const html = await response.text();
+  const headers = new Headers(response.headers);
+  headers.set(STORED_AT, String(Date.now()));
+  // What the browser gets back offline should not tell it to drop the page.
+  headers.delete('cache-control');
+  const cache = await caches.open(PAGES);
+  await cache.put(url.href, new Response(html, { status: 200, headers }));
+
+  // A stored page names build assets it may never have loaded on this device;
+  // without them it opens offline onto a ChunkLoadError.
+  const assets = [...new Set(html.match(/\/_next\/static\/[^"'\s)]+/g) || [])];
+  const statics = await caches.open(STATIC);
+  await inBatches(assets, 4, async (asset) => {
+    if (await statics.match(asset)) return;
+    try {
+      const r = await fetch(asset, { credentials: 'same-origin' });
+      if (r.ok && r.type === 'basic') await statics.put(asset, r);
+    } catch {
+      /* the page is still stored; that asset loads when it can */
+    }
+  });
+
+  await trimPages(cache);
+}
+
+/** Drops expired pages, then the oldest beyond PAGE_LIMIT. */
+async function trimPages(cache) {
+  const entries = [];
+  for (const request of await cache.keys()) {
+    const hit = await cache.match(request);
+    entries.push({ request, at: Number(hit?.headers.get(STORED_AT)) || 0 });
+  }
+  const now = Date.now();
+  const expired = entries.filter((e) => now - e.at > PAGE_MAX_AGE_MS);
+  const live = entries
+    .filter((e) => now - e.at <= PAGE_MAX_AGE_MS)
+    .sort((a, b) => b.at - a.at);
+  const doomed = [...expired, ...live.slice(PAGE_LIMIT)];
+  await Promise.all(doomed.map((e) => cache.delete(e.request)));
 }
 
 /**
@@ -410,23 +521,14 @@ async function staleWhileRevalidate(request, cacheName) {
  * A document is stored only when every one of these holds. One function so the
  * rule reads in a single place rather than being reconstructed from branches.
  */
-async function isStorableDocument(request, response) {
-  if (!CACHE_AUTHENTICATED_PAGES) return false;
+function isStorableDocument(response) {
   if (!response || !response.ok) return false;
-  // `basic` excludes opaque responses and, more to the point, redirects: a
-  // bounce to the sign-in page must never be stored as the page asked for.
+  // `basic` excludes opaque responses and, with redirect: 'manual', redirects:
+  // a bounce to the sign-in page must never be stored as the page asked for.
   if (response.type !== 'basic') return false;
 
   const type = response.headers.get('content-type') || '';
-  if (!type.includes('text/html')) return false;
-
-  const cc = response.headers.get('cache-control') || '';
-  if (cc.includes('no-store')) return false;
-
-  const path = new URL(request.url).pathname;
-  if (NEVER_CACHE.some((p) => path.startsWith(p))) return false;
-
-  return true;
+  return type.includes('text/html');
 }
 
 // ===========================================================================
