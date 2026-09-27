@@ -38,6 +38,15 @@ jobs:
         continue-on-error: true
         run: npm run lint
 
+      # ESLint does not lint public/, so the service worker has no syntax gate
+      # at all without this. It matters more there than anywhere else in the
+      # repo: a worker persists on the device and answers before the network,
+      # so a broken one is not fixed by the user reloading and not fixed by
+      # redeploying — it has to be reached through the kill switch. Costs about
+      # 200ms.
+      - name: Check the service worker parses
+        run: node --check public/sw.js
+
       # INTERNAL_API_URL must be set for the BUILD, not just at runtime: the
       # /api/:path* rewrite in next.config.ts is resolved here and written into
       # .next/routes-manifest.json. Building without it bakes in the default,
@@ -56,3 +65,30 @@ jobs:
           echo "rewrite destination: $dest"
           [ "$dest" = "http://127.0.0.1:4000/api/:path*" ] || {
             echo "::error::unexpected rewrite destination: $dest"; exit 1; }
+
+      # The manifest is what makes the app installable, and `id` is the one
+      # field that cannot be corrected later: it is the identity a browser
+      # matches an existing installation against, so changing it orphans every
+      # copy already on a phone — the icon goes on launching the old URL and
+      # stops taking updates, with no migration short of delete and reinstall.
+      - name: Check the web app manifest
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = '.next/server/app/manifest.webmanifest.body';
+            if (!fs.existsSync(p)) { console.error('::error::manifest was not prerendered'); process.exit(1); }
+            const m = JSON.parse(fs.readFileSync(p, 'utf8'));
+            const fail = (msg) => { console.error('::error::' + msg); process.exitCode = 1; };
+            if (m.id !== '/?app=smart-meeting') fail('manifest id changed to ' + m.id + ' — this orphans every existing installation');
+            if (m.start_url !== '/administrative/dashboard?source=pwa') fail('unexpected start_url: ' + m.start_url);
+            if (m.scope !== '/') fail('unexpected scope: ' + m.scope);
+            if (m.display !== 'standalone') fail('unexpected display: ' + m.display);
+            for (const [size, purpose] of [['192x192','any'],['512x512','any'],['192x192','maskable'],['512x512','maskable']]) {
+              if (!m.icons.some(i => i.sizes === size && i.purpose === purpose)) fail('missing ' + purpose + ' icon at ' + size);
+            }
+            for (const i of m.icons) {
+              const f = 'public' + i.src;
+              if (!fs.existsSync(f)) fail('icon missing from public/: ' + i.src);
+            }
+            if (!process.exitCode) console.log('manifest ok:', m.id, m.icons.length, 'icons');
+          "

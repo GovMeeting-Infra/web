@@ -1,10 +1,65 @@
 import type { NextConfig } from "next";
 import path from "path";
 
+/**
+ * Versions the service worker's caches and its script URL.
+ *
+ * The worker lives in public/, so nothing can be templated into it at build
+ * time — it learns which build it belongs to from the query string it is
+ * registered with, and this is where that value comes from. A changed script
+ * URL is also what makes a browser treat a deploy as a worker update.
+ *
+ * The commit sha in CI, a timestamp locally. Note this is stamped in
+ * development too, so it can never be used to tell dev from prod; NODE_ENV does
+ * that, and src/lib/pwa/config.ts is where the two are combined.
+ */
+const BUILD_ID = (process.env.GITHUB_SHA || "").slice(0, 12) || Date.now().toString(36);
+
 const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+
+  generateBuildId: () => BUILD_ID,
+
+  // Inlined into both the client bundle and the server build, so the page and
+  // /sw-control agree on which build is running.
+  env: {
+    NEXT_PUBLIC_BUILD_ID: BUILD_ID,
+  },
+
+  /**
+   * Note for whoever adds a Content-Security-Policy here, because this is where
+   * that change will be written:
+   *
+   * A service worker inherits the CSP served with ITS OWN script, not the one
+   * served with the page. So a policy attached to /sw.js governs every fetch()
+   * the worker makes. `connect-src` does NOT fall back to `default-src` for
+   * those, so a policy of `default-src 'self'` alone leaves the worker unable to
+   * reach its own origin — it installs cleanly and then fails every request,
+   * looking exactly like a device that is offline while the page beside it is
+   * perfectly healthy. Spell out `connect-src 'self'`, and give the page
+   * `worker-src 'self'`.
+   *
+   * There is no CSP anywhere today — not here, not in the infra repo's
+   * nginx.conf — which is why this is a comment rather than a policy. Also
+   * worth knowing before adding one there instead: nginx.conf has no
+   * per-location blocks on purpose, because a `location` carrying its own
+   * add_header silently drops every inherited security header.
+   */
+  headers: async () => [
+    {
+      source: "/sw.js",
+      headers: [
+        // A worker held in an HTTP cache is a worker that cannot be updated or
+        // switched off. The browser revalidates worker scripts on its own, but
+        // being explicit costs nothing and this is the one file where being
+        // wrong is sticky on every user's device.
+        { key: "Cache-Control", value: "no-cache, max-age=0, must-revalidate" },
+        { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+      ],
+    },
+  ],
   // Browser calls hit /api/v1/* on the web origin and are proxied to the NestJS
   // API from here, so client components never need an absolute URL and there is
   // no cross-origin request to configure. Server components cannot use this —

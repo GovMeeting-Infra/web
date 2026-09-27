@@ -6,6 +6,7 @@ import { UserCircle, HelpCircle, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import { Tooltip } from './tooltip';
 import { signOut } from '@/lib/sign-out';
+import { InstallMenuItem } from '@/components/pwa/InstallMenuItem';
 import { useCurrentUser } from '@/components/SessionProvider';
 import { ROLE_LABELS } from '@/lib/types/account';
 import { avatarUrl } from '@/lib/avatar-url';
@@ -161,6 +162,11 @@ export function UserMenu({
                 </Link>
               </li>
             ))}
+            {/* Renders nothing unless this browser can actually install
+                something, and nothing once it has — the panel above is
+                height-capped, and a permanent extra row would put Sign out back
+                under the fold on a landscape phone. */}
+            <InstallMenuItem onDone={() => setOpen(false)} />
           </ul>
 
           <div className="border-t border-border py-1">
