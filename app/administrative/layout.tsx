@@ -5,6 +5,7 @@ import { SessionProvider } from '@/components/SessionProvider';
 import { PlatformTour } from '@/components/tour/PlatformTour';
 import { SessionTimeoutWarning } from '@/components/ui/session-timeout-warning';
 import { LaunchScreen } from '@/components/pwa/LaunchScreen';
+import { OfflinePageKeeper } from '@/components/pwa/OfflinePageKeeper';
 import {
   getSessionState,
   getMinistryName,
@@ -106,6 +107,8 @@ async function Workspace({ children }: { children: ReactNode }) {
         {/* Same reasoning as the tour: the clock has to survive navigation,
             and an inactivity sign-out can land on any page. */}
         <SessionTimeoutWarning />
+        {/* Installed app only: stores each page it shows, for reading offline. */}
+        <OfflinePageKeeper />
         {/* Mounted in the layout, not on a page: the tour walks between pages,
             so it has to survive each navigation. It renders nothing until it
             has a reason to run. */}
