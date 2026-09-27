@@ -21,7 +21,8 @@ export function LaunchScreen() {
       className="flex h-dvh flex-col items-center justify-center bg-background px-6"
     >
       {/* The crest's JPEG has a flat #f7f7f7 ground rather than transparency;
-          the badge is that same grey, so the image has no visible edge. */}
+          the badge is that same grey, so the image has no visible edge. 96px
+          wide keeps the corners of the motto ribbon inside the circle. */}
       <div className="flex h-36 w-36 items-center justify-center rounded-full bg-[#f7f7f7] shadow-[0_18px_50px_rgba(0,53,128,0.10)] ring-1 ring-[#e3ebf5]">
         {/* eslint-disable-next-line @next/next/no-img-element -- next/image
             would add a client component and a srcset round trip to the one
@@ -29,10 +30,10 @@ export function LaunchScreen() {
         <img
           src="/coat_of_arms.jpeg"
           alt=""
-          width={108}
-          height={105}
+          width={96}
+          height={93}
           fetchPriority="high"
-          className="h-[105px] w-[108px] object-contain"
+          className="h-[93px] w-[96px] object-contain"
         />
       </div>
 
