@@ -44,6 +44,15 @@ const OURS = [SHELL, STATIC, PAGES, META];
 const CONTROL_URL = '/sw-control';
 const ICON_URL = '/icons/icon-192.png';
 
+/**
+ * The installed app's start_url (app/manifest.ts, pinned by CI). Only a launch
+ * from the Home Screen icon carries source=pwa, which is what lets the launch
+ * document below be served there and nowhere else.
+ */
+const LAUNCH_PATH = '/administrative/dashboard';
+/** Written by scripts/generate-splash.mjs; drawn by LAUNCH_HTML and LaunchScreen. */
+const CREST_URL = '/splash/crest.webp';
+
 /** How long a navigation waits for the network before falling back. */
 const NAV_TIMEOUT_MS = 3500;
 /** Shorter for subresources: nothing is waiting on them to paint text. */
@@ -189,6 +198,12 @@ function registerProductionHandlers() {
     }
 
     if (request.mode === 'navigate') {
+      // Opening the installed app. Answered from here, with no network, so the
+      // first thing painted is the crest rather than white — see LAUNCH_HTML.
+      if (url.pathname === LAUNCH_PATH && url.searchParams.get('source') === 'pwa') {
+        event.respondWith(launchDocument());
+        return;
+      }
       event.respondWith(handleNavigation(event));
       return;
     }
@@ -332,6 +347,36 @@ function offlineDocument() {
   });
 }
 
+/**
+ * The first paint of the installed app, answered without the network.
+ *
+ * Opening the app used to show white for as long as it took to reach the
+ * server at all — DNS, TLS and a round trip from West Africa to us-east-1,
+ * often more than a second on mobile data — because nothing a page draws can
+ * appear before the page has arrived. The iOS launch images were meant to
+ * cover that and did not, on the phone it was reported from.
+ *
+ * So the icon's launch is answered here, at once, with the crest badge, and
+ * the document immediately replaces itself with the real dashboard. The browser
+ * keeps this on screen while that request is in flight, and the dashboard's
+ * first paint is LaunchScreen — the same badge in the same place, with the text
+ * added beneath it. There is no frame without the crest.
+ *
+ * Not the trap described at offlineDocument: that served one route's React
+ * markup under another route's URL, and hydration threw. This is not React,
+ * hydrates nothing, and leaves by location.replace(), so it never stays long
+ * enough to be mistaken for the page. replace() also keeps it out of history,
+ * so Back from the dashboard does not land on it.
+ */
+function launchDocument() {
+  return new Response(LAUNCH_HTML, {
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
 async function cacheFirst(request, cacheName) {
   const hit = await caches.match(request, { cacheName });
   if (hit) return hit;
@@ -411,6 +456,15 @@ async function precacheShell() {
       /* see above: install must not fail */
     }
   });
+  // Into STATIC, not SHELL: that is the cache the plain-asset rule reads, so
+  // the launch document's crest is a hit on the very first launch after
+  // install, before any page has asked for it.
+  try {
+    const response = await fetch(CREST_URL, { credentials: 'same-origin' });
+    if (response.ok) await (await caches.open(STATIC)).put(CREST_URL, response);
+  } catch {
+    /* the launch document still paints its badge; the crest fills in late */
+  }
 }
 
 /** Bounded concurrency, so a precache cannot become a burst. */
@@ -589,4 +643,42 @@ const OFFLINE_HTML = [
   '<a class="retry" href="">Try again</a>',
   '<p class="installed"><a href="/public-calendar">Open the public calendar</a></p>',
   '</main></body></html>',
+].join('');
+
+/**
+ * Mirrors src/components/pwa/LaunchScreen.tsx — badge, ring, shadow and bar in
+ * the same places, the text left out as the iOS launch images leave it out.
+ * That component centres a 257px column (badge 144, then 109 of text and gaps,
+ * then the 4px bar), so the gap below the badge here is those 109px. Change the
+ * two together, and scripts/generate-splash.mjs with them.
+ *
+ * The inline script is safe under any CSP: the only headers this document has
+ * are the ones launchDocument() gives it. The <noscript> refresh covers a
+ * browser with scripting off.
+ */
+const LAUNCH_HTML = [
+  '<!doctype html><html lang="en"><head><meta charset="utf-8">',
+  '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',
+  '<meta name="theme-color" content="#003580">',
+  '<meta name="robots" content="noindex">',
+  // Inside <noscript> so it cannot fire while the replace() below is still in
+  // flight on a slow connection and restart that navigation from scratch.
+  '<noscript><meta http-equiv="refresh" content="0;url=', LAUNCH_PATH, '"></noscript>',
+  '<title>Smart Meeting</title><style>',
+  'html,body{margin:0;height:100dvh;background:#fbfdff}',
+  'body{display:flex;flex-direction:column;align-items:center;justify-content:center}',
+  '.badge{display:flex;align-items:center;justify-content:center;width:144px;height:144px;',
+  'border-radius:50%;background:#f7f7f7;',
+  'box-shadow:0 0 0 1px #e3ebf5,0 18px 50px rgba(0,53,128,.10)}',
+  '.badge img{width:96px;height:93px}',
+  '.track{margin-top:109px;width:112px;height:4px;border-radius:999px;background:#e3ebf5;overflow:hidden}',
+  '.bar{width:33.333%;height:100%;border-radius:999px;background:#003580;',
+  'animation:p 1.4s cubic-bezier(.65,0,.35,1) infinite}',
+  '@keyframes p{from{transform:translateX(-100%)}to{transform:translateX(300%)}}',
+  '@media (prefers-reduced-motion:reduce){.bar{animation:none}}',
+  '</style></head><body role="status" aria-label="Loading">',
+  '<div class="badge"><img src="', CREST_URL, '" alt="" width="96" height="93"></div>',
+  '<div class="track"><div class="bar"></div></div>',
+  '<script>location.replace(', JSON.stringify(LAUNCH_PATH), ')</script>',
+  '</body></html>',
 ].join('');
