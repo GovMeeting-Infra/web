@@ -125,6 +125,7 @@ async function run<T>(
 export function createOfflinePersister(userId: string): Persister {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending: PersistedClient | null = null;
+  const madeUnder = generation();
 
   return {
     persistClient(client) {
@@ -132,6 +133,7 @@ export function createOfflinePersister(userId: string): Persister {
       if (timer) return;
       timer = setTimeout(() => {
         timer = null;
+        if (generation() !== madeUnder) return;
         const value: Saved = { userId, client: pending! };
         void run('readwrite', (s) => s.put(value, KEY));
       }, 1000);
@@ -151,7 +153,21 @@ export function createOfflinePersister(userId: string): Persister {
   };
 }
 
+/**
+ * Bumped by every purge. A persister remembers the value it was made under and
+ * stops writing once it moves on, so a throttled save still pending from before
+ * a sign-out or sign-in cannot write the previous person's data back. A counter
+ * rather than a flag because sign-in continues in the same document: the
+ * persister made for the new session must still be able to write.
+ * On globalThis because module scope is not reliably one copy in this bundler.
+ */
+const GENERATION = '__govmeetingOfflineGeneration';
+function generation(): number {
+  return ((globalThis as Record<string, unknown>)[GENERATION] as number) ?? 0;
+}
+
 /** Deletes everything kept. Safe to call when nothing was. */
 export async function purgeOfflineQueries(): Promise<void> {
+  (globalThis as Record<string, unknown>)[GENERATION] = generation() + 1;
   await run('readwrite', (s) => s.delete(KEY));
 }

@@ -11,6 +11,7 @@ import { ShieldCheck, CalendarCheck2, LockKeyhole } from 'lucide-react';
 import { SierraLeoneFlag } from '@/components/SierraLeoneFlag';
 import { PasswordInput } from '@/components/ui/password-input';
 import { useTransientMessage } from '@/lib/hooks/useTransientMessage';
+import { purgeOfflineData } from '@/lib/pwa/caches';
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -86,6 +87,11 @@ export default function LoginPage() {
         setError(errorData.message || 'Login failed');
         return;
       }
+
+      // Whatever the installed app kept for reading offline belongs to whoever
+      // was here before — possibly someone else, whose session expired rather
+      // than ending with a sign-out. Cleared before the workspace mounts.
+      await purgeOfflineData();
 
       // Read at submit time rather than with useSearchParams, which would
       // require wrapping this client page in a Suspense boundary.

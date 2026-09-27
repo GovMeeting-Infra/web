@@ -1,4 +1,4 @@
-import { purgePageCaches } from '@/lib/pwa/caches';
+import { purgeOfflineData } from '@/lib/pwa/caches';
 
 /**
  * Ends the session and leaves for the sign-in page.
@@ -24,9 +24,10 @@ export async function signOut(): Promise<void> {
   //
   // Awaited rather than fired off: the redirect below tears this context down,
   // and a deletion that had not finished would simply not happen. It cannot
-  // throw; purgePageCaches swallows its own failures, because failing to clear
-  // a cache must not leave someone unable to sign out.
-  await purgePageCaches();
+  // throw; every purge swallows its own failures, because failing to clear a
+  // cache must not leave someone unable to sign out. Covers what the installed
+  // app keeps for reading offline — stored pages and their data — as well.
+  await purgeOfflineData();
 
   // A full document load, not router.push: the session is read by server
   // components, so a client-side navigation would keep rendering the cached

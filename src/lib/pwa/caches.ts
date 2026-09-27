@@ -1,4 +1,5 @@
 import { CACHE_PREFIXES, PAGE_CACHE_PREFIX } from './config';
+import { purgeOfflineQueries } from './queryPersist';
 
 /**
  * Cache deletion, done from the page rather than by asking the worker.
@@ -28,6 +29,15 @@ async function deleteMatching(predicate: (name: string) => boolean): Promise<str
 /** Drops cached documents and RSC payloads, leaving build assets alone. */
 export function purgePageCaches(): Promise<string[]> {
   return deleteMatching((n) => n.startsWith(PAGE_CACHE_PREFIX));
+}
+
+/**
+ * Drops everything kept for reading offline: the stored pages and the data they
+ * show. At sign-out, and at sign-in too — a session that merely expired never
+ * reaches sign-out, and the next person to sign in must not inherit it.
+ */
+export async function purgeOfflineData(): Promise<void> {
+  await Promise.all([purgePageCaches(), purgeOfflineQueries()]);
 }
 
 /** Drops everything this app has cached. Used by the teardown paths. */
