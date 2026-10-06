@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   Plus,
   CalendarDays,
@@ -32,7 +32,14 @@ const STATUS_PILL: Record<EventStatus, string> = {
   CANCELLED: 'bg-muted text-muted-foreground line-through',
 };
 
+// 'recent' is not one order but each tab's own (defaultSort below): whatever
+// puts the events nearest today at the top. One order for all three could not
+// do that — earliest first buried the latest past meeting at the bottom, and
+// latest first would do the same to the next upcoming one.
+const RECENT = 'recent';
+
 const SORT_OPTIONS = [
+  { value: RECENT, label: 'Date (closest to today first)' },
   { value: 'startAt:asc', label: 'Date (soonest first)' },
   { value: 'startAt:desc', label: 'Date (latest first)' },
   { value: 'title:asc', label: 'Title (A–Z)' },
@@ -50,6 +57,7 @@ const TABS = [
     icon: Radio,
     empty: 'Nothing is running right now.',
     hint: 'Under way at this moment — started and not yet finished. This is where to find a meeting you need to check people into.',
+    defaultSort: 'startAt:desc',
   },
   {
     timeframe: 'upcoming',
@@ -57,17 +65,56 @@ const TABS = [
     icon: CalendarDays,
     empty: 'No upcoming events.',
     hint: 'Scheduled but not started yet, soonest first.',
+    defaultSort: 'startAt:asc',
   },
   {
     timeframe: 'past',
     title: 'Past',
     icon: History,
     empty: 'No past events.',
-    hint: 'Already finished. Their minutes and attendance are still here.',
+    hint: 'Already finished, most recent first. Their minutes and attendance are still here.',
+    defaultSort: 'startAt:desc',
   },
 ] as const;
 
 type Timeframe = (typeof TABS)[number]['timeframe'];
+
+// How much of Upcoming and Past to show at once. One training repeated weekly
+// for a year is thirty-six cards on Upcoming, and whatever else is on this
+// week was somewhere among them.
+const PERIODS = [
+  { value: 'today', label: 'Today', inWords: 'today' },
+  { value: 'week', label: 'This week', inWords: 'this week' },
+  { value: 'month', label: 'This month', inWords: 'this month' },
+  { value: 'all', label: 'All', inWords: '' },
+] as const;
+
+type Period = (typeof PERIODS)[number]['value'];
+
+/**
+ * The period as [from, to) in the reader's own time, or null for all of it.
+ *
+ * Their time, not the server's: "today" is the day on the wall where they are.
+ * The week runs Monday to Sunday.
+ */
+function periodBounds(period: Period): { from: Date; to: Date } | null {
+  if (period === 'all') return null;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  if (period === 'today') {
+    return { from: new Date(y, m, d), to: new Date(y, m, d + 1) };
+  }
+  if (period === 'week') {
+    const sinceMonday = (now.getDay() + 6) % 7;
+    return {
+      from: new Date(y, m, d - sinceMonday),
+      to: new Date(y, m, d - sinceMonday + 7),
+    };
+  }
+  return { from: new Date(y, m, 1), to: new Date(y, m + 1, 1) };
+}
 
 function formatDateTime(startAt: string, endAt: string) {
   const start = new Date(startAt);
@@ -124,7 +171,12 @@ function EventCard({ event }: { event: EventListItem }) {
             )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" />
-              {event._count.attendees} attendees &middot; {EVENT_TYPE_LABELS[event.type]}
+              {/* Who signed in, walk-ins included — the same count as Checked In
+                  on the event's own page. This used to be the invite count
+                  under the same word, so a meeting forty people attended read
+                  "2 attendees" here. */}
+              {event._count.attendances}{' '}
+              {event._count.attendances === 1 ? 'attendee' : 'attendees'} &middot; {EVENT_TYPE_LABELS[event.type]}
             </div>
           </div>
         </div>
@@ -166,21 +218,55 @@ function EventCard({ event }: { event: EventListItem }) {
  * tab is open — that is what lets each tab carry its own count, so an empty
  * "Happening now" is visible without clicking into it. It is the same three
  * requests the stacked layout already made, so nothing got more expensive.
+ *
+ * Paged, because the API answers twenty at a time and the page used to stop at
+ * the first twenty: the count on the tab said forty and the rest could not be
+ * reached by any amount of scrolling.
+ *
+ * 'pages' in the key is not decoration. These queries are kept for reading
+ * offline (KEPT in lib/pwa/queryPersist.ts), and under the old key an installed
+ * app would restore a single saved page where a list of pages is now expected.
  */
 function useEventsQuery(
   timeframe: Timeframe,
   isPublicFilter: 'all' | 'internal' | 'public',
   sort: string,
+  period: Period,
 ) {
-  return useQuery({
-    queryKey: ['events', timeframe, isPublicFilter, sort],
-    queryFn: () => {
-      const [sortBy, order] = sort.split(':');
-      const params = new URLSearchParams({ timeframe, sortBy, order });
+  return useInfiniteQuery({
+    queryKey: ['events', 'pages', timeframe, isPublicFilter, sort, period],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => {
+      const resolved =
+        sort === RECENT
+          ? TABS.find((t) => t.timeframe === timeframe)!.defaultSort
+          : sort;
+      const [sortBy, order] = resolved.split(':');
+      const params = new URLSearchParams({
+        timeframe,
+        sortBy,
+        order,
+        page: String(pageParam),
+      });
       if (isPublicFilter !== 'all') {
         params.set('isPublic', String(isPublicFilter === 'public'));
       }
+      // Worked out here, at the moment of asking, rather than held in the key:
+      // a page left open over midnight asks for the new day on its next fetch.
+      const bounds = periodBounds(period);
+      if (bounds) {
+        params.set('from', bounds.from.toISOString());
+        params.set('to', bounds.to.toISOString());
+      }
       return apiFetch<EventListResponse>(`/api/v1/events?${params.toString()}`);
+    },
+    // The empty-page check is what ends it if events finish while the list is
+    // open and the total is never reached.
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.data.length, 0);
+      return lastPage.data.length > 0 && loaded < lastPage.total
+        ? pages.length + 1
+        : undefined;
     },
   });
 }
@@ -188,11 +274,26 @@ function useEventsQuery(
 function EventPanel({
   query,
   empty,
+  onShowAll,
 }: {
   query: ReturnType<typeof useEventsQuery>;
   empty: string;
+  /** Present when a period is hiding the rest, so an empty week has a way out. */
+  onShowAll?: () => void;
 }) {
-  const { data, isLoading, error } = query;
+  const { data, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    query;
+
+  // By id, not just flattened: pages are fetched at different moments, and an
+  // event added in between pushes one from the end of a page onto the start of
+  // the next. Shown twice it is also a duplicate React key.
+  const events = data
+    ? [
+        ...new Map(
+          data.pages.flatMap((p) => p.data).map((e) => [e.id, e]),
+        ).values(),
+      ]
+    : [];
 
   return (
     <div>
@@ -206,17 +307,39 @@ function EventPanel({
 
       {isLoading && <CardGridSkeleton cards={6} label="Loading events" />}
 
-      {!isLoading && data && data.data.length === 0 && (
-        <p className="rounded-[1.75rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          {empty}
-        </p>
+      {!isLoading && data && events.length === 0 && (
+        <div className="rounded-[1.75rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          <p>{empty}</p>
+          {onShowAll && (
+            <button
+              type="button"
+              onClick={onShowAll}
+              className="mt-4 rounded-lg bg-secondary px-4 py-2 font-medium text-secondary-foreground transition-colors hover:bg-muted"
+            >
+              Show all
+            </button>
+          )}
+        </div>
       )}
 
-      {!isLoading && data && data.data.length > 0 && (
+      {!isLoading && events.length > 0 && (
         <div className="grid gap-6 lg:grid-cols-3">
-          {data.data.map((event) => (
+          {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
+        </div>
+      )}
+
+      {hasNextPage && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="rounded-lg bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-muted disabled:opacity-60"
+          >
+            {isFetchingNextPage ? 'Loading…' : 'Load more'}
+          </button>
         </div>
       )}
     </div>
@@ -227,14 +350,16 @@ export function EventsList() {
   const [isPublicFilter, setIsPublicFilter] = useState<'all' | 'internal' | 'public'>(
     'all',
   );
-  const [sort, setSort] = useState<string>('startAt:asc');
+  const [sort, setSort] = useState<string>(RECENT);
   const [active, setActive] = useState<Timeframe>('now');
+  const [period, setPeriod] = useState<Period>('week');
 
   // Called unconditionally and in a fixed order — see useEventsQuery.
   const queries: Record<Timeframe, ReturnType<typeof useEventsQuery>> = {
-    now: useEventsQuery('now', isPublicFilter, sort),
-    upcoming: useEventsQuery('upcoming', isPublicFilter, sort),
-    past: useEventsQuery('past', isPublicFilter, sort),
+    // Happening now is already one moment; a period has nothing to narrow.
+    now: useEventsQuery('now', isPublicFilter, sort, 'all'),
+    upcoming: useEventsQuery('upcoming', isPublicFilter, sort, period),
+    past: useEventsQuery('past', isPublicFilter, sort, period),
   };
 
   return (
@@ -312,7 +437,7 @@ export function EventsList() {
         >
           {TABS.map(({ timeframe, title, icon: Icon, hint }) => {
             const isActive = active === timeframe;
-            const count = queries[timeframe].data?.total;
+            const count = queries[timeframe].data?.pages[0]?.total;
             return (
               <Tooltip key={timeframe} content={hint}>
               <button
@@ -355,7 +480,42 @@ export function EventsList() {
             aria-labelledby={`events-tab-${t.timeframe}`}
             className="pt-6"
           >
-            <EventPanel query={queries[t.timeframe]} empty={t.empty} />
+            {t.timeframe !== 'now' && (
+              <div
+                role="group"
+                aria-label="Period"
+                className="mb-6 flex flex-wrap gap-2"
+              >
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    aria-pressed={period === p.value}
+                    onClick={() => setPeriod(p.value)}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                      period === p.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {t.timeframe === 'now' || period === 'all' ? (
+              <EventPanel query={queries[t.timeframe]} empty={t.empty} />
+            ) : (
+              // Names the period: "No upcoming events" under a filter nobody
+              // remembers setting reads as an empty ministry.
+              <EventPanel
+                query={queries[t.timeframe]}
+                empty={`${t.empty.replace(/\.$/, '')} ${
+                  PERIODS.find((p) => p.value === period)!.inWords
+                }.`}
+                onShowAll={() => setPeriod('all')}
+              />
+            )}
           </div>
         ))}
       </div>

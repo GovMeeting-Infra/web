@@ -1,3 +1,5 @@
+import type { EventType } from './events';
+
 export interface EventStats {
   total: number;
   upcoming: number;
@@ -58,6 +60,11 @@ export interface UserStats {
   activeUsers: number;
   usersByRole: { role: string; count: number }[];
   averageDaysSinceLastLogin: number;
+  /**
+   * The most recent sign-in by anyone in scope; null if nobody ever has.
+   * Optional for the same reason as sessionsByType below.
+   */
+  lastSignInAt?: string | null;
 }
 
 export interface ActionItemStats {
@@ -83,6 +90,11 @@ export interface EventsOverTimePoint {
   count: number;
 }
 
+export interface SessionsByTypePoint {
+  type: EventType;
+  count: number;
+}
+
 export interface AnalyticsDashboard {
   eventStats: EventStats;
   attendanceStats: AttendanceStats;
@@ -90,6 +102,13 @@ export interface AnalyticsDashboard {
   actionItemStats: ActionItemStats;
   checkInMethods: CheckInMethods;
   eventsOverTime: EventsOverTimePoint[];
+  /**
+   * Sessions that took place, by type, most common first.
+   *
+   * Optional because the API deploys separately and caches this response for
+   * an hour: a build that requires the field will meet a response without it.
+   */
+  sessionsByType?: SessionsByTypePoint[];
   /** Last 30 days against the 30 before, so a total has something to mean against. */
   trend: Trend;
   /** Signature capture and geofence outcomes across every check-in. */
