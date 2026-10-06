@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import {
   Plus,
   CalendarDays,
@@ -176,25 +176,47 @@ function EventCard({ event }: { event: EventListItem }) {
  * tab is open — that is what lets each tab carry its own count, so an empty
  * "Happening now" is visible without clicking into it. It is the same three
  * requests the stacked layout already made, so nothing got more expensive.
+ *
+ * Paged, because the API answers twenty at a time and the page used to stop at
+ * the first twenty: the count on the tab said forty and the rest could not be
+ * reached by any amount of scrolling.
+ *
+ * 'pages' in the key is not decoration. These queries are kept for reading
+ * offline (KEPT in lib/pwa/queryPersist.ts), and under the old key an installed
+ * app would restore a single saved page where a list of pages is now expected.
  */
 function useEventsQuery(
   timeframe: Timeframe,
   isPublicFilter: 'all' | 'internal' | 'public',
   sort: string,
 ) {
-  return useQuery({
-    queryKey: ['events', timeframe, isPublicFilter, sort],
-    queryFn: () => {
+  return useInfiniteQuery({
+    queryKey: ['events', 'pages', timeframe, isPublicFilter, sort],
+    initialPageParam: 1,
+    queryFn: ({ pageParam }) => {
       const resolved =
         sort === RECENT
           ? TABS.find((t) => t.timeframe === timeframe)!.defaultSort
           : sort;
       const [sortBy, order] = resolved.split(':');
-      const params = new URLSearchParams({ timeframe, sortBy, order });
+      const params = new URLSearchParams({
+        timeframe,
+        sortBy,
+        order,
+        page: String(pageParam),
+      });
       if (isPublicFilter !== 'all') {
         params.set('isPublic', String(isPublicFilter === 'public'));
       }
       return apiFetch<EventListResponse>(`/api/v1/events?${params.toString()}`);
+    },
+    // The empty-page check is what ends it if events finish while the list is
+    // open and the total is never reached.
+    getNextPageParam: (lastPage, pages) => {
+      const loaded = pages.reduce((n, p) => n + p.data.length, 0);
+      return lastPage.data.length > 0 && loaded < lastPage.total
+        ? pages.length + 1
+        : undefined;
     },
   });
 }
@@ -206,7 +228,19 @@ function EventPanel({
   query: ReturnType<typeof useEventsQuery>;
   empty: string;
 }) {
-  const { data, isLoading, error } = query;
+  const { data, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage } =
+    query;
+
+  // By id, not just flattened: pages are fetched at different moments, and an
+  // event added in between pushes one from the end of a page onto the start of
+  // the next. Shown twice it is also a duplicate React key.
+  const events = data
+    ? [
+        ...new Map(
+          data.pages.flatMap((p) => p.data).map((e) => [e.id, e]),
+        ).values(),
+      ]
+    : [];
 
   return (
     <div>
@@ -220,17 +254,30 @@ function EventPanel({
 
       {isLoading && <CardGridSkeleton cards={6} label="Loading events" />}
 
-      {!isLoading && data && data.data.length === 0 && (
+      {!isLoading && data && events.length === 0 && (
         <p className="rounded-[1.75rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
           {empty}
         </p>
       )}
 
-      {!isLoading && data && data.data.length > 0 && (
+      {!isLoading && events.length > 0 && (
         <div className="grid gap-6 lg:grid-cols-3">
-          {data.data.map((event) => (
+          {events.map((event) => (
             <EventCard key={event.id} event={event} />
           ))}
+        </div>
+      )}
+
+      {hasNextPage && (
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => fetchNextPage()}
+            disabled={isFetchingNextPage}
+            className="rounded-lg bg-secondary px-6 py-2 text-sm font-medium text-secondary-foreground transition-colors hover:bg-muted disabled:opacity-60"
+          >
+            {isFetchingNextPage ? 'Loading…' : 'Load more'}
+          </button>
         </div>
       )}
     </div>
@@ -326,7 +373,7 @@ export function EventsList() {
         >
           {TABS.map(({ timeframe, title, icon: Icon, hint }) => {
             const isActive = active === timeframe;
-            const count = queries[timeframe].data?.total;
+            const count = queries[timeframe].data?.pages[0]?.total;
             return (
               <Tooltip key={timeframe} content={hint}>
               <button
