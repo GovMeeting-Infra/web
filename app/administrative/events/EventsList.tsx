@@ -79,6 +79,43 @@ const TABS = [
 
 type Timeframe = (typeof TABS)[number]['timeframe'];
 
+// How much of Upcoming and Past to show at once. One training repeated weekly
+// for a year is thirty-six cards on Upcoming, and whatever else is on this
+// week was somewhere among them.
+const PERIODS = [
+  { value: 'today', label: 'Today', inWords: 'today' },
+  { value: 'week', label: 'This week', inWords: 'this week' },
+  { value: 'month', label: 'This month', inWords: 'this month' },
+  { value: 'all', label: 'All', inWords: '' },
+] as const;
+
+type Period = (typeof PERIODS)[number]['value'];
+
+/**
+ * The period as [from, to) in the reader's own time, or null for all of it.
+ *
+ * Their time, not the server's: "today" is the day on the wall where they are.
+ * The week runs Monday to Sunday.
+ */
+function periodBounds(period: Period): { from: Date; to: Date } | null {
+  if (period === 'all') return null;
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  if (period === 'today') {
+    return { from: new Date(y, m, d), to: new Date(y, m, d + 1) };
+  }
+  if (period === 'week') {
+    const sinceMonday = (now.getDay() + 6) % 7;
+    return {
+      from: new Date(y, m, d - sinceMonday),
+      to: new Date(y, m, d - sinceMonday + 7),
+    };
+  }
+  return { from: new Date(y, m, 1), to: new Date(y, m + 1, 1) };
+}
+
 function formatDateTime(startAt: string, endAt: string) {
   const start = new Date(startAt);
   const end = new Date(endAt);
@@ -194,9 +231,10 @@ function useEventsQuery(
   timeframe: Timeframe,
   isPublicFilter: 'all' | 'internal' | 'public',
   sort: string,
+  period: Period,
 ) {
   return useInfiniteQuery({
-    queryKey: ['events', 'pages', timeframe, isPublicFilter, sort],
+    queryKey: ['events', 'pages', timeframe, isPublicFilter, sort, period],
     initialPageParam: 1,
     queryFn: ({ pageParam }) => {
       const resolved =
@@ -212,6 +250,13 @@ function useEventsQuery(
       });
       if (isPublicFilter !== 'all') {
         params.set('isPublic', String(isPublicFilter === 'public'));
+      }
+      // Worked out here, at the moment of asking, rather than held in the key:
+      // a page left open over midnight asks for the new day on its next fetch.
+      const bounds = periodBounds(period);
+      if (bounds) {
+        params.set('from', bounds.from.toISOString());
+        params.set('to', bounds.to.toISOString());
       }
       return apiFetch<EventListResponse>(`/api/v1/events?${params.toString()}`);
     },
@@ -295,12 +340,14 @@ export function EventsList() {
   );
   const [sort, setSort] = useState<string>(RECENT);
   const [active, setActive] = useState<Timeframe>('now');
+  const [period, setPeriod] = useState<Period>('week');
 
   // Called unconditionally and in a fixed order — see useEventsQuery.
   const queries: Record<Timeframe, ReturnType<typeof useEventsQuery>> = {
-    now: useEventsQuery('now', isPublicFilter, sort),
-    upcoming: useEventsQuery('upcoming', isPublicFilter, sort),
-    past: useEventsQuery('past', isPublicFilter, sort),
+    // Happening now is already one moment; a period has nothing to narrow.
+    now: useEventsQuery('now', isPublicFilter, sort, 'all'),
+    upcoming: useEventsQuery('upcoming', isPublicFilter, sort, period),
+    past: useEventsQuery('past', isPublicFilter, sort, period),
   };
 
   return (
@@ -421,6 +468,29 @@ export function EventsList() {
             aria-labelledby={`events-tab-${t.timeframe}`}
             className="pt-6"
           >
+            {t.timeframe !== 'now' && (
+              <div
+                role="group"
+                aria-label="Period"
+                className="mb-6 flex flex-wrap gap-2"
+              >
+                {PERIODS.map((p) => (
+                  <button
+                    key={p.value}
+                    type="button"
+                    aria-pressed={period === p.value}
+                    onClick={() => setPeriod(p.value)}
+                    className={`rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                      period === p.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <EventPanel query={queries[t.timeframe]} empty={t.empty} />
           </div>
         ))}
