@@ -274,9 +274,12 @@ function useEventsQuery(
 function EventPanel({
   query,
   empty,
+  onShowAll,
 }: {
   query: ReturnType<typeof useEventsQuery>;
   empty: string;
+  /** Present when a period is hiding the rest, so an empty week has a way out. */
+  onShowAll?: () => void;
 }) {
   const { data, isLoading, error, hasNextPage, isFetchingNextPage, fetchNextPage } =
     query;
@@ -305,9 +308,18 @@ function EventPanel({
       {isLoading && <CardGridSkeleton cards={6} label="Loading events" />}
 
       {!isLoading && data && events.length === 0 && (
-        <p className="rounded-[1.75rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-          {empty}
-        </p>
+        <div className="rounded-[1.75rem] border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          <p>{empty}</p>
+          {onShowAll && (
+            <button
+              type="button"
+              onClick={onShowAll}
+              className="mt-4 rounded-lg bg-secondary px-4 py-2 font-medium text-secondary-foreground transition-colors hover:bg-muted"
+            >
+              Show all
+            </button>
+          )}
+        </div>
       )}
 
       {!isLoading && events.length > 0 && (
@@ -491,7 +503,19 @@ export function EventsList() {
                 ))}
               </div>
             )}
-            <EventPanel query={queries[t.timeframe]} empty={t.empty} />
+            {t.timeframe === 'now' || period === 'all' ? (
+              <EventPanel query={queries[t.timeframe]} empty={t.empty} />
+            ) : (
+              // Names the period: "No upcoming events" under a filter nobody
+              // remembers setting reads as an empty ministry.
+              <EventPanel
+                query={queries[t.timeframe]}
+                empty={`${t.empty.replace(/\.$/, '')} ${
+                  PERIODS.find((p) => p.value === period)!.inWords
+                }.`}
+                onShowAll={() => setPeriod('all')}
+              />
+            )}
           </div>
         ))}
       </div>
