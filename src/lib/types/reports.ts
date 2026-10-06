@@ -60,6 +60,11 @@ export interface UserStats {
   activeUsers: number;
   usersByRole: { role: string; count: number }[];
   averageDaysSinceLastLogin: number;
+  /**
+   * The most recent sign-in by anyone in scope; null if nobody ever has.
+   * Optional for the same reason as sessionsByType below.
+   */
+  lastSignInAt?: string | null;
 }
 
 export interface ActionItemStats {

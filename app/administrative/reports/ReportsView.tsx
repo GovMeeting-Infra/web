@@ -247,7 +247,28 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
     : 'Running totals';
 
   const pct = (n: number) => `${Math.round(n * 100)}%`;
-  const maxMonth = Math.max(1, ...(data?.eventsOverTime ?? []).map((m) => m.count));
+
+  /**
+   * "Today", "Yesterday" or "12 days ago", in calendar days.
+   *
+   * Measured from when the figures were computed, not from the clock: the page
+   * can sit open, and the answer has to agree with the "as of" beside it.
+   */
+  const lastSignIn = (() => {
+    const at = data?.userStats.lastSignInAt;
+    if (!data || !at) return 'Never';
+    const dayOf = (d: Date) =>
+      new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    const days = Math.round(
+      (dayOf(new Date(data.generatedAt)) - dayOf(new Date(at))) / 86_400_000,
+    );
+    if (days <= 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return `${days} days ago`;
+  })();
+  const avgDaysSinceSignIn = Math.round(
+    data?.userStats.averageDaysSinceLastLogin ?? 0,
+  );
 
   return (
     <PageContainer className="space-y-8">
@@ -560,14 +581,25 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                 {
                   label: 'On the books',
                   value: data.userStats.totalUsers,
-                  hint: 'Every account that can still sign in. Erased accounts are not counted.',
+                  // "That can still sign in" was not what this counts: a
+                  // deactivated account is in here and cannot.
+                  hint: 'Every account on record, including deactivated ones. Erased accounts are not counted.',
                 },
                 {
-                  label: 'Last signed in',
-                  // Was labelled "avg. sign-ins" and read as engagement. It is
-                  // the mean days since last login: higher is worse.
-                  value: `${Math.round(data.userStats.averageDaysSinceLastLogin)} days ago`,
-                  hint: 'Averaged across accounts that have ever signed in. A rising number means people are drifting away from the platform.',
+                  label: 'Last sign-in',
+                  // The most recent sign-in by anyone, which is what the label
+                  // says. It used to show the average across every account
+                  // under this label, so "19 days ago" sat here on a day
+                  // someone had signed in. Against an API that does not send
+                  // the date yet, the average is shown as the average.
+                  value:
+                    data.userStats.lastSignInAt === undefined
+                      ? `${avgDaysSinceSignIn} days`
+                      : lastSignIn,
+                  hint:
+                    data.userStats.lastSignInAt === undefined
+                      ? 'The average time since each account last signed in, not the most recent sign-in.'
+                      : `The most recent time anyone signed in. On average, accounts last signed in ${avgDaysSinceSignIn} ${avgDaysSinceSignIn === 1 ? 'day' : 'days'} ago; a rising average means people are drifting away from the platform.`,
                 },
               ]}
             />
