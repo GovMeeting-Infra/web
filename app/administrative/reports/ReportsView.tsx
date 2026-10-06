@@ -471,19 +471,19 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
 
             <ReportCard
               title="Meetings"
-              description="Scheduled, held, and the total across both."
+              description="Still to come, finished, and everything on record."
               asOf={asOf}
               icon={<TrendingUp className="h-6 w-6 text-primary" aria-hidden />}
               metrics={[
                 {
                   label: 'Still to come',
                   value: data.eventStats.upcoming,
-                  hint: 'Starts after now.',
+                  hint: 'Published, and starts after now.',
                 },
                 {
                   label: 'Finished',
                   value: data.eventStats.past,
-                  hint: 'Ended before now.',
+                  hint: 'Published, and ended before now. The same sessions as Sessions held below.',
                 },
                 {
                   label: 'All meetings',
