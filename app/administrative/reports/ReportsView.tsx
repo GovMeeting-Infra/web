@@ -332,7 +332,10 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
                   Math.round(data.trend.previous.attendanceRate * 100)
                 }
                 unit="pts"
-                detail={`${data.trend.current.checkIns} check-ins against ${data.trend.current.invited} invitations`}
+                // The same two numbers the rate is made of. This used to quote
+                // every check-in, walk-ins included, beside a rate that leaves
+                // them out — "5 check-ins against 2 invitations: 50%".
+                detail={`${data.trend.current.checkIns - data.trend.current.walkIns} of ${data.trend.current.invited} invited people turned up`}
               />
               <TrendFigure
                 label="Meetings held"
