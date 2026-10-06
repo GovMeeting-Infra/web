@@ -134,7 +134,12 @@ function EventCard({ event }: { event: EventListItem }) {
             )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Users className="h-4 w-4" />
-              {event._count.attendees} attendees &middot; {EVENT_TYPE_LABELS[event.type]}
+              {/* Who signed in, walk-ins included — the same count as Checked In
+                  on the event's own page. This used to be the invite count
+                  under the same word, so a meeting forty people attended read
+                  "2 attendees" here. */}
+              {event._count.attendances}{' '}
+              {event._count.attendances === 1 ? 'attendee' : 'attendees'} &middot; {EVENT_TYPE_LABELS[event.type]}
             </div>
           </div>
         </div>
