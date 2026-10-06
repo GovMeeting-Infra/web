@@ -32,7 +32,14 @@ const STATUS_PILL: Record<EventStatus, string> = {
   CANCELLED: 'bg-muted text-muted-foreground line-through',
 };
 
+// 'recent' is not one order but each tab's own (defaultSort below): whatever
+// puts the events nearest today at the top. One order for all three could not
+// do that — earliest first buried the latest past meeting at the bottom, and
+// latest first would do the same to the next upcoming one.
+const RECENT = 'recent';
+
 const SORT_OPTIONS = [
+  { value: RECENT, label: 'Date (closest to today first)' },
   { value: 'startAt:asc', label: 'Date (soonest first)' },
   { value: 'startAt:desc', label: 'Date (latest first)' },
   { value: 'title:asc', label: 'Title (A–Z)' },
@@ -50,6 +57,7 @@ const TABS = [
     icon: Radio,
     empty: 'Nothing is running right now.',
     hint: 'Under way at this moment — started and not yet finished. This is where to find a meeting you need to check people into.',
+    defaultSort: 'startAt:desc',
   },
   {
     timeframe: 'upcoming',
@@ -57,13 +65,15 @@ const TABS = [
     icon: CalendarDays,
     empty: 'No upcoming events.',
     hint: 'Scheduled but not started yet, soonest first.',
+    defaultSort: 'startAt:asc',
   },
   {
     timeframe: 'past',
     title: 'Past',
     icon: History,
     empty: 'No past events.',
-    hint: 'Already finished. Their minutes and attendance are still here.',
+    hint: 'Already finished, most recent first. Their minutes and attendance are still here.',
+    defaultSort: 'startAt:desc',
   },
 ] as const;
 
@@ -175,7 +185,11 @@ function useEventsQuery(
   return useQuery({
     queryKey: ['events', timeframe, isPublicFilter, sort],
     queryFn: () => {
-      const [sortBy, order] = sort.split(':');
+      const resolved =
+        sort === RECENT
+          ? TABS.find((t) => t.timeframe === timeframe)!.defaultSort
+          : sort;
+      const [sortBy, order] = resolved.split(':');
       const params = new URLSearchParams({ timeframe, sortBy, order });
       if (isPublicFilter !== 'all') {
         params.set('isPublic', String(isPublicFilter === 'public'));
@@ -227,7 +241,7 @@ export function EventsList() {
   const [isPublicFilter, setIsPublicFilter] = useState<'all' | 'internal' | 'public'>(
     'all',
   );
-  const [sort, setSort] = useState<string>('startAt:asc');
+  const [sort, setSort] = useState<string>(RECENT);
   const [active, setActive] = useState<Timeframe>('now');
 
   // Called unconditionally and in a fixed order — see useEventsQuery.
