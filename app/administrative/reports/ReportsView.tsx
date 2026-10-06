@@ -16,7 +16,7 @@ import {
 import { apiFetch, apiDownload, messageFor } from '@/lib/api/client';
 import { CardGridSkeleton } from '@/components/ui/skeletons';
 import { CSV_EXPORTS, type AnalyticsDashboard } from '@/lib/types/reports';
-import { ACTION_ITEM_STATUS_DOT } from '@/lib/types/events';
+import { ACTION_ITEM_STATUS_DOT, EVENT_TYPE_LABELS } from '@/lib/types/events';
 import { ROLE_LABELS } from '@/lib/types/account';
 import type { SystemRole } from '@/lib/session';
 import { PageContainer } from '@/components/ui/page-container';
@@ -82,22 +82,6 @@ function ReportCard({
       </div>
     </div>
   );
-}
-
-/**
- * "Sep" rather than "09", and the year where it turns.
- *
- * The axis printed a bare two-digit month, so a window crossing a year read
- * "09 10 11 12 01 02" with nothing marking the boundary.
- */
-function monthLabel(month: string, long = false): string {
-  const [y, m] = month.split('-');
-  const d = new Date(Number(y), Number(m) - 1, 1);
-  if (long) {
-    return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-  }
-  const short = d.toLocaleDateString(undefined, { month: 'short' });
-  return m === '01' ? `${short} ${y.slice(2)}` : short;
 }
 
 /**
@@ -242,10 +226,9 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
     }
   };
 
-  const totalCreated = (data?.eventsOverTime ?? []).reduce(
-    (n, m) => n + m.count,
-    0,
-  );
+  const sessionsByType = data?.sessionsByType ?? [];
+  const sessionsHeld = sessionsByType.reduce((n, s) => n + s.count, 0);
+  const maxSessionType = Math.max(1, ...sessionsByType.map((s) => s.count));
 
   /**
    * When these figures were computed — not the period they cover.
@@ -667,74 +650,47 @@ export function ReportsView({ scopeLabel }: { scopeLabel: string }) {
               )}
             </section>
 
-            {/* Events over time */}
+            {/* Sessions held, by type */}
             <section className="min-w-0 rounded-[1.75rem] border border-border bg-surface-raised p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)]">
-              <h2 className="font-semibold text-primary">Meetings scheduled</h2>
+              <h2 className="font-semibold text-primary">Sessions held</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                By the month they were created, over the last 12 months.
+                Published sessions that have taken place, by type.
               </p>
 
-              {totalCreated === 0 ? (
+              {sessionsHeld === 0 ? (
                 <p className="mt-6 text-sm text-muted-foreground">
-                  No meetings have been created in the last 12 months.
+                  No sessions have been held yet.
                 </p>
               ) : (
-                <>
-                  <div className="mt-6 -mx-2 overflow-x-auto px-2">
-                    <div
-                      aria-hidden
-                      className="flex h-32 min-w-[28rem] items-end gap-1"
-                    >
-                      {data.eventsOverTime.map((m) => (
+                // A list, not a chart beside a hidden table: each row carries
+                // its name and its count as text, so the bar only has to
+                // repeat what is already written.
+                <ul className="mt-6 space-y-4">
+                  {sessionsByType.map((s) => (
+                    <li key={s.type}>
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {EVENT_TYPE_LABELS[s.type] ?? s.type}
+                        </span>
+                        <span className="font-semibold text-primary">
+                          {s.count}
+                          <span className="ml-1 text-xs font-normal text-muted-foreground">
+                            ({Math.round((s.count / sessionsHeld) * 100)}%)
+                          </span>
+                        </span>
+                      </div>
+                      <div
+                        aria-hidden
+                        className="mt-1.5 h-2 overflow-hidden rounded-full bg-secondary"
+                      >
                         <div
-                          key={m.month}
-                          className="flex flex-1 flex-col items-center gap-1"
-                        >
-                          {/* The count above the bar. It used to live only
-                              inside a hover tooltip on a bare div — so on a
-                              phone it needed a 500ms press on a 2.5px target,
-                              and by keyboard it was unreachable entirely. */}
-                          <span className="text-[10px] font-semibold text-primary">
-                            {m.count > 0 ? m.count : ''}
-                          </span>
-                          <div
-                            className={
-                              m.count === 0
-                                ? 'w-full rounded-t bg-border'
-                                : 'w-full rounded-t bg-primary transition-all'
-                            }
-                            style={{
-                              height: `${Math.max(2, (m.count / maxMonth) * 100)}%`,
-                            }}
-                          />
-                          <span className="text-[10px] text-muted-foreground">
-                            {monthLabel(m.month)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* The same twelve values as a table, for anyone not reading
-                      the bars. */}
-                  <table className="sr-only">
-                    <caption>Meetings created per month, last 12 months</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">Month</th>
-                        <th scope="col">Meetings created</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.eventsOverTime.map((m) => (
-                        <tr key={m.month}>
-                          <th scope="row">{monthLabel(m.month, true)}</th>
-                          <td>{m.count}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </>
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${(s.count / maxSessionType) * 100}%` }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
               )}
             </section>
           </div>
