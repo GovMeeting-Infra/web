@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  FileUp,
   UserPlus,
   Search,
   Power,
@@ -661,15 +663,25 @@ export function UsersView({
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setShowCreate((v) => !v);
-            setInvite(null);
-          }}
-          className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)]"
-        >
-          <UserPlus className="h-4 w-4" /> Invite someone
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Adds people to the attendee search without inviting them, which
+              is why it sits beside Invite rather than inside it. */}
+          <Link
+            href="/administrative/admin/users/import"
+            className="flex items-center gap-2 rounded-[1.25rem] border border-border bg-background px-5 py-2.5 text-sm font-medium text-foreground hover:bg-muted/50"
+          >
+            <FileUp className="h-4 w-4" /> Upload staff list
+          </Link>
+          <button
+            onClick={() => {
+              setShowCreate((v) => !v);
+              setInvite(null);
+            }}
+            className="flex items-center gap-2 rounded-[1.25rem] bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground shadow-[0_8px_16px_rgba(0,53,128,0.24)]"
+          >
+            <UserPlus className="h-4 w-4" /> Invite someone
+          </button>
+        </div>
       </div>
 
       {/* Announced, and it sits under the header rather than only at the top
