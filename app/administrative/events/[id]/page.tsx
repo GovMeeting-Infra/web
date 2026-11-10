@@ -701,6 +701,10 @@ export default function EventDetailPage({
                       placeholder="Search for a colleague…"
                       disabled={isBusy}
                     />
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Only colleagues who have accepted their invitation to the
+                      platform can co-organize.
+                    </p>
                   </div>
                   <button
                     onClick={handleAddCoOrganizer}

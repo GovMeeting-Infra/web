@@ -380,8 +380,10 @@ export function ActionItemModal({
                 <PersonPicker
                   value={null}
                   // The same people the item could be assigned to: help with
-                  // work from a meeting comes from someone who was in it.
-                  endpoint={`/api/v1/events/${item.minutes.event.id}/attendee-candidates`}
+                  // work from a meeting comes from someone who was in it. But
+                  // only those who can sign in, since helping is done in the
+                  // app; an owner need not, and is reached by the minutes link.
+                  endpoint={`/api/v1/events/${item.minutes.event.id}/attendee-candidates?accepted=only`}
                   placeholder="Search the people invited to this meeting…"
                   allowUnassign={false}
                   excludeIds={[

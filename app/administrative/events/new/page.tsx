@@ -12,6 +12,7 @@ import {
 } from '@/lib/hooks/useUnsavedWarning';
 import { uploadImage } from '@/lib/upload';
 import { useCurrentUser } from '@/components/SessionProvider';
+import { USER_ADMIN_ROLES } from '@/lib/roles';
 import { PageContainer } from '@/components/ui/page-container';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PersonPicker } from '@/components/ui/person-picker';
@@ -128,7 +129,11 @@ export default function NewEventPage() {
    * no error branch it read as "this ministry has no other staff" rather than
    * "the list did not load".
    */
-  const { data: candidates = [], error: candidatesError } = useQuery({
+  const {
+    data: candidates = [],
+    error: candidatesError,
+    isSuccess: candidatesLoaded,
+  } = useQuery({
     queryKey: ['co-organizer-candidates'],
     queryFn: () =>
       apiFetch<CoOrganizerCandidate[]>('/api/v1/events/co-organizer-candidates'),
@@ -600,6 +605,31 @@ export default function NewEventPage() {
             </p>
           )}
 
+          {/* The list holds only colleagues who have accepted their
+              invitation, since co-organizing is done in the app. In a ministry
+              where nobody else has yet, the event cannot be created, and the
+              form says why instead of offering an empty list. */}
+          {candidatesLoaded && candidates.length === 0 && (
+            <p
+              role="status"
+              className="mt-1 rounded-md border border-alert-border bg-alert-bg px-3 py-2 text-sm text-alert-fg"
+            >
+              Nobody else in your ministry has accepted their invitation to the
+              platform yet, and a co-organizer has to be able to sign in.{' '}
+              {currentUser && USER_ADMIN_ROLES.includes(currentUser.systemRole) ? (
+                <>
+                  Ask a colleague to accept theirs, or re-send it from{' '}
+                  <Link href="/administrative/admin/users" className="font-medium underline">
+                    Users
+                  </Link>
+                  .
+                </>
+              ) : (
+                'Ask a colleague to accept theirs, or ask your ministry administrator to invite one.'
+              )}
+            </p>
+          )}
+
           <select
             value=""
             aria-label="Add a co-organizer"
@@ -623,8 +653,8 @@ export default function NewEventPage() {
           </select>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {isPublic
-              ? 'At least one is required. Co-organizers can edit and cancel this activity, so it stays manageable when you are unavailable. They are told once an admin publishes it.'
-              : 'At least one is required. Co-organizers can edit this event and manage its attendees, so the meeting stays manageable when you are unavailable.'}
+              ? 'At least one is required. Co-organizers can edit and cancel this activity, so it stays manageable when you are unavailable. They are told once an admin publishes it. Only colleagues who have accepted their invitation are listed.'
+              : 'At least one is required. Co-organizers can edit this event and manage its attendees, so the meeting stays manageable when you are unavailable. Only colleagues who have accepted their invitation are listed.'}
           </p>
         </div>
 
