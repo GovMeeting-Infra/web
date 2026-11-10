@@ -242,8 +242,14 @@ export function CheckedInTable({
   canRemove,
   onRemove,
   onEdit,
+  walkInIds,
 }: {
   checkIns: AttendanceRecord[];
+  /**
+   * Which rows are walk-ins, as the page decided them against the invite list.
+   * Falls back to the row's own flag, which older staff check-ins never set.
+   */
+  walkInIds?: Set<string>;
   eventId: string;
   canRemove: boolean;
   onRemove: (attendanceId: string, name: string) => void;
@@ -352,7 +358,7 @@ export function CheckedInTable({
                     <span className="font-medium text-foreground">
                       {c.signedName}
                     </span>
-                    {c.isWalkIn && (
+                    {(walkInIds ? walkInIds.has(c.id) : c.isWalkIn) && (
                       <span className="ml-2 rounded-full bg-stat-gold-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-stat-gold-fg">
                         Walk-in
                       </span>
@@ -430,7 +436,7 @@ export function CheckedInTable({
               <div className="min-w-0">
                 <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-foreground">
                   {c.signedName}
-                  {c.isWalkIn && (
+                  {(walkInIds ? walkInIds.has(c.id) : c.isWalkIn) && (
                     <span className="rounded-full bg-stat-gold-bg px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-stat-gold-fg">
                       Walk-in
                     </span>
