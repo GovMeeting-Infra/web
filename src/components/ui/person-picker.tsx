@@ -81,15 +81,16 @@ export function PersonPicker({
     enabled: open,
   });
 
-  const term = query.trim().toLowerCase();
+  // Every word has to appear, in any order, matching the server. A single
+  // `includes` on the whole term hid "Mansaray Abdul" even when the server
+  // had found him, because the stored name reads the other way round.
+  const words = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const people = candidates
     .filter((p) => !excludeIds?.includes(p.id))
-    .filter(
-      (p) =>
-        !term ||
-        p.name.toLowerCase().includes(term) ||
-        p.email.toLowerCase().includes(term),
-    );
+    .filter((p) => {
+      const hay = `${p.name} ${p.email}`.toLowerCase();
+      return words.every((w) => hay.includes(w));
+    });
 
   // Close on an outside click so the list does not sit over the form.
   useEffect(() => {
