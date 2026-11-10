@@ -335,12 +335,28 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
   });
 
   // Everyone connected to the meeting: invitees, plus anyone who turned up
-  // without an invitation. isWalkIn is the server's
-  // own answer to "was this person invited?" — it is set by matching the
-  // check-in against the invite list — so filtering on it cannot drift from
-  // what the invite rows say. Without this, someone checked in at the desk
-  // appeared under Checked In and nowhere else.
-  const walkIns = checkIns.filter((c) => c.isWalkIn);
+  // without an invitation. Without the second half, someone checked in at the
+  // desk appeared under Checked In and nowhere else.
+  //
+  // "Without an invitation" is decided here against the invite list, by
+  // account or by address, rather than read off isWalkIn. The flag was never
+  // set when a signed-in colleague scanned in, so every uninvited colleague
+  // was missing from All; the server now sets it, but the rows written before
+  // that still carry false. Matching also means a person can never appear
+  // twice, whichever way they were invited.
+  const invitedUserIds = new Set(
+    (event?.attendees ?? []).map((a) => a.userId).filter(Boolean),
+  );
+  const invitedEmails = new Set(
+    (event?.attendees ?? [])
+      .map((a) => attendeeEmail(a)?.toLowerCase())
+      .filter(Boolean),
+  );
+  const walkIns = checkIns.filter((c) => {
+    if (c.userId && invitedUserIds.has(c.userId)) return false;
+    const email = (c.user?.email ?? c.guestEmail)?.toLowerCase();
+    return !(email && invitedEmails.has(email));
+  });
   const all: AllRow[] = [
     ...(event?.attendees ?? []).map(
       (a): AllRow => ({
@@ -1153,6 +1169,7 @@ export default function AttendeesPage({ params }: { params: Promise<{ id: string
           {activeTab === 'checkedIn' && !checkInsError && (
             <CheckedInTable
               checkIns={checkIns}
+              walkInIds={new Set(walkIns.map((w) => w.id))}
               eventId={id}
               canRemove={canDoWalkIn}
               onRemove={(attendanceId, name) =>
