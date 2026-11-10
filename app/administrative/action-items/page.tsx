@@ -148,9 +148,14 @@ export default function ActionItemsPage() {
 
   // Ministry colleagues, reusing the picker list added for the event form.
   const { data: people = [] } = useQuery({
-    queryKey: ['co-organizer-candidates'],
+    // Everyone, including colleagues who have not accepted their invitation:
+    // they can own action items, so the owner filter must be able to find
+    // them. The co-organizer pickers use the same endpoint without this.
+    queryKey: ['co-organizer-candidates', 'include-pending'],
     queryFn: () =>
-      apiFetch<CoOrganizerCandidate[]>('/api/v1/events/co-organizer-candidates'),
+      apiFetch<CoOrganizerCandidate[]>(
+        '/api/v1/events/co-organizer-candidates?includePending=true',
+      ),
   });
 
   const mine = (i: BoardActionItem) =>
