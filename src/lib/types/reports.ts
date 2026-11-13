@@ -57,7 +57,14 @@ export interface Trend {
 
 export interface UserStats {
   totalUsers: number;
+  /** Active accounts that signed in during the last 30 days. */
   activeUsers: number;
+  /**
+   * What the Users page shows as Active: not deactivated, not erased, a
+   * password set, not currently locked. Optional because the API and this page
+   * deploy separately, and an API that predates the field does not send it.
+   */
+  activeAccounts?: number;
   usersByRole: { role: string; count: number }[];
   averageDaysSinceLastLogin: number;
   /**

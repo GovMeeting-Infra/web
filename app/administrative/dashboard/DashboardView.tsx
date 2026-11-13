@@ -289,7 +289,12 @@ export function DashboardView() {
     enabled: isAdmin,
   });
 
-  const events: EventListItem[] = (upcoming?.data ?? []).slice(0, 5);
+  // Cancelled meetings are not coming up. The list endpoint returns them (the
+  // events page shows them under a Cancelled pill), but this panel has no
+  // status pill, so a cancelled session read as one still going ahead.
+  const events: EventListItem[] = (upcoming?.data ?? [])
+    .filter((e) => e.status !== 'CANCELLED')
+    .slice(0, 5);
   const openItems = myItems.filter(
     (i) => i.status !== 'COMPLETED' && i.status !== 'CANCELLED',
   );
@@ -602,10 +607,22 @@ export function DashboardView() {
                 }
                 alert={analytics.actionItemStats.overdue > 0}
               />
+              {/* Counts what the Users page calls Active. It used to show the
+                  signed-in-this-month figure under this label, which read far
+                  below the Active count on the Users page. That figure is now
+                  the hint. Falls back to it only while the API is older than
+                  this page. */}
               <MiniStat
                 label="Active users"
-                value={analytics.userStats.activeUsers}
-                hint={`of ${analytics.userStats.totalUsers}`}
+                value={
+                  analytics.userStats.activeAccounts ??
+                  analytics.userStats.activeUsers
+                }
+                hint={
+                  analytics.userStats.activeAccounts === undefined
+                    ? `of ${analytics.userStats.totalUsers}`
+                    : `${analytics.userStats.activeUsers} signed in this month`
+                }
               />
             </dl>
           )}
@@ -674,19 +691,17 @@ export function DashboardView() {
                         {e.venueName ? ` · ${e.venueName}` : ''}
                       </p>
                     </div>
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span className="text-xs text-muted-foreground">
-                        {e._count.attendees}{' '}
-                        {e._count.attendees === 1 ? 'invitee' : 'invitees'}
+                    {/* The invite count used to sit here too. Removed at the
+                        user's request: most upcoming activities invite nobody
+                        in advance, so "0 invitees" on nearly every row read as
+                        an empty meeting. The two-calendar model is a product
+                        claim; a mixed list that never says which is which
+                        erases it, so the Public pill stays. */}
+                    {e.isPublic && (
+                      <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[0.6875rem] font-medium text-secondary-foreground">
+                        Public
                       </span>
-                      {/* The two-calendar model is a product claim; a mixed
-                          list that never says which is which erases it. */}
-                      {e.isPublic && (
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[0.6875rem] font-medium text-secondary-foreground">
-                          Public
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </Link>
                 </li>
               ))}
