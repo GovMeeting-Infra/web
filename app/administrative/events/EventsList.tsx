@@ -154,8 +154,8 @@ function EventCard({ event }: { event: EventListItem }) {
       ));
 
   return (
-    <div className="group rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)] transition-all hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(0,53,128,0.12)]">
-      <div className="flex items-start justify-between gap-3">
+    <div className="group flex h-full flex-col rounded-[1.75rem] border border-border bg-card p-6 shadow-[0_8px_24px_rgba(0,53,128,0.06)] transition-all hover:border-primary/30 hover:shadow-[0_16px_40px_rgba(0,53,128,0.12)]">
+      <div className="mb-6 flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <h3 className="break-words font-semibold text-primary">{event.title}</h3>
           <div className="mt-4 space-y-2">
@@ -189,7 +189,10 @@ function EventCard({ event }: { event: EventListItem }) {
         </span>
       </div>
 
-      <div className="mt-6 flex gap-3 border-t border-border pt-4">
+      {/* mt-auto pins the buttons to the bottom of the card: the grid stretches
+          every card in a row to the tallest one, and without this a short title
+          left its buttons floating higher than its neighbours'. */}
+      <div className="mt-auto flex gap-3 border-t border-border pt-4">
         {canEdit && (
           <Link
             href={`/administrative/events/${event.id}/edit`}
